@@ -5,5 +5,5 @@ gen/
 build/
 beat-core/models/
 beat-core/cache/
-ritmtrener-tauri/src-tauri/core-bundle/*
-!ritmtrener-tauri/src-tauri/core-bundle/README.txt
+BeatPractice/src-tauri/core-bundle/*
+!BeatPractice/src-tauri/core-bundle/README.txt

@@ -1,0 +1,28 @@
+{
+  "app": {
+    "windows": [
+      {
+        "title": "BeatPractice",
+        "width": 1600,
+        "height": 900,
+        "minWidth": 1040,
+        "minHeight": 600,
+        "decorations": false
+      }
+    ]
+  },
+  "bundle": {
+    "targets": [
+      "nsis"
+    ],
+    "resources": [
+      "core-bundle/**/*"
+    ],
+    "windows": {
+      "nsis": {
+        "installerIcon": "icons/icon.ico",
+        "installMode": "perMachine"
+      }
+    }
+  }
+}

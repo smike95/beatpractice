@@ -228,7 +228,16 @@ struct Player::Impl {
         } catch (const std::exception& ex) { stemFail(std::string("Stem separation failed: ") + ex.what()); }
     }
 
-    void fail(const std::string& m) { { std::lock_guard<std::mutex> l(mu); err = m; } state = (int)PlayerState::Error; }
+    bool earlyPublished = false;   // the engine was handed to the sound device before the analysis finished (worker thread only)
+    void fail(const std::string& m) {
+        { std::lock_guard<std::mutex> l(mu); err = m; }
+        if (earlyPublished) {      // do not leave a song playing that the player has given up on
+            earlyPublished = false;
+            PlaybackEngine* o = engine.exchange(nullptr);
+            if (o) { o->pause(); std::this_thread::sleep_for(std::chrono::milliseconds(250)); delete o; }
+        }
+        state = (int)PlayerState::Error;
+    }
 
     void run(std::string path) {
         try {
@@ -242,6 +251,16 @@ struct Player::Impl {
             std::vector<float> mono = decodeAudioFile(path, 1, kSampleRate);
             if (mono.empty()) return fail("Cannot decode this file.");
             prog = 0.08f;
+
+            // The original song can be played while the rhythm is still being analysed: the engine is published now
+            // (without a beat map and without metronome); the beat map is added to the same engine when it is ready.
+            auto* e = new PlaybackEngine(kEngineRate);
+            e->setSong(std::move(stereo));
+            e->setSpeed(speedS); e->setSongVolume(volS);
+            { MetronomeSettings off = metS; off.enabled = false; e->setMetronome(off); }
+            if (!startDevice()) { delete e; return fail("Cannot open the sound output device."); }
+            { PlaybackEngine* old = engine.exchange(e); earlyPublished = true;
+              if (old) { old->pause(); std::this_thread::sleep_for(std::chrono::milliseconds(250)); delete old; } }
 
             const std::string melP = modelDir + "/mel_spectrogram.onnx", netP = modelDir + "/beat_this.onnx";
             uint64_t sz = 0; uint64_t key = fnv1a(path, (uint64_t)fileSize(netP) * 31 + 7, &sz);
@@ -265,13 +284,10 @@ struct Player::Impl {
             auto bm = std::make_shared<BeatMap>(decodeBeatMap(act, AnalyzerConfig::forMeterMode(meterMode.load())));
             if (bm->beats.size() < 8) return fail("Could not find a steady beat in this song.");
 
-            auto* e = new PlaybackEngine(kEngineRate);
-            e->setSong(std::move(stereo)); e->setBeatMap(*bm);
-            e->setSpeed(speedS); e->setMetronome(metS); e->setSongVolume(volS); e->setCountIn(ciS); e->setClickSound(clickS);
-            if (!startDevice()) { delete e; return fail("Cannot open the sound output device."); }
+            e->setBeatMap(*bm);
+            e->setMetronome(metS); e->setCountIn(ciS); e->setClickSound(clickS);
             { std::lock_guard<std::mutex> l(mu); map = bm; }
-            PlaybackEngine* old = engine.exchange(e);
-            if (old) { old->pause(); std::this_thread::sleep_for(std::chrono::milliseconds(250)); delete old; }
+            earlyPublished = false;
             prog = 1.f; state = (int)PlayerState::Ready;
         } catch (const std::exception& ex) { fail(std::string("Analysis failed: ") + ex.what()); }
     }
