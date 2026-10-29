@@ -1,0 +1,647 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* the default text size is the small one: the interface has exactly three sizes (15, 19 and 28 px) */
+body { font-size: 15px; line-height: 1.35; }
+
+/* Hide browser spinner arrows on number inputs */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+/* ==========================================================================
+   DESIGN SYSTEM COLOR PALETTES
+   ========================================================================== */
+
+/* Dark Palette (Default Studio Mode) */
+:root,
+html.dark {
+  color-scheme: dark;
+  --bg-canvas: #0a0d14;
+  --bg-surface: #111726;
+  --bg-surface-elevated: #161f32;
+  --bg-recessed: #080b11;
+  --border-subtle: #1e293b;
+  --border-strong: #334155;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --brand-primary: #8b5cf6;
+  --brand-hover: #7c3aed;
+  --brand-subtle: rgba(139, 92, 246, 0.15);
+  --brand-border: rgba(139, 92, 246, 0.35);
+  --brand-text: #c4b5fd;
+  --color-play: #10b981;
+  --color-play-hover: #059669;
+  --color-pause: #fbbf24;
+  --color-pause-hover: #f59e0b;
+  --color-accent-beat: #f43f5e;
+  --color-loop: #38bdf8;
+  --color-loop-subtle: rgba(56, 189, 248, 0.18);
+}
+
+/* Light Palette (Daylight High-Contrast Mode) */
+html.light {
+  color-scheme: light;
+  --bg-canvas: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #ffffff;
+  --bg-recessed: #f1f5f9;
+  --border-subtle: #e2e8f0;
+  --border-strong: #cbd5e1;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --brand-primary: #0284c7;
+  --brand-hover: #0369a1;
+  --brand-subtle: rgba(2, 132, 199, 0.08);
+  --brand-border: rgba(2, 132, 199, 0.25);
+  --brand-text: #0284c7;
+  --color-play: #059669;
+  --color-play-hover: #047857;
+  --color-pause: #f59e0b;
+  --color-pause-hover: #d97706;
+  --color-accent-beat: #e11d48;
+  --color-loop: #0284c7;
+  --color-loop-subtle: rgba(2, 132, 199, 0.12);
+}
+
+/* ==========================================================================
+   RANGE SLIDERS (Violet in Dark Theme, Sky Blue in Light Theme)
+   ========================================================================== */
+input[type="range"] {
+  height: 24px;
+  background-color: transparent;
+  vertical-align: middle;
+}
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 9999px;
+  background-color: #1e293b;
+}
+html.light input[type="range"]::-webkit-slider-runnable-track {
+  background-color: #cbd5e1;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background-color: #8b5cf6;
+  margin-top: -5px;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  background-color: #a78bfa;
+}
+html.light input[type="range"]::-webkit-slider-thumb {
+  background-color: #0284c7;
+}
+html.light input[type="range"]::-webkit-slider-thumb:hover {
+  background-color: #0369a1;
+}
+input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 9999px;
+  background-color: #1e293b;
+}
+html.light input[type="range"]::-moz-range-track {
+  background-color: #cbd5e1;
+}
+input[type="range"]::-moz-range-thumb {
+  height: 16px;
+  width: 16px;
+  border-radius: 9999px;
+  background-color: #8b5cf6;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.1s ease, background-color 0.1s ease;
+}
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.15);
+  background-color: #a78bfa;
+}
+html.light input[type="range"]::-moz-range-thumb {
+  background-color: #0284c7;
+}
+html.light input[type="range"]::-moz-range-thumb:hover {
+  background-color: #0369a1;
+}
+
+/* ==========================================================================
+   LIGHT THEME SEMANTIC OVERRIDES
+   ========================================================================== */
+
+/* 1. Canvas & Structural Surfaces */
+html.light body,
+html.light .min-h-screen.bg-slate-950,
+html.light div.bg-slate-950 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+html.light header,
+html.light header.bg-slate-900\/90,
+html.light .bg-slate-900\/90,
+html.light .bg-slate-900\/80,
+html.light .bg-slate-900\/50,
+html.light .bg-slate-900,
+html.light aside,
+html.light #master-transport-bar,
+html.light #tempo-control-card,
+html.light #time-signature-card,
+html.light #stem-separator-card,
+html.light #waveform-timeline-container {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+/* 2. Recessed Inset Surfaces & Control Bars */
+html.light #quick-tempo-control-bar,
+html.light #quick-metronome-control-bar,
+html.light #quick-metronome-visual-beats,
+html.light #dual-volume-mixer,
+html.light #measure-nav-combined-bar,
+html.light #zoom-control-bar,
+html.light #footer-hotkeys-block,
+html.light #minimap-viewport-slider,
+html.light .bg-slate-950\/80,
+html.light .bg-slate-950\/60,
+html.light .bg-slate-950\/70 {
+  background-color: #f8fafc !important;
+}
+
+/* Visual Metronome Beats in Light Mode */
+html.light #quick-metronome-visual-beats .beat-inactive {
+  background-color: #f1f5f9 !important;
+  color: #64748b !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light #mobile-metronome-stripe {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+}
+
+html.light #mobile-metronome-stripe .bg-slate-700\/60,
+html.light #mobile-metronome-stripe .bg-slate-800 {
+  background-color: #cbd5e1 !important;
+}
+
+html.light .beat-non-accent-active,
+html.light #quick-metronome-visual-beats .beat-non-accent-active,
+html.light #mobile-metronome-stripe .beat-non-accent-active {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  box-shadow: 0 0 8px rgba(2, 132, 199, 0.7) !important;
+}
+
+/* 3. Hairlines & Dividers */
+html.light .border-slate-800,
+html.light .border-slate-800\/80,
+html.light .border-slate-800\/90,
+html.light .border-slate-800\/60,
+html.light .border-slate-700,
+html.light .border-slate-700\/80,
+html.light .border-slate-900 {
+  border-color: #e2e8f0 !important;
+}
+
+html.light #quick-metronome-control-bar .divide-slate-800\/80 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}
+
+/* 4. Typography Hierarchy */
+html.light .text-slate-100,
+html.light .text-slate-200 {
+  color: #0f172a !important;
+}
+html.light .text-slate-300 {
+  color: #1e293b !important;
+}
+html.light .text-slate-400,
+html.light .text-slate-500 {
+  color: #64748b !important;
+}
+
+/* 5. Interactive Buttons & Segmented Controls in Light Mode */
+html.light .bg-slate-800,
+html.light .bg-slate-900:not(#master-transport-bar):not(header) {
+  background-color: #f1f5f9 !important;
+}
+html.light .hover\:bg-slate-800:hover,
+html.light .hover\:bg-slate-700:hover,
+html.light .hover\:bg-slate-900:hover {
+  background-color: #e2e8f0 !important;
+}
+
+/* Stepper & Action Buttons */
+html.light #btn-quick-tempo-minus-5,
+html.light #btn-quick-tempo-minus-1,
+html.light #btn-quick-tempo-plus-1,
+html.light #btn-quick-tempo-plus-5,
+html.light #btn-tempo-minus-5,
+html.light #btn-tempo-minus-1,
+html.light #btn-tempo-plus-1,
+html.light #btn-tempo-plus-5,
+html.light #btn-zoom-out,
+html.light #btn-zoom-in,
+html.light #btn-zoom-reset,
+html.light #btn-seek-prev-bar,
+html.light #btn-seek-next-bar,
+html.light button[id^="btn-loop-"] {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.light #btn-quick-tempo-minus-5:hover,
+html.light #btn-quick-tempo-minus-1:hover,
+html.light #btn-quick-tempo-plus-1:hover,
+html.light #btn-quick-tempo-plus-5:hover,
+html.light #btn-tempo-minus-5:hover,
+html.light #btn-tempo-minus-1:hover,
+html.light #btn-tempo-plus-1:hover,
+html.light #btn-tempo-plus-5:hover,
+html.light #btn-zoom-out:hover,
+html.light #btn-zoom-in:hover,
+html.light #btn-zoom-reset:hover,
+html.light #btn-seek-prev-bar:hover,
+html.light #btn-seek-next-bar:hover,
+html.light button[id^="btn-loop-"]:hover {
+  background-color: #f1f5f9 !important;
+  border-color: #94a3b8 !important;
+}
+
+/* Active Zoom Presets in Light Mode */
+html.light button[id^="btn-zoom-"]:not(.bg-violet-600) {
+  background-color: #ffffff !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Primary Playback Buttons in Light Mode */
+html.light #btn-play-pause.bg-emerald-600,
+html.light #mobile-dock-btn-play-pause.bg-emerald-600 {
+  background-color: #059669 !important;
+  color: #ffffff !important;
+}
+html.light #btn-play-pause.bg-emerald-600:hover,
+html.light #mobile-dock-btn-play-pause.bg-emerald-600:hover {
+  background-color: #047857 !important;
+}
+
+html.light #btn-play-pause.bg-amber-400,
+html.light #mobile-dock-btn-play-pause.bg-amber-400 {
+  background-color: #f59e0b !important;
+  color: #0a0d14 !important;
+  border-color: #d97706 !important;
+}
+html.light #btn-play-pause.bg-amber-400:hover,
+html.light #mobile-dock-btn-play-pause.bg-amber-400:hover {
+  background-color: #d97706 !important;
+  color: #0a0d14 !important;
+}
+
+/* Tempo Reset in Light Mode */
+html.light #btn-quick-tempo-reset:not(:disabled) {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+  border-color: #0369a1 !important;
+}
+html.light #btn-quick-tempo-reset:disabled {
+  background-color: #e2e8f0 !important;
+  color: #94a3b8 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Header Toggles in Light Mode */
+html.light #header-theme-toggle,
+html.light #header-lang-toggle {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html.light #header-theme-toggle:hover,
+html.light #header-lang-toggle:hover {
+  background-color: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+}
+html.light #header-lang-toggle svg,
+html.light #language-switcher-control svg {
+  color: #334155 !important;
+}
+
+/* Inputs, Selects & Badges in Light Mode */
+html.light input[type="text"],
+html.light input[type="number"],
+html.light select {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html.light kbd {
+  background-color: #f1f5f9 !important;
+  color: #334155 !important;
+  border-color: #cbd5e1 !important;
+}
+
+/* Loop Point A and Point B in Light Mode */
+html.light span[class*="bg-violet-950"],
+html.light span[class*="bg-sky-950"] {
+  background-color: #f0f9ff !important;
+  color: #0284c7 !important;
+  border-color: #bae6fd !important;
+}
+html.light button[id="btn-set-loop-a-bar"],
+html.light button[id="btn-set-loop-b-bar"] {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+html.light button[id="btn-set-loop-a-bar"]:hover,
+html.light button[id="btn-set-loop-b-bar"]:hover {
+  background-color: #0369a1 !important;
+}
+
+/* Stem Separator Presets in Light Mode */
+html.light button[id^="btn-stem-"]:not(.stem-selected) {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+html.light button[id^="btn-stem-"]:not(.stem-selected):hover {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+html.light button[id^="btn-stem-"]:not(.stem-selected) h3 {
+  color: #0f172a !important;
+}
+html.light button[id^="btn-stem-"]:not(.stem-selected) p {
+  color: #475569 !important;
+}
+
+/* Selected Stem Preset in Light Mode */
+html.light button[id^="btn-stem-"].stem-selected {
+  background-color: #f0f9ff !important;
+  border-color: #0284c7 !important;
+  box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15) !important;
+}
+html.light button[id^="btn-stem-"].stem-selected h3 {
+  color: #0369a1 !important;
+}
+html.light button[id^="btn-stem-"].stem-selected p {
+  color: #0f172a !important;
+}
+
+/* Stem Mixer Channels in Light Mode */
+html.light #stem-separator-card div[class*="bg-slate-900"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+html.light #stem-separator-card div[class*="bg-slate-950"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Dual Volume Mixer in Light Mode (Both channels guaranteed crisp dark/black text) */
+html.light #dual-volume-mixer {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+html.light #dual-volume-mixer .mixer-channel-box,
+html.light #dual-volume-mixer div[class*="bg-slate-950"] {
+  background-color: #f8fafc !important;
+  border-color: #cbd5e1 !important;
+}
+html.light #dual-volume-mixer span,
+html.light #dual-volume-mixer button,
+html.light #dual-volume-mixer .mixer-label,
+html.light #dual-volume-mixer .mixer-value,
+html.light #dual-volume-mixer .text-slate-200,
+html.light #dual-volume-mixer .text-slate-300 {
+  color: #0f172a !important;
+}
+html.light #dual-volume-mixer .text-rose-500 {
+  color: #e11d48 !important;
+}
+html.light #dual-volume-mixer .mixer-icon,
+html.light #dual-volume-mixer svg {
+  color: #334155 !important;
+}
+
+/* Mobile Bottom Dock & Playlist Drawer in Light Mode */
+html.light #mobile-bottom-dock {
+  background-color: rgba(255, 255, 255, 0.96) !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.08) !important;
+}
+html.light #mobile-playlist-drawer {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+html.light #mobile-header-playlist-btn {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+html.light #mobile-header-playlist-btn svg,
+html.light #playlist-panel svg.lucide-list-music {
+  color: #334155 !important;
+}
+
+/* Measure Marker Ruler in Light Mode */
+html.light #waveform-timeline-container .h-7.bg-slate-900\/95 {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+}
+html.light #waveform-timeline-container .h-7 button {
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+html.light #waveform-timeline-container .h-7 button:hover {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+html.light #waveform-timeline-container .h-7 button[class*="bg-rose-500"] {
+  background-color: #ffe4e6 !important;
+  border-color: #f43f5e !important;
+  color: #e11d48 !important;
+}
+html.light #waveform-timeline-container .h-7 button[class*="bg-violet-600"] {
+  background-color: #e0f2fe !important;
+  border-color: #0284c7 !important;
+  color: #0369a1 !important;
+}
+html.light .loop-badge-a,
+html.light .loop-badge-b {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+/* Universal Light Theme: Replace ALL Violet/Purple accents with Sky Blue */
+html.light .text-violet-400,
+html.light .text-violet-300,
+html.light .text-violet-200,
+html.light .text-indigo-400,
+html.light .text-indigo-300,
+html.light .text-purple-400,
+html.light .text-purple-300 {
+  color: #0284c7 !important;
+}
+
+html.light .bg-violet-600,
+html.light .bg-violet-500,
+html.light .bg-violet-400,
+html.light .bg-violet-300,
+html.light .bg-indigo-600,
+html.light .bg-indigo-500 {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+html.light .hover\:bg-violet-500:hover,
+html.light .hover\:bg-violet-600:hover {
+  background-color: #0369a1 !important;
+}
+
+html.light .border-violet-500,
+html.light .border-violet-600,
+html.light .border-violet-400,
+html.light .border-violet-800,
+html.light .border-violet-800\/70,
+html.light .border-violet-800\/60 {
+  border-color: #0284c7 !important;
+}
+
+html.light .bg-violet-950\/90,
+html.light .bg-violet-950\/80,
+html.light .bg-violet-950\/70,
+html.light .bg-violet-950\/40,
+html.light .bg-violet-950,
+html.light .bg-violet-900,
+html.light .bg-violet-600\/20,
+html.light .bg-violet-600\/15,
+html.light .bg-violet-500\/20 {
+  background-color: #f0f9ff !important;
+  color: #0284c7 !important;
+  border-color: #bae6fd !important;
+}
+
+html.light .ring-violet-400,
+html.light .ring-violet-500 {
+  --tw-ring-color: #0284c7 !important;
+}
+
+html.light .accent-violet-500 {
+  accent-color: #0284c7 !important;
+}
+
+html.light ::selection {
+  background-color: #0284c7 !important;
+  color: #ffffff !important;
+}
+
+/* 6. Specific Components Light Mode Polish (Tuner, Time Signature, Sections & Tempo Map) */
+/* Tuner note buttons in Reference Tuner */
+html.light button[title*="Hz"] {
+  border-color: #cbd5e1 !important;
+}
+html.light button[title*="Hz"]:not(.animate-pulse) {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+html.light button[title*="Hz"]:not(.animate-pulse):hover {
+  background-color: #f8fafc !important;
+  border-color: #94a3b8 !important;
+}
+html.light button[title*="Hz"].animate-pulse {
+  background-color: #0f172a !important;
+  border-color: #0f172a !important;
+  color: #ffffff !important;
+}
+
+/* Time signature selector card */
+html.light #time-signature-card button:not([class*="bg-slate-900"]) {
+  border-color: #cbd5e1 !important;
+}
+html.light #time-signature-card button:hover {
+  border-color: #94a3b8 !important;
+}
+html.light #time-signature-card button[class*="bg-slate-900"] {
+  background-color: #0f172a !important;
+  border-color: #0f172a !important;
+  color: #ffffff !important;
+}
+html.light #badge-current-timesig {
+  border-color: #cbd5e1 !important;
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+}
+
+/* Song Sections Ribbon in Timeline */
+html.light #waveform-timeline-container button[title*="BPM"] {
+  border-color: #cbd5e1 !important;
+}
+html.light #waveform-timeline-container button[title*="BPM"]:hover {
+  border-color: #94a3b8 !important;
+}
+html.light #waveform-timeline-container button[title*="BPM"][class*="bg-slate-900"] {
+  background-color: #0f172a !important;
+  border-color: #0f172a !important;
+  color: #ffffff !important;
+}
+
+/* Tempo Map Editor elements */
+html.light input[type="text"]:focus,
+html.light input[type="number"]:focus,
+html.light select:focus {
+  border-color: #94a3b8 !important;
+}
+
+/* Footer in Light Mode */
+html.light footer {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #64748b !important;
+}
+
+
+/* ==========================================================================
+   ALL ICONS ARE 24 PX
+   ========================================================================== */
+svg.lucide { width: 24px !important; height: 24px !important; flex-shrink: 0; }
+
+/* ==========================================================================
+   TRACK EDIT DIALOG: explicit colours for both themes (contrast checked)
+   dark: text #f1f5f9 on #0f172a (~16:1); light: text #0f172a on #ffffff (~17:1)
+   ========================================================================== */
+.track-edit-dialog { background: #1e293b; border-color: #475569; color: #f1f5f9; }
+.track-edit-field { background: #0f172a; border-color: #64748b; color: #f1f5f9; caret-color: #f1f5f9; }
+.track-edit-field:focus { border-color: #38bdf8; --tw-ring-color: rgba(56,189,248,.45); }
+.track-edit-label { color: #cbd5e1; }
+.track-edit-cover { background: #0f172a; border-color: #475569; color: #94a3b8; }
+.track-edit-btn { background: #334155; border-color: #64748b; color: #f1f5f9; }
+.track-edit-btn:hover { background: #475569; }
+.track-edit-close { color: #cbd5e1; }
+.track-edit-close:hover { background: #334155; color: #fff; }
+html.light .track-edit-dialog { background: #ffffff; border-color: #94a3b8; color: #0f172a; }
+html.light .track-edit-field { background: #ffffff !important; border-color: #64748b !important; color: #0f172a !important; caret-color: #0f172a; }
+html.light .track-edit-field:focus { border-color: #0284c7 !important; --tw-ring-color: rgba(2,132,199,.35); }
+html.light .track-edit-label { color: #334155; }
+html.light .track-edit-cover { background: #f1f5f9; border-color: #94a3b8; color: #475569; }
+html.light .track-edit-btn { background: #e2e8f0 !important; border-color: #94a3b8 !important; color: #0f172a !important; }
+html.light .track-edit-btn:hover { background: #cbd5e1 !important; }
+html.light .track-edit-close { color: #334155; }
+html.light .track-edit-close:hover { background: #e2e8f0; color: #0f172a; }

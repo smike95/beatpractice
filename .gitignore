@@ -1,0 +1,9 @@
+node_modules/
+dist/
+target/
+gen/
+build/
+beat-core/models/
+beat-core/cache/
+ritmtrener-tauri/src-tauri/core-bundle/*
+!ritmtrener-tauri/src-tauri/core-bundle/README.txt

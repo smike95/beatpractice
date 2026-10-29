@@ -1,0 +1,106 @@
+name: Windows installer
+
+on:
+  workflow_dispatch:          # запуск кнопкою "Run workflow"
+  push:
+    tags: ["v*"]              # або при створенні мітки версії, наприклад v0.1.0
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      ORT_VERSION: "1.22.0"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ritmtrener-tauri/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: ritmtrener-tauri/src-tauri
+
+      # ---------- 1. ONNX Runtime ----------
+      - name: Download ONNX Runtime
+        shell: pwsh
+        run: |
+          $zip = "$env:RUNNER_TEMP\ort.zip"
+          Invoke-WebRequest "https://github.com/microsoft/onnxruntime/releases/download/v$env:ORT_VERSION/onnxruntime-win-x64-$env:ORT_VERSION.zip" -OutFile $zip
+          Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP
+          "ORT_DIR=$env:RUNNER_TEMP\onnxruntime-win-x64-$env:ORT_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      # ---------- 2. C++ core ----------
+      - name: Build core (beatcore_c.dll)
+        shell: pwsh
+        working-directory: beat-core
+        run: |
+          cmake -S . -B build -DORT_DIR="$env:ORT_DIR"
+          cmake --build build --config Release --target beatcore_c
+          Get-ChildItem build -Recurse -Filter beatcore_c.dll
+
+      # Необов'язкова перевірка: якщо впаде, збірка не зупиняється, але перегляньте журнал.
+      - name: Core smoke test (optional)
+        continue-on-error: true
+        shell: pwsh
+        working-directory: beat-core
+        run: |
+          cmake --build build --config Release --target meter_test
+          Copy-Item "$env:ORT_DIR\lib\onnxruntime.dll" build\Release\
+          .\build\Release\meter_test.exe tests\data\meter
+
+      # ---------- 3. Neural network models (cached) ----------
+      - name: Cache models
+        id: models-cache
+        uses: actions/cache@v4
+        with:
+          path: beat-core/models
+          key: models-v1
+
+      - name: Download models
+        if: steps.models-cache.outputs.cache-hit != 'true'
+        shell: bash
+        working-directory: beat-core
+        run: |
+          sh scripts/fetch_models.sh
+          sh scripts/fetch_stem_model.sh
+
+      # ---------- 4. Put the core inside the installer ----------
+      - name: Stage core into the app
+        shell: pwsh
+        run: |
+          $dst = "ritmtrener-tauri\src-tauri\core-bundle"
+          New-Item -ItemType Directory -Force "$dst\build", "$dst\models" | Out-Null
+          Copy-Item "beat-core\build\Release\beatcore_c.dll" "$dst\build\"
+          Copy-Item "$env:ORT_DIR\lib\onnxruntime.dll" "$dst\build\"
+          # Visual C++ runtime next to the DLLs, so the program also starts on clean Windows
+          foreach ($f in "vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll") {
+            $p = Join-Path $env:SystemRoot "System32\$f"
+            if (Test-Path $p) { Copy-Item $p "$dst\build\" } else { Write-Warning "$f not found" }
+          }
+          Copy-Item "beat-core\models\*.onnx" "$dst\models\"
+          Get-ChildItem $dst -Recurse | Select-Object FullName, Length
+
+      # ---------- 5. App + installer ----------
+      - name: Install frontend dependencies
+        shell: bash
+        working-directory: ritmtrener-tauri
+        run: npm ci || npm install
+
+      - name: Build installer
+        shell: bash
+        working-directory: ritmtrener-tauri
+        run: npm run tauri build
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: RitmTrener-Windows-installer
+          path: ritmtrener-tauri/src-tauri/target/release/bundle/nsis/*.exe
+          compression-level: 0
+          if-no-files-found: error
