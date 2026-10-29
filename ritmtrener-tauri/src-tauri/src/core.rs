@@ -112,7 +112,9 @@ impl Core {
     /// `cache_dir` is where analysis results are stored; `None` means `<dir>/cache`.
     pub fn load(dir: &str, cache_dir: Option<&Path>) -> Result<Core, String> {
         let base = Path::new(dir);
-        let lib_path = base.join(LIB_REL);
+        // Join the parts one by one: on Windows a path with mixed `\` and `/` is not treated as absolute by
+        // LoadLibraryEx, so the DLLs next to the core (onnxruntime.dll ...) would not be found.
+        let lib_path = LIB_REL.split('/').fold(base.to_path_buf(), |p, part| p.join(part));
         if !lib_path.exists() {
             return Err(format!(
                 "Не знайдено бібліотеку ядра: {}",
@@ -123,9 +125,32 @@ impl Core {
         let cache = cache_dir.map(|p| p.to_path_buf()).unwrap_or_else(|| base.join("cache"));
         let _ = std::fs::create_dir_all(&cache);
 
+        // Windows: load the helper DLLs that lie next to the core first (by full path), so the core finds them
+        // even if the system has other copies (e.g. an old onnxruntime.dll in System32).
+        #[cfg(windows)]
+        {
+            if let Some(dll_dir) = lib_path.parent() {
+                for name in ["vcruntime140.dll", "vcruntime140_1.dll", "msvcp140.dll", "onnxruntime.dll"] {
+                    let p = dll_dir.join(name);
+                    if p.exists() {
+                        if let Ok(l) = unsafe { Library::new(&p) } {
+                            std::mem::forget(l); // keep it loaded for the whole run
+                        }
+                    }
+                }
+            }
+        }
+
         unsafe {
-            let lib = Library::new(&lib_path)
-                .map_err(|e| format!("Не вдалося завантажити {}: {}", lib_path.display(), e))?;
+            let lib = Library::new(&lib_path).map_err(|e| {
+                let mut hint = String::new();
+                if let Some(d) = lib_path.parent() {
+                    if !d.join("onnxruntime.dll").exists() && cfg!(windows) {
+                        hint = " (поруч немає onnxruntime.dll)".to_string();
+                    }
+                }
+                format!("Не вдалося завантажити {}: {}{}", lib_path.display(), e, hint)
+            })?;
 
             let create: unsafe extern "C" fn(*const c_char, *const c_char) -> P =
                 sym!(lib, "bc_create", unsafe extern "C" fn(*const c_char, *const c_char) -> P);
