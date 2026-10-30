@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { PlaylistItem } from '../types';
 import { ListMusic, Plus, Trash2, Play, Music, GripVertical } from 'lucide-react';
 import { Language, translations } from '../i18n';
@@ -243,8 +244,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 
       {footer && <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 shrink-0">{footer}</div>}
 
-      {pendingDelete && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setPendingDelete(null); }}>
+      {pendingDelete && createPortal(
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setPendingDelete(null); }}>
           <div role="alertdialog" aria-modal="true" id="confirm-delete-track" className="track-edit-dialog w-full max-w-md rounded-2xl border shadow-2xl p-5 space-y-4">
             <p className="text-base font-bold">{lang === 'en' ? 'Remove this track from the playlist?' : 'Видалити цей трек із плейліста?'}</p>
             <p className="text-sm break-words">{displayName(pendingDelete)}</p>
@@ -262,7 +263,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
