@@ -74,74 +74,6 @@ html.light {
 }
 
 /* ==========================================================================
-   RANGE SLIDERS (Violet in Dark Theme, Sky Blue in Light Theme)
-   ========================================================================== */
-input[type="range"] {
-  height: 24px;
-  background-color: transparent;
-  vertical-align: middle;
-}
-input[type="range"]::-webkit-slider-runnable-track {
-  height: 6px;
-  border-radius: 9999px;
-  background-color: #1e293b;
-}
-html.light input[type="range"]::-webkit-slider-runnable-track {
-  background-color: #cbd5e1;
-}
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  height: 16px;
-  width: 16px;
-  border-radius: 9999px;
-  background-color: #8b5cf6;
-  margin-top: -5px;
-  cursor: pointer;
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  transition: transform 0.1s ease, background-color 0.1s ease;
-}
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-  background-color: #a78bfa;
-}
-html.light input[type="range"]::-webkit-slider-thumb {
-  background-color: #0284c7;
-}
-html.light input[type="range"]::-webkit-slider-thumb:hover {
-  background-color: #0369a1;
-}
-input[type="range"]::-moz-range-track {
-  height: 6px;
-  border-radius: 9999px;
-  background-color: #1e293b;
-}
-html.light input[type="range"]::-moz-range-track {
-  background-color: #cbd5e1;
-}
-input[type="range"]::-moz-range-thumb {
-  height: 16px;
-  width: 16px;
-  border-radius: 9999px;
-  background-color: #8b5cf6;
-  cursor: pointer;
-  border: 2px solid #ffffff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
-  transition: transform 0.1s ease, background-color 0.1s ease;
-}
-input[type="range"]::-moz-range-thumb:hover {
-  transform: scale(1.15);
-  background-color: #a78bfa;
-}
-html.light input[type="range"]::-moz-range-thumb {
-  background-color: #0284c7;
-}
-html.light input[type="range"]::-moz-range-thumb:hover {
-  background-color: #0369a1;
-}
-
-/* ==========================================================================
    LIGHT THEME SEMANTIC OVERRIDES
    ========================================================================== */
 
@@ -701,18 +633,18 @@ input[type="range"].bp-range::-webkit-slider-thumb {
   width: 20px;
   margin-top: -6px;
   border-radius: 9999px;
-  background: #ffffff;
-  border: 3px solid var(--range-fill);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  background: var(--range-fill);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
-input[type="range"].bp-range::-webkit-slider-thumb:hover { transform: scale(1.1); background: #ffffff; }
+input[type="range"].bp-range::-webkit-slider-thumb:hover { transform: scale(1.1); }
 input[type="range"].bp-range::-moz-range-track { height: 8px; border-radius: 9999px; background: var(--range-rest); }
 input[type="range"].bp-range::-moz-range-progress { height: 8px; border-radius: 9999px; background: var(--range-fill); }
 input[type="range"].bp-range::-moz-range-thumb {
-  height: 14px;
-  width: 14px;
+  height: 16px;
+  width: 16px;
   border-radius: 9999px;
-  background: #ffffff;
-  border: 3px solid var(--range-fill);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
+  background: var(--range-fill);
+  border: 2px solid #ffffff;
+  box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35), 0 1px 3px rgba(0, 0, 0, 0.4);
 }

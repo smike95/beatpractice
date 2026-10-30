@@ -286,15 +286,15 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-slate-700 selection:text-white">
       {/* Header: emblem + name (above the playlist) and the player controls; stays in place when the page scrolls */}
-      <header ref={headerRef} className="border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 select-none" data-tauri-drag-region>
+      <header ref={headerRef} className="relative border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 select-none" data-tauri-drag-region>
         <div className="flex items-stretch" data-tauri-drag-region>
           <div className="flex-1 min-w-0" data-tauri-drag-region>
             <div className="max-w-[1920px] mx-auto flex items-stretch" data-tauri-drag-region>
-              <div className="lg:w-[25rem] shrink-0 flex items-center gap-3 px-3 sm:px-4 py-2 lg:border-r lg:border-slate-800/80 pointer-events-none">
+              <div className="lg:w-[25rem] shrink-0 flex items-center gap-3 px-3 sm:px-4 py-2 pointer-events-none">
                 <BeatPracticeLogo className="w-10 h-10 shrink-0" />
                 <span className="text-2xl font-black text-slate-100 tracking-tight">BeatPractice</span>
               </div>
-              <div className="flex-1 min-w-0 flex items-center gap-3 px-3 sm:px-6 py-2" data-tauri-drag-region>
+              <div className={`flex-1 min-w-0 flex items-center gap-3 px-3 sm:px-6 py-2 ${isWindows ? 'justify-center lg:px-[9rem]' : 'justify-end'}`} data-tauri-drag-region>
                 <button
                   id="btn-export-track"
                   onClick={() => setExporting(true)}
@@ -357,12 +357,11 @@ export default function App() {
                   {player.playMode === 'repeat' ? <Repeat1 className="w-6 h-6" /> : player.playMode === 'next' ? <ListEnd className="w-6 h-6" /> : <Repeat className="w-6 h-6" />}
                 </button>
               </div>
-                <div className="flex-1 min-w-0" data-tauri-drag-region />
                 <div className="lg:hidden flex items-center gap-1.5 shrink-0">{themeLangButtons('-small')}</div>
               </div>
             </div>
           </div>
-          {isWindows && <WindowControls lang={lang} />}
+          {isWindows && <div className="absolute top-0 right-0"><WindowControls lang={lang} /></div>}
         </div>
       </header>
 
@@ -474,13 +473,13 @@ export default function App() {
                 {/* 1. Quick Tempo Control Row */}
                 <div
                   id="quick-tempo-control-bar"
-                  className="w-full sm:w-auto h-10 flex items-center justify-between sm:justify-center gap-1 bg-slate-950 px-2 py-1 rounded-xl border border-slate-800 select-none shrink-0"
+                  className="w-full sm:w-auto h-10 flex items-center justify-between sm:justify-center gap-1 bg-slate-950 px-1 rounded-xl border border-slate-800 select-none shrink-0"
                 >
                   <button
                     type="button"
                     id="btn-quick-tempo-minus-5"
                     onClick={() => handleBpmChange((track?.currentBpm || 120) - 5)}
-                    className="px-1.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
+                    className="h-8 min-w-10 px-2 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
                     title={t('decreaseTempo5')}
                   >
                     -5
@@ -489,14 +488,14 @@ export default function App() {
                     type="button"
                     id="btn-quick-tempo-minus-1"
                     onClick={() => handleBpmChange((track?.currentBpm || 120) - 1)}
-                    className="px-1.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
+                    className="h-8 min-w-10 px-2 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
                     title={t('decreaseTempo1')}
                   >
                     -1
                   </button>
 
                   {/* Current BPM input with direct keyboard typing support */}
-                  <div className="flex items-center px-1.5 py-0.5 bg-slate-900 rounded-lg border border-slate-800 focus-within:border-slate-500 focus-within:ring-1 focus-within:ring-slate-500/50">
+                  <div className="h-8 flex items-center px-2 bg-slate-900 rounded-lg border border-slate-800 focus-within:border-slate-500 focus-within:ring-1 focus-within:ring-slate-500/50">
                     <BpmInput value={track ? track.currentBpm : 0} onCommit={handleBpmChange} disabled={!track} />
                     <span className="text-xs font-mono text-slate-400 select-none pr-0.5">BPM</span>
                   </div>
@@ -505,7 +504,7 @@ export default function App() {
                     type="button"
                     id="btn-quick-tempo-plus-1"
                     onClick={() => handleBpmChange((track?.currentBpm || 120) + 1)}
-                    className="px-1.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
+                    className="h-8 min-w-10 px-2 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
                     title={t('increaseTempo1')}
                   >
                     +1
@@ -514,7 +513,7 @@ export default function App() {
                     type="button"
                     id="btn-quick-tempo-plus-5"
                     onClick={() => handleBpmChange((track?.currentBpm || 120) + 5)}
-                    className="px-1.5 py-1 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
+                    className="h-8 min-w-10 px-2 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
                     title={t('increaseTempo5')}
                   >
                     +5
@@ -526,7 +525,7 @@ export default function App() {
                     id="btn-quick-tempo-reset"
                     onClick={() => track && handleResetBpm()}
                     disabled={!track || track.currentBpm === track.originalBpm}
-                    className={`p-1 rounded-lg border transition-all active:scale-95 cursor-pointer font-bold ${
+                    className={`h-8 w-10 flex items-center justify-center rounded-lg border transition-all active:scale-95 cursor-pointer font-bold ${
                       track && track.currentBpm !== track.originalBpm
                         ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-600 shadow-sm'
                         : 'bg-slate-800 border-slate-700 text-slate-400 opacity-60 cursor-not-allowed'
@@ -564,23 +563,13 @@ export default function App() {
                         <Zap className={`w-6 h-6 shrink-0 ${metronomeConfig.accentFirstBeat ? 'text-slate-200' : 'text-slate-500'}`} />
                         <span className="text-xs sm:text-xs font-semibold text-slate-300">{t('accent')}</span>
                       </div>
-                      <button
-                        type="button"
-                        role="switch"
+                      <Switch
                         id="quick-switch-accent"
-                        aria-checked={metronomeConfig.accentFirstBeat}
-                        onClick={() => setMetronomeConfig(prev => ({ ...prev, accentFirstBeat: !prev.accentFirstBeat }))}
-                        className={`relative inline-flex h-4 w-7 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                          metronomeConfig.accentFirstBeat ? 'bg-slate-700' : 'bg-slate-800'
-                        }`}
+                        checked={metronomeConfig.accentFirstBeat}
+                        onChange={() => setMetronomeConfig(prev => ({ ...prev, accentFirstBeat: !prev.accentFirstBeat }))}
                         title={metronomeConfig.accentFirstBeat ? t('accentOn') : t('accentOff')}
-                      >
-                        <span
-                          className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                            metronomeConfig.accentFirstBeat ? 'translate-x-3' : 'translate-x-0'
-                          }`}
-                        />
-                      </button>
+                        label={t('accent')}
+                      />
                     </div>
 
                     {/* Switch 3: Відлік */}
@@ -718,7 +707,6 @@ export default function App() {
 
                 <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
                   <div className="flex items-center gap-2">
-                    <Timer className="w-6 h-6 text-slate-400" />
                     <span className="font-semibold">{t('countIn')}:</span>
                     {[0, 1, 2].map((n) => (
                       <button
@@ -728,7 +716,7 @@ export default function App() {
                           metronomeConfig.countInBars === n ? 'bg-slate-700 text-white border-slate-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
                         }`}
                       >
-                        {n === 0 ? (lang === 'en' ? 'off' : 'без') : `${n} ${lang === 'en' ? (n === 1 ? 'bar' : 'bars') : n === 1 ? 'такт' : 'такти'}`}
+                        {n === 0 ? 'OFF' : `${n} ${lang === 'en' ? (n === 1 ? 'bar' : 'bars') : n === 1 ? 'такт' : 'такти'}`}
                       </button>
                     ))}
                   </div>

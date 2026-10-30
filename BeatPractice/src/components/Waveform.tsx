@@ -26,7 +26,14 @@ interface Props {
   onJumpBar: (dir: -1 | 1) => void;
 }
 
-const ZOOMS = [1, 2, 4, 8];
+const PRESET_ZOOMS = [1, 2, 4, 8];
+const ZOOM_MAX = 32;
+const ZOOM_FACTOR = 1.25;   // one step of the − / + buttons and of Ctrl + wheel
+const nextZoom = (z: number, dir: 1 | -1): number => {
+  let n = dir > 0 ? z * ZOOM_FACTOR : z / ZOOM_FACTOR;
+  n = Math.min(ZOOM_MAX, Math.max(1, Math.round(n * 1000) / 1000));
+  return n < 1.02 ? 1 : n;
+};
 
 function fmt(t: number): string {
   if (!isFinite(t) || t < 0) t = 0;
@@ -181,8 +188,7 @@ export function Waveform(props: Props) {
     if (duration > 0) setViewStart(Math.min(Math.max(0, position - duration / z / 2), Math.max(0, duration - duration / z)));
   };
   const zoomStep = (dir: 1 | -1) => {
-    const i = ZOOMS.indexOf(zoom);
-    const n = ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, i + dir))];
+    const n = nextZoom(zoom, dir);
     if (n !== zoom) changeZoom(n);
   };
 
@@ -195,8 +201,7 @@ export function Waveform(props: Props) {
     if (now - lastWheelZoom.current < 120) return;
     lastWheelZoom.current = now;
     const dir: 1 | -1 = e.deltaY < 0 ? 1 : -1;
-    const i = ZOOMS.indexOf(zoom);
-    const n = ZOOMS[Math.min(ZOOMS.length - 1, Math.max(0, i + dir))];
+    const n = nextZoom(zoom, dir);
     if (n === zoom) return;
     if (playing && follow) { changeZoom(n); return; }   // while following the playhead it stays in the middle
     const rect = mainBox.current?.getBoundingClientRect();
@@ -410,7 +415,7 @@ export function Waveform(props: Props) {
   const barIdx = barTimes.length > 0 ? Math.max(0, lastLE(barTimes, position)) : 0;
   const totalBars = barTimes.length;
   const btn =
-    "px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
+    "h-8 w-24 inline-flex items-center justify-center text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
 
   return (
     <div className="mt-3.5 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4 space-y-3">
@@ -421,7 +426,7 @@ export function Waveform(props: Props) {
           <span className="text-xs font-mono text-slate-400">/ {fmt(duration / sp)}</span>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 select-none">
+        <div className="flex shrink-0 h-10 items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-1 select-none">
           <button className={btn} disabled={!song} onClick={() => onJumpBar(-1)} title={L("Такт назад (←)", "Previous bar (←)")}>
             <span className="inline-flex items-center gap-1"><ChevronLeft className="w-6 h-6" />{L("Такт", "Bar")}</span>
           </button>
@@ -437,32 +442,32 @@ export function Waveform(props: Props) {
           </button>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2 py-1 select-none">
+        <div className="flex shrink-0 h-10 items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-1 select-none">
           <button
-            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
-            disabled={!song || zoom === ZOOMS[0]}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            disabled={!song || zoom <= 1}
             onClick={() => zoomStep(-1)}
             title={L("Зменшити масштаб (Ctrl + колесо вниз)", "Zoom out (Ctrl + wheel down)")}
             aria-label={L("Зменшити масштаб", "Zoom out")}
           ><ZoomOut className="w-6 h-6" /></button>
-          <span className="text-xs text-slate-400 mr-1">{L("Масштаб", "Zoom")}</span>
-          {ZOOMS.map((z) => (
+          <span className="text-xs text-slate-400 mr-1 whitespace-nowrap">{L("Масштаб", "Zoom")} <strong className="font-mono text-slate-100 inline-block w-10 text-left">×{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}</strong></span>
+          {PRESET_ZOOMS.map((z) => (
             <button
               key={z}
               disabled={!song}
               onClick={() => changeZoom(z)}
-              className={`px-2.5 py-1 text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
-                zoom === z
+              className={`h-8 min-w-[3rem] px-2 inline-flex items-center justify-center text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
+                Math.abs(zoom - z) < 0.01
                   ? "bg-slate-700 text-white border-slate-500"
                   : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
               }`}
             >
-              {z}x
+              ×{z}
             </button>
           ))}
           <button
-            className="p-1 rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
-            disabled={!song || zoom === ZOOMS[ZOOMS.length - 1]}
+            className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            disabled={!song || zoom >= ZOOM_MAX}
             onClick={() => zoomStep(1)}
             title={L("Збільшити масштаб (Ctrl + колесо вгору)", "Zoom in (Ctrl + wheel up)")}
             aria-label={L("Збільшити масштаб", "Zoom in")}
