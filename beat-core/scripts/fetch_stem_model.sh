@@ -1,12 +1,17 @@
 #!/bin/sh
-# Downloads the stem separation model (HT-Demucs, MIT license) into ./models.
-#   sh scripts/fetch_stem_model.sh          small variant, about 166 MB (recommended, same speed and quality)
-#   sh scripts/fetch_stem_model.sh --full   full variant, about 316 MB
-# Source: https://huggingface.co/StemSplitio/htdemucs-onnx (ONNX export of facebookresearch/demucs)
+# Downloads a stem separation model (HT-Demucs, MIT license) into ./models.
+#   sh scripts/fetch_stem_model.sh          6 parts: drums, bass, other, vocals, GUITAR, PIANO (about 136 MB, recommended)
+#   sh scripts/fetch_stem_model.sh --four   4 parts: drums, bass, other, vocals (about 166 MB; used as a fallback)
+#   sh scripts/fetch_stem_model.sh --full   4 parts, full precision (about 316 MB)
+# Sources (ONNX exports of facebookresearch/demucs):
+#   https://huggingface.co/StemSplitio/htdemucs-6s-onnx   and   https://huggingface.co/StemSplitio/htdemucs-onnx
 set -e
 mkdir -p models && cd models
-BASE=https://huggingface.co/StemSplitio/htdemucs-onnx/resolve/main
-if [ "$1" = "--full" ]; then FILE=htdemucs.onnx; MIN=300000000; else FILE=htdemucs_fp16weights.onnx; MIN=150000000; fi
+case "$1" in
+  --four) BASE=https://huggingface.co/StemSplitio/htdemucs-onnx/resolve/main;    FILE=htdemucs_fp16weights.onnx;    MIN=150000000 ;;
+  --full) BASE=https://huggingface.co/StemSplitio/htdemucs-onnx/resolve/main;    FILE=htdemucs.onnx;                MIN=300000000 ;;
+  *)      BASE=https://huggingface.co/StemSplitio/htdemucs-6s-onnx/resolve/main; FILE=htdemucs_6s_fp16weights.onnx; MIN=120000000 ;;
+esac
 if [ -f "$FILE" ] && [ "$(wc -c < "$FILE")" -ge "$MIN" ]; then echo "$FILE is already there"; exit 0; fi
 echo "Downloading $FILE ..."
 curl -L --fail --progress-bar -o "$FILE.part" "$BASE/$FILE"

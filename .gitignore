@@ -7,3 +7,4 @@ beat-core/models/
 beat-core/cache/
 BeatPractice/src-tauri/core-bundle/*
 !BeatPractice/src-tauri/core-bundle/README.txt
+BeatPractice/src-tauri/legal/licenses-*.txt

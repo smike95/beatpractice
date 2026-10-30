@@ -10,7 +10,7 @@ type Lang = "uk" | "en";
 export const NAMES: Record<string, [string, string]> = {
   drums: ["Ударні", "Drums"],
   bass: ["Бас", "Bass"],
-  other: ["Інше (гітари, клавіші…)", "Other (guitars, keys…)"],
+  other: ["Інше", "Other"],
   vocals: ["Вокал", "Vocals"],
   guitar: ["Гітара", "Guitar"],
   piano: ["Піаніно", "Piano"],

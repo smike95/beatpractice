@@ -12,6 +12,7 @@ import { ExportDialog } from './components/ExportDialog';
 import { Slider } from './components/Slider';
 import { Switch } from './components/Switch';
 import { WindowControls } from './components/WindowControls';
+import { AboutDialog } from './components/AboutDialog';
 import { usePlayer } from './player/usePlayer';
 import { ThemeMode } from './types';
 import { Language, TranslationKey, translations } from './i18n';
@@ -41,6 +42,7 @@ import {
   SkipForward,
   Pencil,
   Download,
+  Info,
 } from 'lucide-react';
 
 const formatTime = (seconds: number): string => {
@@ -111,6 +113,7 @@ export default function App() {
 
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
   // the playlist column is as tall as the window below the header: remember the header height
   const headerRef = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -247,6 +250,15 @@ export default function App() {
 
   const themeLangButtons = (sfx: string) => (
     <>
+      <button
+        id={`btn-about${sfx}`}
+        onClick={() => setAboutOpen(true)}
+        title={lang === 'en' ? 'About BeatPractice' : 'Про програму'}
+        aria-label={lang === 'en' ? 'About BeatPractice' : 'Про програму'}
+        className="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
+      >
+        <Info className="w-6 h-6" />
+      </button>
             {/* Theme Toggle Button */}
             <button
               id={`header-theme-toggle${sfx}`}
@@ -867,6 +879,8 @@ export default function App() {
           {activeTab === 'stems' && <StemsPanel player={player} lang={lang} />}
         </main>
       </div>
+
+      {aboutOpen && <AboutDialog lang={lang} onClose={() => setAboutOpen(false)} />}
 
       {exporting && track && (
         <ExportDialog

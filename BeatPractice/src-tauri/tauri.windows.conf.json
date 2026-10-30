@@ -16,13 +16,18 @@
       "nsis"
     ],
     "resources": [
-      "core-bundle/**/*"
+      "core-bundle/**/*",
+      "legal/*"
     ],
     "windows": {
       "nsis": {
         "installerIcon": "icons/icon.ico",
         "installMode": "perMachine"
       }
-    }
+    },
+    "licenseFile": "legal/EULA.txt",
+    "publisher": "Mike",
+    "copyright": "© 2026 Mike",
+    "shortDescription": "BeatPractice"
   }
 }

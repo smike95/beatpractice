@@ -1,0 +1,29 @@
+name: Mirror models
+
+# Run once (Actions -> Mirror models -> Run workflow): copies the neural network models into a release of
+# this repository ("models-v1"), so the Windows build no longer depends on third-party download servers.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download models from the original sources
+        working-directory: beat-core
+        run: |
+          sh scripts/fetch_models.sh
+          sh scripts/fetch_stem_model.sh
+          sh scripts/fetch_stem_model.sh --four
+          ls -la models
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          NOTES="Copies of third-party neural network models used by BeatPractice, all under the MIT license: Beat This! (CPJKU/beat_this, (c) 2024 JKU Linz) as ONNX by danigb/beat-this-rs; HT-Demucs (facebookresearch/demucs, (c) Meta Platforms) as ONNX by StemSplitio. See THIRD_PARTY_NOTICES.txt."
+          gh release view models-v1 >/dev/null 2>&1 || gh release create models-v1 --title "Models v1" --notes "$NOTES"
+          gh release upload models-v1 beat-core/models/*.onnx --clobber

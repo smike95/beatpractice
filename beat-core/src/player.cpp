@@ -160,10 +160,14 @@ struct Player::Impl {
         return ma_device_start(&dev) == MA_SUCCESS;
     }
 
+    // The 6-part model (drums, bass, other, vocals, guitar, piano) is preferred; the 4-part model is the fallback.
+    // stemSkip > 0 means: the first model(s) found could not be used, take the next one.
+    std::atomic<int> stemSkip{0};
     std::string stemModelPath() const {
-        for (const char* n : {"htdemucs.onnx", "htdemucs_fp16weights.onnx"}) {
+        int skip = stemSkip.load();
+        for (const char* n : {"htdemucs_6s_fp16weights.onnx", "htdemucs_6s.onnx", "htdemucs_fp16weights.onnx", "htdemucs.onnx"}) {
             std::string p = modelDir + "/" + n;
-            if (fileSize(p) > 0) return p;
+            if (fileSize(p) > 0) { if (skip > 0) { --skip; continue; } return p; }
         }
         return "";
     }
@@ -187,7 +191,7 @@ struct Player::Impl {
             const long wantFrames = (long)std::llround(e->durationSeconds() * kEngineRate);
             bool got = !cachePath.empty() && set.load(cachePath) && std::labs(set.frames - wantFrames) < 4 * kEngineRate / 10;
             if (!got) {
-                if (model.empty()) return stemFail("Stem model not found in " + modelDir + " (htdemucs.onnx or htdemucs_fp16weights.onnx).");
+                if (model.empty()) return stemFail("Stem model not found in " + modelDir + " (htdemucs_6s_fp16weights.onnx, htdemucs_6s.onnx, htdemucs_fp16weights.onnx or htdemucs.onnx).");
                 stemProg = 0.01f;
                 std::vector<float> st = decodeAudioFile(songPath, 2, kEngineRate);
                 if (st.size() < 2 * (size_t)kEngineRate) return stemFail("Cannot decode the file again for stem separation.");
@@ -196,7 +200,14 @@ struct Player::Impl {
                 for (long i = 0; i < T; ++i) { L[i] = st[2*i]; R[i] = st[2*i+1]; }
                 std::vector<float>().swap(st);
                 StemSeparator sep(model);
-                if (!sep.ok()) return stemFail("Stem model cannot be used: " + sep.error());
+                if (!sep.ok()) {
+                    if (stemSkip.load() == 0) {            // try the next model file (e.g. the 4-part one) once
+                        stemSkip = 1;
+                        if (!stemModelPath().empty()) return runStems(gen);
+                        stemSkip = 0;
+                    }
+                    return stemFail("Stem model cannot be used: " + sep.error());
+                }
                 const uint32_t all = (1u << sep.sourceNames().size()) - 1;
                 set = sep.separate(L.data(), R.data(), T, all, [&](float p) {
                     stemProg = 0.02f + 0.93f * p;

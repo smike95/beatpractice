@@ -60,15 +60,39 @@ jobs:
         uses: actions/cache@v4
         with:
           path: beat-core/models
-          key: models-v1
+          key: models-v2
 
-      - name: Download models
+      # 1) our own mirror (created once by the "Mirror models" workflow), if it exists
+      - name: Download models from the project's own release
+        if: steps.models-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          mkdir -p beat-core/models
+          gh release download models-v1 --repo "${{ github.repository }}" --dir beat-core/models --skip-existing
+
+      # 2) whatever is still missing comes from the original sources
+      - name: Download missing models from the original sources
         if: steps.models-cache.outputs.cache-hit != 'true'
         shell: bash
         working-directory: beat-core
         run: |
           sh scripts/fetch_models.sh
-          sh scripts/fetch_stem_model.sh
+          sh scripts/fetch_stem_model.sh            # 6 parts: drums, bass, other, vocals, guitar, piano
+          sh scripts/fetch_stem_model.sh --four     # 4-part model, used automatically if the 6-part one cannot be loaded
+          ls -la models
+
+      # Optional check: prints how many parts the stem model gives (expected 6)
+      - name: Probe the stem model (optional)
+        continue-on-error: true
+        shell: pwsh
+        working-directory: beat-core
+        run: |
+          cmake --build build --config Release --target stems_cli
+          Copy-Item "$env:ORT_DIR\lib\onnxruntime.dll" build\Release\ -Force
+          .\build\Release\stems_cli.exe --probe --model models\htdemucs_6s_fp16weights.onnx
 
       # ---------- 4. Put the core inside the installer ----------
       - name: Stage core into the app
@@ -91,6 +115,16 @@ jobs:
         shell: bash
         working-directory: BeatPractice
         run: npm ci || npm install
+
+      # Full lists of the Rust and JavaScript packages (part of the third-party notices in the installer)
+      - name: Collect dependency licenses (optional)
+        continue-on-error: true
+        shell: bash
+        run: |
+          mkdir -p BeatPractice/src-tauri/legal
+          (cd BeatPractice && npx --yes license-checker-rseidelsohn --production --excludePrivatePackages --csv > src-tauri/legal/licenses-npm.txt)
+          cargo install cargo-license --locked
+          (cd BeatPractice/src-tauri && cargo license --avoid-dev-deps --tsv > legal/licenses-rust.txt)
 
       - name: Build installer
         shell: bash
