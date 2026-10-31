@@ -1,11 +1,16 @@
 {
   "bundle": {
-    "targets": ["dmg"],
-    "resources": ["core-bundle/**/*", "legal/*"],
+    "targets": [
+      "dmg"
+    ],
+    "resources": [
+      "core-bundle/**/*",
+      "legal/*"
+    ],
     "category": "Music",
-    "licenseFile": "legal/EULA.txt",
-    "publisher": "Mykhailo Saltykov",
-    "copyright": "© 2026 Mykhailo Saltykov",
+    "licenseFile": "legal/EULA-macos.txt",
+    "publisher": "Mike",
+    "copyright": "© 2026 Mike",
     "shortDescription": "BeatPractice",
     "macOS": {
       "minimumSystemVersion": "13.3"

@@ -1,0 +1,24 @@
+BeatPractice - End User License Agreement
+Version 1.0
+
+1. General. This agreement sets the terms for using the BeatPractice application (the "Software"). By installing or using the Software you accept these terms. If you do not agree, do not install or use the Software.
+
+2. License. The developer grants you a non-exclusive, non-transferable right to install the Software on your own devices and to use it for personal purposes for as long as the license you obtained (purchased) is valid.
+
+3. Restrictions. You may not sell, rent or otherwise distribute the Software or parts of it without the developer's written permission; remove copyright notices; or try to circumvent technical limits or protection of the Software, except where applicable law expressly allows it.
+
+4. Your music. The Software works with audio files that you add yourself. You are responsible for having the right to use those files. The Software does not provide any musical works. Files created by the export function are meant for your personal use (for example, for practising); sharing them must respect the rights of the music's owners.
+
+5. Third-party components. The Software contains open-source components and models that are distributed under their own licenses (mainly MIT, Apache-2.0, ISC). They are listed, together with their license texts, in the "About" window and in THIRD_PARTY_NOTICES.txt. This agreement does not limit your rights under those licenses.
+
+6. No warranty. The Software is provided "as is", without warranty of any kind, express or implied, including fitness for a particular purpose and accuracy of the analysis results (tempo, bars, separation into parts). Results of automatic analysis may contain errors.
+
+7. Limitation of liability. To the extent permitted by law, the developer is not liable for any indirect, incidental or consequential damages, or loss of data or profit, arising from the use of the Software.
+
+8. Privacy. The Software processes your audio files locally on your device. The files themselves and the analysis results are not sent to the developer.
+
+9. Termination. Your rights under this agreement end automatically if you breach its terms. After termination you must delete the Software.
+
+10. Governing law. This agreement is governed by the laws of the country where the developer resides (is registered), unless mandatory law of the country where you live provides otherwise.
+
+Copyright (c) 2026 Mike. All rights reserved.

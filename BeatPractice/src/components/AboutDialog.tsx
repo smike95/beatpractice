@@ -6,7 +6,7 @@ import eulaRaw from "../../src-tauri/legal/EULA.txt?raw";
 import noticesRaw from "../../src-tauri/legal/THIRD_PARTY_NOTICES.txt?raw";
 
 // Change the name here (and in src-tauri/legal/*.txt, src-tauri/tauri.windows.conf.json) if the copyright holder differs.
-const COPYRIGHT = "© 2026 Mykhailo Saltykov";
+const COPYRIGHT = "© 2026 Mike";
 
 const strip = (s: string) => s.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
 
