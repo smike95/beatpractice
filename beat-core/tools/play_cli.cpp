@@ -1,4 +1,4 @@
-// Terminal player for testing the sound output on a real machine (no Flutter needed).
+// Terminal player for testing the sound output on a real machine (no application needed).
 //   play_cli song.mp3 --models models --cache cache
 // Keys:  space play/pause   [ ] speed -/+ 5%   m metronome on/off   a accent on/off   c count-in 0/1/2 bars
 //        z set loop start (nearest bar)  x set loop end (nearest bar)  v clear loop   , . back/forward one bar   q quit

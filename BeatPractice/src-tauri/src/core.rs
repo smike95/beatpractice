@@ -1,5 +1,5 @@
 //! Runtime binding to the C++ beat-core shared library (`beat_core_c.h`).
-//! The library is opened with dlopen (like Dart FFI did), so nothing is linked at build time.
+//! The library is opened at run time (dlopen / LoadLibrary), so nothing is linked at build time.
 
 use libloading::Library;
 use std::ffi::{c_char, c_double, c_float, c_int, c_void, CStr, CString};

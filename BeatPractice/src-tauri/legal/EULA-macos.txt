@@ -21,4 +21,4 @@ Version 1.0
 
 10. Governing law. This agreement is governed by the laws of the country where the developer resides (is registered), unless mandatory law of the country where you live provides otherwise.
 
-Copyright (c) 2026 Mike. All rights reserved.
+Copyright (c) 2026 Mykhailo S. All rights reserved.

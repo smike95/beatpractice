@@ -1,6 +1,6 @@
 # beat-core: аналізатор ритму
 
-Знаходить у пісні долі й початок кожного такту (де «раз»), підтримує зміну розміру (такти з 3–7 долями та їх чергування) і зміну темпу, визначає, де метроному звучати. Розділяє пісню на партії (ударні, бас, інше, вокал).
+Знаходить у пісні долі й початок кожного такту (де «раз»), підтримує зміну розміру (такти з 3–7 долями та їх чергування) і зміну темпу, визначає, де метроному звучати. Розділяє пісню на партії (4: ударні, бас, інше, вокал; або 6: ще гітара й піаніно).
 
 ## Як це працює (коротко)
 1. Нейромережа Beat This! (ONNX) дає для кожних 20 мс «імовірність удару» і «імовірність початку такту».
@@ -22,17 +22,19 @@ eng.setSpeed(0.8); eng.seekSeconds(0); eng.play();
 **Цикл A–B:** `eng.setLoop(a, b)` (секунди оригіналу; `eng.snapToBar(t)` притискає точку до початку такту), `eng.clearLoop()`. Стрибок з B на A точний до семпла,
 дробова похибка не накопичується, тому цикл не «пливе». На шві стоїть 1 мс згасання/наростання, щоб не було клацання. `everyLoopRestart` додає відлік перед кожним повторенням.
 
-Двигун не залежить від пристрою виводу: підключення до динаміків (Core Audio, AAudio тощо) і міст до Flutter будуть наступним кроком.
+Двигун не залежить від пристрою виводу; до звукової карти його підключає `Player` (miniaudio: Core Audio, WASAPI та інші).
 
 Перевірка двигуна без жодних файлів: `./build/engine_test` (має показати ENGINE TEST PASSED).
 Офлайн-перевірка на реальній пісні: `render_cli пісня.mp3 --activations пісня.act --speed 0.8 --out out.wav`
 (додатково: `--loop-a 59.8 --loop-b 70.5 --count-in 1 --count-in-loop`).
 
-## Програвач зі звуком (`Player`, `play_cli`) і C-інтерфейс для Flutter
+## Програвач зі звуком (`Player`, `play_cli`) і C-інтерфейс
 `Player` об'єднує все: відкрити файл → розкодувати й проаналізувати у фоні (результат кешується, повторне відкриття ~1 с) → грати через звукову карту.
-Плоский C-інтерфейс для Flutter (`dart:ffi`) описаний у `src/beat_core_c.h`; збирається в `libbeatcore_c.dylib` (Mac) / `.so` / `.dll`.
+Плоский C-інтерфейс описаний у `src/beat_core_c.h`; збирається в `libbeatcore_c.dylib` (macOS) / `.so` / `beatcore_c.dll` (Windows) і підключається програмою BeatPractice під час роботи (Rust, `libloading`). Усі шляхи до файлів передаються в UTF-8 (на Windows перетворюються на UTF-16, тож кирилиця в назвах працює).
+- Грати оригінал можна вже під час першого аналізу ритму (двигун створюється одразу після розкодування, карта долей додається в нього пізніше).
+- `bc_export_start` / `bc_export_state` / `bc_export_progress` / `bc_export_cancel`: експорт пісні в 16-бітний WAV так, як вона звучить зараз (темп, гучність, партії, за бажанням метроном). Працює у фоні в окремому двигуні й не заважає відтворенню.
 
-**Перший тест звуку на Mac (без Flutter):**
+**Перший тест звуку на Mac (без програми):**
 ```
 ./build/play_cli пісня.mp3 --models models --cache cache
 ```
@@ -42,18 +44,17 @@ eng.setSpeed(0.8); eng.seekSeconds(0); eng.play();
 
 Автотест без звукової карти: `BEATCORE_NULL_AUDIO=1 ./build/player_test пісня.mp3 models cache`.
 
-## Збирання (Mac, Apple Silicon)
+## Збирання
+Повна інструкція для Windows, macOS і Linux: `СКЛАДАННЯ.md`. Коротко (macOS, Apple Silicon):
 ```
-sh scripts/fetch_models.sh                      # моделі (~94 МБ)
-# ONNX Runtime для macOS: https://github.com/microsoft/onnxruntime/releases  (onnxruntime-osx-arm64-*.tgz), розпакуй
-cmake -S . -B build -DORT_DIR=/шлях/до/onnxruntime-osx-arm64-1.22.0
+sh scripts/fetch_models.sh                      # аналіз ритму (~94 МБ)
+sh scripts/fetch_stem_model.sh                  # розділення на 6 партій (~136 МБ)
+# ONNX Runtime: https://github.com/microsoft/onnxruntime/releases/tag/v1.22.0 (onnxruntime-osx-arm64-1.22.0.tgz), розпакуй
+cmake -S . -B build -DORT_DIR=/шлях/до/onnxruntime-osx-arm64-1.22.0 -DCMAKE_OSX_ARCHITECTURES=arm64
 cmake --build build
 ./build/analyze_cli пісня.mp3 --mel models/mel_spectrogram.onnx --model models/beat_this.onnx > пісня.json
 ```
-**Важливо про архітектуру процесора.** Пакет ONNX Runtime і збірка мають бути для одного процесора.
-- Mac на Apple Silicon (`uname -m` показує `arm64`): пакет `onnxruntime-osx-arm64-*` і додай до `cmake` прапорець `-DCMAKE_OSX_ARCHITECTURES=arm64`.
-- Mac на Intel (`x86_64`): пакет `onnxruntime-osx-x86_64-1.22.0` (у новіших версій ONNX Runtime пакетів для Intel вже нема).
-- Якщо змінюєш пакет або теку, спершу видали теку `build`.
+**Архітектура процесора.** Пакет ONNX Runtime і збірка мають бути для одного процесора: Mac на Apple Silicon (`uname -m` = `arm64`) бере `onnxruntime-osx-arm64-*`, Mac на Intel (`x86_64`) бере `onnxruntime-osx-x86_64-*` і `-DCMAKE_OSX_ARCHITECTURES=x86_64`. Якщо змінюєш пакет або теку, спершу видали теку `build`.
 
 Результат: JSON з часами долей, довжиною такту і позицією долі в такті.
 
@@ -72,10 +73,14 @@ python3 tests/compare.py --cli build/analyze_cli --models models \
 Прапорці: `--switch-penalty` `--alternation-penalty` `--cost3` `--tightness` `--strong` `--stable-bars` `--bar-lengths 3,4`.
 
 ## Розділення на партії
-Модель HT-Demucs (ONNX, MIT-ліцензія): `sh scripts/fetch_stem_model.sh` кладе `models/htdemucs_fp16weights.onnx` (166 МБ; `--full` дає `htdemucs.onnx`, 316 МБ). Ядро шукає в `models/` спершу `htdemucs.onnx`, потім `htdemucs_fp16weights.onnx`.
-- Вхід моделі `mix` [1,2,343980] (7,8 с стерео 44,1 кГц), вихід `stems` [1,4,2,343980] у порядку drums, bass, other, vocals. `StemSeparator` ріже пісню на відрізки з перекриттям і склеює їх.
-- Працює у фоні (`bc_stems_start`), прогрес `bc_stems_progress`, результат кешується в `cache/*.stems`. Готові партії завантажуються в `PlaybackEngine::setStems` (кожна партія має власний розтягувач часу й рівень), вмикаються `bc_stems_enable`, рівні `bc_set_stem_gain`.
-- Перевірено на макеті моделі такого самого формату (`tests/make_fake_models.py`, `tests/stems_test.cpp`, `tests/stems_engine_test.cpp`, `tests/stems_player_test.cpp`). На справжній моделі швидкість і якість ще треба оцінити.
+Модель HT-Demucs (ONNX, MIT-ліцензія), `sh scripts/fetch_stem_model.sh`:
+- без прапорця: `models/htdemucs_6s_fp16weights.onnx` (~136 МБ), **6 партій**: ударні, бас, інше, вокал, гітара, піаніно (піаніно виділяється гірше за інші);
+- `--four`: `htdemucs_fp16weights.onnx` (~166 МБ), 4 партії: ударні, бас, інше, вокал; `--full`: `htdemucs.onnx` (~316 МБ), 4 партії повної точності.
+
+Ядро шукає в `models/` за порядком: `htdemucs_6s_fp16weights.onnx`, `htdemucs_6s.onnx`, `htdemucs_fp16weights.onnx`, `htdemucs.onnx`. Якщо першу знайдену модель не вдалося завантажити, один раз пробується наступна.
+- Вхід моделі `mix` [1,2,343980] (7,8 с стерео 44,1 кГц), вихід `stems` [1,S,2,343980], де S = 4 або 6. Імена партій дає `bc_stem_name`. `StemSeparator` ріже пісню на відрізки з перекриттям і склеює їх.
+- Працює у фоні (`bc_stems_start`), прогрес `bc_stems_progress`, результат кешується в `cache/*.stems` (окремо для кожної моделі). Готові партії завантажуються в `PlaybackEngine::setStems` (кожна партія має власний розтягувач часу й рівень), вмикаються `bc_stems_enable`, рівні `bc_set_stem_gain`.
+- Перевірено на макеті моделі такого самого формату (`tests/make_fake_models.py`, `tests/stems_test.cpp`, `tests/stems_engine_test.cpp`, `tests/stems_player_test.cpp`; макети на 4 і 6 партій, також перехід на 4-партійну модель) і в програмі на 4-партійній моделі. 6-партійну модель у збірці перевіряє крок `stems_cli --probe`.
 
 ## Розпізнавання розміру й темпу
 - Такти можуть мати 3–7 долей (`AnalyzerConfig::barLengths`); зміна розміру коштує `meterChangePenalty`, рідкісні довжини додатково `costLengthOther`.
@@ -94,7 +99,3 @@ python3 tests/compare.py --cli build/analyze_cli --models models \
 - Розміри: за замовчуванням лише 3 і 4 долі.
 - Час долей має крок 20 мс. Для метронома це треба згладжувати (наступний крок).
 - Налаштовано на трьох піснях (Disturbed, Карна, Heathens). Інші жанри ще не перевірені.
-
-
-## Розділення на 6 партій
-`sh scripts/fetch_stem_model.sh` тепер завантажує модель HT-Demucs на 6 партій (ударні, бас, інше, вокал, гітара, піаніно; ONNX від StemSplit, MIT). `--four` завантажує 4-партійну. Ядро віддає перевагу 6-партійній моделі, а якщо її не вдалося завантажити, бере 4-партійну.

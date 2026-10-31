@@ -803,7 +803,7 @@ export default function App() {
                   <p className="text-xs text-slate-500">
                     {player.caps.meterModes
                       ? (lang === 'en' ? 'If a complex song is shown with the wrong meter, try "Sensitive". Cycles of this track are cleared when the mode changes.' : 'Якщо складний трек показано з хибним розміром, спробуйте «Чутливо». Під час зміни режиму цикли цього треку скидаються.')
-                      : (lang === 'en' ? 'Update the core (beat-core-update) to choose the recognition mode.' : 'Щоб обирати режим, оновіть ядро (beat-core-update).')}
+                      : (lang === 'en' ? 'Update the core (beat-core) to choose the recognition mode.' : 'Щоб обирати режим розпізнавання, оновіть ядро (beat-core).')}
                   </p>
                 </div>
                 {sectionRows.length === 0 ? (

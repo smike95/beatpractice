@@ -5,8 +5,9 @@ import { BeatPracticeLogo } from "./BeatPracticeLogo";
 import eulaRaw from "../../src-tauri/legal/EULA.txt?raw";
 import noticesRaw from "../../src-tauri/legal/THIRD_PARTY_NOTICES.txt?raw";
 
-// Change the name here (and in src-tauri/legal/*.txt, src-tauri/tauri.windows.conf.json) if the copyright holder differs.
-const COPYRIGHT = "© 2026 Mike";
+// Copyright holder: Ukrainian and English spelling. The same name is in src-tauri/legal/*.txt and in the
+// "publisher" and "copyright" fields of src-tauri/tauri.windows.conf.json and tauri.macos.conf.json.
+const COPYRIGHT = { uk: "© 2026 Михайло С", en: "© 2026 Mykhailo S" };
 
 const strip = (s: string) => s.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
 
@@ -32,7 +33,7 @@ export function AboutDialog({ lang, onClose }: { lang: "uk" | "en"; onClose: () 
             <BeatPracticeLogo className="w-10 h-10 shrink-0" />
             <div>
               <div className="text-xl font-black leading-tight">BeatPractice</div>
-              <div className="track-edit-label text-xs">{L("Версія", "Version")} {version || "…"} · {COPYRIGHT}</div>
+              <div className="track-edit-label text-xs">{L("Версія", "Version")} {version || "…"} · {COPYRIGHT[lang]}</div>
             </div>
           </div>
           <button className="track-edit-close p-1 rounded-lg cursor-pointer" onClick={onClose} title={L("Закрити", "Close")}><X className="w-6 h-6" /></button>

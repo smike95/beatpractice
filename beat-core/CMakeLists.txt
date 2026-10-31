@@ -54,12 +54,12 @@ target_link_libraries(stems_engine_test beatcore)
 set_target_properties(stems_engine_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 add_test(NAME stems_engine_test COMMAND stems_engine_test)
 
-# end-to-end stem separation through the C API (needs a model folder containing htdemucs.onnx; see the file header)
+# end-to-end stem separation through the C API (needs a model folder containing a stem model, htdemucs*.onnx; see the file header)
 add_executable(stems_player_test tests/stems_player_test.cpp)
 target_link_libraries(stems_player_test beatcore_c)
 set_target_properties(stems_player_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 
-# interactive terminal player (to test sound output without Flutter)
+# interactive terminal player (to test sound output without the application)
 add_executable(play_cli tools/play_cli.cpp)
 target_link_libraries(play_cli beatcore)
 set_target_properties(play_cli PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
@@ -69,7 +69,7 @@ add_executable(player_test tests/player_test.cpp)
 target_link_libraries(player_test beatcore)
 set_target_properties(player_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 
-# shared library for Flutter (dart:ffi): libbeatcore_c.dylib / .so / .dll
+# shared library loaded by the BeatPractice application: libbeatcore_c.dylib / .so / beatcore_c.dll
 add_library(beatcore_c SHARED src/c_api.cpp)
 target_link_libraries(beatcore_c PRIVATE beatcore)
 set_target_properties(beatcore_c PROPERTIES CXX_VISIBILITY_PRESET hidden BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "@loader_path;${ORT_DIR}/lib")

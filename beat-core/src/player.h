@@ -51,8 +51,9 @@ public:
     BeatInfo currentBeat() const;
     std::vector<float> peaks() const;            // waveform overview, PlaybackEngine::kPeaksPerSecond per second
 
-    // ---- stems: the song split into parts (drums, bass, other, vocals ...) by a Demucs ONNX model ----
-    // The model file (htdemucs.onnx or htdemucs_fp16weights.onnx) must be in modelDir. Separation runs in the background and
+    // ---- stems: the song split into parts (4, or 6 with guitar and piano) by a Demucs ONNX model ----
+    // A model file must be in modelDir: htdemucs_6s_fp16weights.onnx / htdemucs_6s.onnx (preferred), otherwise
+    // htdemucs_fp16weights.onnx / htdemucs.onnx. If the preferred model cannot be loaded, the next one is used. Separation runs in the background and
     // is cached on disk per song, so the next time the parts are ready in about a second. When Ready, the parts are loaded
     // into the engine; setStemsEnabled(true) plays them instead of the original mix, each with its own level.
     bool stemsAvailable() const;                 // a song is ready and the model file exists

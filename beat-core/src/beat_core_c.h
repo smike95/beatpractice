@@ -1,5 +1,6 @@
-/* Flat C interface to beat-core, for Dart FFI (Flutter), Swift, Kotlin/JNI. All functions are thread-safe
-   with respect to each other (call from the UI thread). Strings are UTF-8. */
+/* Flat C interface to beat-core. It is loaded at run time by the BeatPractice application (Rust, libloading) and can be used from
+   any language with a C FFI. All functions are thread-safe with respect to each other (call from the UI thread).
+   Strings and file paths are UTF-8 (also on Windows). */
 #ifndef BEAT_CORE_C_H
 #define BEAT_CORE_C_H
 #ifdef __cplusplus
@@ -58,7 +59,8 @@ BC_API int  bc_count_in_beat(bc_player*, int* beat, int* total);
 BC_API int  bc_set_meter_mode(bc_player*, int mode);
 BC_API int  bc_meter_mode(bc_player*);
 
-/* stems: the song split into parts (drums, bass, other, vocals) by a Demucs model (htdemucs.onnx in the models folder).
+/* stems: the song split into parts by a Demucs model from the models folder: 6 parts (drums, bass, other, vocals, guitar, piano)
+   with htdemucs_6s*.onnx, otherwise 4 parts (drums, bass, other, vocals) with htdemucs*.onnx. The part names come from bc_stem_name.
    bc_stems_start runs in the background; poll bc_stems_state: 0 none, 1 running, 2 ready, 3 error. Results are cached on disk.
    When ready, bc_stems_enable(1) plays the parts instead of the original mix, each with its own level (bc_set_stem_gain 0..1.5). */
 BC_API int         bc_stems_available(bc_player*);   /* a song is ready and the model file exists */

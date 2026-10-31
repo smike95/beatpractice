@@ -1,5 +1,5 @@
 // Splits a song into sections of one steady bar length (or a "mixed" stretch that alternates, e.g. 4+3).
-// Port of beat_trainer_app/lib/core/tempo_sections.dart. posInBar is 1-based (1 = first beat of the bar).
+// posInBar is 1-based (1 = first beat of the bar).
 
 export interface TempoSection {
   firstBar: number; // 1-based

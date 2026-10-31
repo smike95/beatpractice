@@ -3,7 +3,7 @@ name: Windows installer
 on:
   workflow_dispatch:          # запуск кнопкою "Run workflow"
   push:
-    tags: ["v*"]              # або при створенні мітки версії, наприклад v0.1.0
+    tags: ["v*"]              # або при створенні мітки версії, наприклад v1.0.0
 
 jobs:
   windows:

@@ -1,5 +1,5 @@
 // End-to-end test of stem separation through the C API (null sound device, fake Demucs-like model):
-//   BEATCORE_NULL_AUDIO=1 ./stems_player_test song.wav models_with_htdemucs.onnx cache
+//   BEATCORE_NULL_AUDIO=1 ./stems_player_test song.wav models_folder_with_a_stem_model cache
 #include "../src/beat_core_c.h"
 #include <chrono>
 #include <cstdlib>
