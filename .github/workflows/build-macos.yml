@@ -1,0 +1,135 @@
+name: macOS installers
+
+on:
+  workflow_dispatch:          # кнопка "Run workflow"
+  push:
+    tags: ["v*"]
+
+jobs:
+  macos:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: arm64                       # Apple Silicon (M1 і новіші)
+            rust_target: aarch64-apple-darwin
+            ort_pkg: onnxruntime-osx-arm64
+          - arch: x86_64                      # Mac на Intel
+            rust_target: x86_64-apple-darwin
+            ort_pkg: onnxruntime-osx-x86_64
+    runs-on: macos-latest
+    timeout-minutes: 120
+    env:
+      ORT_VERSION: "1.22.0"
+      MACOSX_DEPLOYMENT_TARGET: "13.3"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: BeatPractice/package-lock.json
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: BeatPractice/src-tauri
+          key: ${{ matrix.rust_target }}
+
+      # ---------- 1. ONNX Runtime for this processor type ----------
+      - name: Download ONNX Runtime
+        run: |
+          curl -L --fail -o "$RUNNER_TEMP/ort.tgz" "https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/${{ matrix.ort_pkg }}-${ORT_VERSION}.tgz"
+          tar xzf "$RUNNER_TEMP/ort.tgz" -C "$RUNNER_TEMP"
+          echo "ORT_DIR=$RUNNER_TEMP/${{ matrix.ort_pkg }}-${ORT_VERSION}" >> "$GITHUB_ENV"
+
+      # ---------- 2. C++ core for this processor type ----------
+      - name: Build core (libbeatcore_c.dylib)
+        working-directory: beat-core
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_OSX_ARCHITECTURES=${{ matrix.arch }} \
+            -DCMAKE_OSX_DEPLOYMENT_TARGET=13.3 \
+            -DORT_DIR="$ORT_DIR"
+          cmake --build build --target beatcore_c -j 4
+          file build/libbeatcore_c.dylib
+          otool -L build/libbeatcore_c.dylib
+
+      # Необов'язкова перевірка (лише там, де машина може запустити результат)
+      - name: Core smoke test (optional)
+        if: matrix.arch == 'arm64'
+        continue-on-error: true
+        working-directory: beat-core
+        run: |
+          cmake --build build --target meter_test -j 4
+          ./build/meter_test tests/data/meter
+
+      # ---------- 3. Neural network models (cached) ----------
+      - name: Cache models
+        id: models-cache
+        uses: actions/cache@v4
+        with:
+          path: beat-core/models
+          key: models-v2
+
+      - name: Download models from the project's own release
+        if: steps.models-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p beat-core/models
+          gh release download models-v1 --repo "${{ github.repository }}" --dir beat-core/models --skip-existing
+
+      - name: Download missing models from the original sources
+        if: steps.models-cache.outputs.cache-hit != 'true'
+        working-directory: beat-core
+        run: |
+          sh scripts/fetch_models.sh
+          sh scripts/fetch_stem_model.sh
+          sh scripts/fetch_stem_model.sh --four
+          ls -la models
+
+      # ---------- 4. Put the core inside the app ----------
+      - name: Stage core into the app
+        run: |
+          DST=BeatPractice/src-tauri/core-bundle
+          mkdir -p "$DST/build" "$DST/models"
+          cp beat-core/build/libbeatcore_c.dylib "$DST/build/"
+          # the real (versioned) ONNX Runtime library, not the symlink
+          cp -L "$ORT_DIR"/lib/libonnxruntime.*.dylib "$DST/build/" || cp -L "$ORT_DIR/lib/libonnxruntime.dylib" "$DST/build/"
+          # the core must look for ONNX Runtime next to itself
+          install_name_tool -add_rpath @loader_path "$DST/build/libbeatcore_c.dylib"
+          codesign --force --sign - "$DST"/build/*.dylib
+          otool -l "$DST/build/libbeatcore_c.dylib" | grep -A2 LC_RPATH
+          cp beat-core/models/*.onnx "$DST/models/"
+          ls -laR "$DST"
+
+      # ---------- 5. App + installer ----------
+      - name: Install frontend dependencies
+        working-directory: BeatPractice
+        run: npm ci || npm install
+
+      - name: Collect dependency licenses (optional)
+        continue-on-error: true
+        run: |
+          mkdir -p BeatPractice/src-tauri/legal
+          (cd BeatPractice && npx --yes license-checker-rseidelsohn --production --excludePrivatePackages --csv > src-tauri/legal/licenses-npm.txt)
+          cargo install cargo-license --locked
+          (cd BeatPractice/src-tauri && cargo license --avoid-dev-deps --tsv > legal/licenses-rust.txt)
+
+      - name: Build installer (.dmg)
+        working-directory: BeatPractice
+        run: npm run tauri build -- --target ${{ matrix.rust_target }} --bundles dmg
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: BeatPractice-macOS-${{ matrix.arch }}
+          path: BeatPractice/src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
+          compression-level: 0
+          if-no-files-found: error

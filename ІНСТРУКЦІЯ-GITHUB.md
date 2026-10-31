@@ -75,3 +75,13 @@ git push
 
 ## Одна копія програми
 Друге вікно запустити не можна: повторний запуск просто виводить уже відкрите вікно наперед.
+
+## macOS (два окремі установочні файли)
+У вкладці **Actions** оберіть **macOS installers → Run workflow**. Збірка створить два артефакти:
+- `BeatPractice-macOS-arm64`: `.dmg` для Mac на Apple Silicon (M1 і новіші);
+- `BeatPractice-macOS-x86_64`: `.dmg` для Mac на Intel.
+
+Програма вимагає macOS 13.3 або новішу (так вимагає ONNX Runtime).
+Поки немає підпису Apple (Developer ID + нотаризація, акаунт Apple Developer Program), macOS покаже попередження. Для тесту: відкрийте програму через правий клік → «Відкрити» або виконайте в Терміналі
+`xattr -dr com.apple.quarantine /Applications/BeatPractice.app`.
+Підпис і нотаризацію я додам, коли буде акаунт Apple Developer.
