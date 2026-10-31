@@ -4,8 +4,8 @@
     "resources": ["core-bundle/**/*", "legal/*"],
     "category": "Music",
     "licenseFile": "legal/EULA.txt",
-    "publisher": "Mike",
-    "copyright": "© 2026 Mike",
+    "publisher": "Mykhailo Saltykov",
+    "copyright": "© 2026 Mykhailo Saltykov",
     "shortDescription": "BeatPractice",
     "macOS": {
       "minimumSystemVersion": "13.3"
