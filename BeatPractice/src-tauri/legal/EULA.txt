@@ -25,7 +25,7 @@
 
 10. Право, що застосовується. Ця угода регулюється законодавством країни, у якій мешкає (зареєстрований) Розробник, якщо інше не передбачено імперативними нормами законодавства країни вашого проживання.
 
-© 2026 Mike. Усі права захищено.
+© 2026 Михайло Салтиков. Усі права захищено.
 
 
 ======================================================================
@@ -52,4 +52,4 @@ IN ENGLISH
 
 10. Governing law. This agreement is governed by the laws of the country where the developer resides (is registered), unless mandatory law of the country where you live provides otherwise.
 
-(c) 2026 Mike. All rights reserved.
+(c) 2026 Mykhailo Saltykov. All rights reserved.
