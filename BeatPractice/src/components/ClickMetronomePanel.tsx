@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Minus, Play, Plus, Square } from "lucide-react";
+import { Play, Square } from "lucide-react";
 import { Slider } from "./Slider";
 
 type Lang = "uk" | "en";
@@ -32,6 +32,7 @@ export function ClickMetronomePanel(props: {
   const [bpm, setBpm] = useState(saved.current.bpm);
   const [beats, setBeats] = useState(saved.current.beats);
   const [running, setRunning] = useState(false);
+  const [draft, setDraft] = useState<string | null>(null);   // text being typed into the tempo field
   const [flash, setFlash] = useState(-1);          // beat that sounds now (for the indicator)
 
   const ctxRef = useRef<AudioContext | null>(null);
@@ -91,8 +92,11 @@ export function ClickMetronomePanel(props: {
   useEffect(() => { if (trackPlaying && running) stop(); }, [trackPlaying, running, stop]);
   useEffect(() => () => { stop(); void ctxRef.current?.close(); ctxRef.current = null; }, [stop]);
 
-  const step = (d: number) => setBpm((v) => clampBpm(v + d));
-  const btn = "w-9 h-9 rounded-lg border border-slate-700 hover:bg-slate-800 flex items-center justify-center cursor-pointer text-slate-200";
+  const step = (d: number) => { setDraft(null); setBpm((v) => clampBpm(v + d)); };
+  const stepBtn = "min-w-[2.75rem] h-10 px-2 rounded-lg border border-slate-700 hover:bg-slate-800 text-sm font-bold tabular-nums cursor-pointer text-slate-200";
+  const commitDraft = () => {
+    if (draft !== null) { const n = parseInt(draft, 10); if (!isNaN(n)) setBpm(clampBpm(n)); setDraft(null); }
+  };
 
   return (
     <section id="click-metronome-panel" className="rounded-xl border border-slate-800 px-3 py-3 space-y-3">
@@ -114,23 +118,36 @@ export function ClickMetronomePanel(props: {
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button type="button" className={btn} onClick={() => step(-1)} aria-label={L("Повільніше на 1", "Slower by 1")}><Minus className="w-4 h-4" /></button>
-        <div className="w-24 text-center font-mono text-2xl font-bold tabular-nums" id="click-metronome-bpm">{bpm}<span className="text-xs font-semibold text-slate-400 ml-1">BPM</span></div>
-        <button type="button" className={btn} onClick={() => step(1)} aria-label={L("Швидше на 1", "Faster by 1")}><Plus className="w-4 h-4" /></button>
-        <div className="flex-1 min-w-[140px]">
-          <Slider value={bpm} min={MIN_BPM} max={MAX_BPM} step={1} onChange={(v: number) => setBpm(clampBpm(v))} />
-        </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {[-10, -5, -1].map((d) => (
+          <button key={d} type="button" className={stepBtn} onClick={() => step(d)} aria-label={L(`Повільніше на ${-d}`, `Slower by ${-d}`)}>−{-d}</button>
+        ))}
+        <label className="flex items-baseline gap-1 mx-1">
+          <input
+            id="click-metronome-bpm"
+            type="text"
+            inputMode="numeric"
+            value={draft ?? String(bpm)}
+            onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
+            onFocus={(e) => e.target.select()}
+            onBlur={commitDraft}
+            onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); } }}
+            aria-label={L("Темп, BPM (можна ввести вручну)", "Tempo, BPM (type a value)")}
+            className="w-16 h-10 text-center font-mono text-2xl font-bold tabular-nums rounded-lg border border-slate-700 bg-transparent"
+          />
+          <span className="text-xs font-semibold text-slate-400">BPM</span>
+        </label>
+        {[1, 5, 10].map((d) => (
+          <button key={d} type="button" className={stepBtn} onClick={() => step(d)} aria-label={L(`Швидше на ${d}`, `Faster by ${d}`)}>+{d}</button>
+        ))}
       </div>
+      <Slider value={bpm} min={MIN_BPM} max={MAX_BPM} step={1} onChange={(v: number) => setBpm(clampBpm(v))} ariaLabel="BPM" className="w-full" />
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="track-edit-label">{L("Долей у такті", "Beats per bar")}:</span>
         {[2, 3, 4, 5, 6, 7].map((n) => (
           <button key={n} type="button" onClick={() => setBeats(n)} aria-pressed={beats === n}
             className={`w-8 h-8 rounded-lg border text-xs font-bold cursor-pointer ${beats === n ? "bg-sky-700 text-white border-sky-700" : "border-slate-700 hover:bg-slate-800"}`}>{n}</button>
-        ))}
-        {[-10, 10].map((d) => (
-          <button key={d} type="button" className="px-2 h-8 rounded-lg border border-slate-700 hover:bg-slate-800 text-xs font-bold cursor-pointer" onClick={() => step(d)}>{d > 0 ? "+" : ""}{d}</button>
         ))}
       </div>
       <p className="track-edit-label text-xs">{L("Гучність і акцент на першій долі беруться з налаштувань метронома в «Мікшері». З треком одночасно не грає.", "Level and the accent on the first beat follow the metronome settings in the “Mixer”. It does not play together with a track.")}</p>
