@@ -7,6 +7,7 @@ import { TrackMetronomeMixer } from './components/TrackMetronomeMixer';
 import { Waveform } from './components/Waveform';
 import { LoopsPanel } from './components/LoopsPanel';
 import { StemsPanel } from './components/StemsPanel';
+import { ClickMetronomePanel } from './components/ClickMetronomePanel';
 import { TrackEditDialog } from './components/TrackEditDialog';
 import { ExportDialog } from './components/ExportDialog';
 import { Slider } from './components/Slider';
@@ -856,6 +857,13 @@ export default function App() {
           {/* TAB 2: Training (more tools will be added here) */}
           {activeTab === 'training' && (
             <div className="space-y-4">
+              <ClickMetronomePanel
+                lang={lang}
+                volume={metronomeConfig.volume}
+                accent={metronomeConfig.accentFirstBeat}
+                trackPlaying={isPlaying}
+                onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}
+              />
               <LoopsPanel
                 loops={player.loops}
                 activeLoop={player.activeLoop}
