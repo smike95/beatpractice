@@ -253,6 +253,14 @@ fn core_export_start(state: State<AppState>, path: String, metronome: bool) -> R
     with_core(&state, |c| c.export_start(&path, metronome))?
 }
 #[tauri::command]
+#[allow(clippy::too_many_arguments)]
+fn core_export_start_ex(
+    state: State<AppState>, path: String, metronome: bool, count_in_bars: i32, range_a: f64, range_b: f64,
+    separate: bool, stems: Vec<i32>, gains: Vec<f32>,
+) -> Result<bool, String> {
+    with_core(&state, |c| c.export_start_ex(&path, metronome, count_in_bars, (range_a, range_b), separate, &stems, &gains))?
+}
+#[tauri::command]
 fn core_export_status(state: State<AppState>) -> Result<ExportStatus, String> {
     with_core(&state, |c| ExportStatus {
         supported: c.has_export(),
@@ -343,6 +351,7 @@ pub fn run() {
             core_stems_info,
             core_stems_start,
             core_export_start,
+            core_export_start_ex,
             core_export_status,
             core_export_cancel,
             core_stems_cancel,

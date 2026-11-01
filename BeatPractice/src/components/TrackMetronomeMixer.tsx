@@ -1,6 +1,6 @@
 import React from 'react';
 import { Slider } from './Slider';
-import { Sliders, Music } from 'lucide-react';
+import { Sliders, Music, ChevronDown } from 'lucide-react';
 import { MetronomeIcon } from './MetronomeIcon';
 
 interface TrackMetronomeMixerProps {
@@ -13,6 +13,12 @@ interface TrackMetronomeMixerProps {
   isMetronomeEnabled: boolean;
   onMetronomeVolumeChange: (vol: number) => void;
   onMetronomeToggle: () => void;
+
+  /** Folded part under the volume sliders (stem separation). */
+  expanded?: boolean;
+  onExpandedToggle?: () => void;
+  lang?: 'uk' | 'en';
+  children?: React.ReactNode;
 }
 
 export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
@@ -23,7 +29,11 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
   metronomeVolume,
   isMetronomeEnabled,
   onMetronomeVolumeChange,
-  onMetronomeToggle
+  onMetronomeToggle,
+  expanded = false,
+  onExpandedToggle,
+  lang = 'uk',
+  children
 }) => {
   const trackPercent = Math.round(trackVolume * 100);
   const metronomePercent = Math.round(metronomeVolume * 100);
@@ -33,10 +43,19 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
       id="dual-volume-mixer"
       className="bg-slate-100/90 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/90 rounded-xl px-3 sm:px-4 py-2 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 text-xs select-none"
     >
-      <div className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider shrink-0">
+      <button
+        type="button"
+        id="btn-mixer-toggle"
+        onClick={onExpandedToggle}
+        aria-expanded={expanded}
+        aria-controls="mixer-details"
+        title={expanded ? (lang === 'en' ? 'Fold the mixer' : 'Згорнути мікшер') : (lang === 'en' ? 'Unfold the mixer: stem separation' : 'Розгорнути мікшер: розділення на партії')}
+        className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider shrink-0 cursor-pointer rounded-lg px-1.5 py-1 -mx-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+      >
         <Sliders className="w-6 h-6 text-slate-700 dark:text-slate-300" />
-        <span className="text-xs text-slate-700 dark:text-slate-300 font-bold">Мікшер:</span>
-      </div>
+        <span className="text-xs text-slate-700 dark:text-slate-300 font-bold">{lang === 'en' ? 'Mixer' : 'Мікшер'}</span>
+        <ChevronDown className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+      </button>
 
       <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 items-center">
         {/* Track Volume Channel */}
@@ -99,6 +118,12 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
           </span>
         </div>
       </div>
+
+      {expanded && (
+        <div id="mixer-details" className="basis-full w-full pt-1">
+          {children}
+        </div>
+      )}
     </div>
   );
 };

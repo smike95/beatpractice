@@ -105,7 +105,9 @@ struct PlaybackEngine::Impl {
     std::atomic<double> posOut{0.0};
     std::atomic<uint64_t> loopPacked{0};          // (A frame << 32) | B frame ; 0 = no loop
     std::atomic<int> ciBarsA{0};
-    std::atomic<bool> ciEveryLoopA{false}, ciActiveA{false};
+    std::atomic<bool> ciEveryLoopA{false}, ciActiveA{false}, ciSilentA{false};
+    std::atomic<long> stopFrame{-1};              // export: stop here (source frames), -1 = play to the end
+    std::atomic<int> lastFrames{0};               // frames of real sound in the last render() call
 
     // audio-thread state
     double srcPos = 0;                    // source sample that will be heard at the next output sample
@@ -215,7 +217,7 @@ struct PlaybackEngine::Impl {
         while (ciNext < ciN) {
             long off = (long)std::llround(ciNext * ciPeriod);
             if (off >= ciPos + n) break;
-            active.push_back({(acc && ciNext == 0) ? &bankHigh[sid] : &bankLow[sid], (int)-(off - ciPos), mv});
+            if (!ciSilentA.load()) active.push_back({(acc && ciNext == 0) ? &bankHigh[sid] : &bankLow[sid], (int)-(off - ciPos), mv});
             ++ciNext;
             ciBeatA = ciNext;
         }
@@ -233,10 +235,16 @@ struct PlaybackEngine::Impl {
         if (loopOn && srcPos >= hi) {                   // loop switched on after we had already passed B
             srcPos = lo + std::fmod(srcPos - hi, hi - lo); needReseek = true; locateNextBeat();
         }
-        int n = nReq; bool wrapNow = false;
+        int n = nReq; bool wrapNow = false, stopNow = false;
         if (loopOn) {
             int nl = (int)std::ceil((hi - srcPos) / rate - 1e-9);
             if (nl <= n) { n = std::max(1, nl); wrapNow = true; }
+        } else {
+            const long sf = stopFrame.load();
+            if (sf >= 0) {
+                int nl = (int)std::ceil(((double)sf - srcPos) / rate - 1e-9);
+                if (nl <= n) { n = std::max(1, nl); stopNow = true; }
+            }
         }
         {   // stems switched on/off from the UI: start the newly heard tracks exactly at srcPos
             const bool want = stemsOnA.load() && !stems.empty();
@@ -289,7 +297,7 @@ struct PlaybackEngine::Impl {
                 out[2*i] *= g; out[2*i+1] *= g;
             }
         }
-        if (wrapNow) {
+        if (wrapNow || stopNow) {
             int f = std::min(n, kLoopFade);
             for (int i = 0; i < f; ++i) {
                 float g = (float)(i + 1) / (f + 1);              // goes 1 -> 0 over the last f frames
@@ -298,7 +306,7 @@ struct PlaybackEngine::Impl {
         }
 
         // metronome: put each click at the output sample where its original beat is heard
-        const double effEnd = wrapNow ? hi : srcEnd;
+        const double effEnd = wrapNow ? hi : (stopNow ? std::min(srcEnd, (double)stopFrame.load()) : srcEnd);
         if (metOn.load() && playFirst >= 0) {
             const float mv = metVol.load(); const bool acc = accent.load();
             const int sid = std::max(0, std::min(kClickSounds - 1, clickSoundA.load()));
@@ -398,6 +406,9 @@ bool PlaybackEngine::countInBeat(int* beat, int* total) const {
     if (total) *total = impl_->ciTotalA;
     return true;
 }
+void PlaybackEngine::setCountInSilent(bool silent) { impl_->ciSilentA = silent; }
+void PlaybackEngine::setStopAt(double s) { impl_->stopFrame = s < 0 ? -1L : (long)std::llround(s * impl_->sr); }
+int PlaybackEngine::lastRenderFrames() const { return impl_->lastFrames; }
 void PlaybackEngine::setClickSound(int id) { impl_->clickSoundA = std::max(0, std::min(kClickSounds - 1, id)); }
 bool PlaybackEngine::setLoop(double a, double b) {
     auto& m = *impl_;
@@ -428,7 +439,7 @@ double PlaybackEngine::snapToBar(double sec) const {
 void PlaybackEngine::render(float* out, int frames) {
     auto& m = *impl_;
     std::unique_lock<std::mutex> swapLock(m.swapMu, std::try_to_lock);   // only contended while stems are being swapped in
-    if (!swapLock.owns_lock()) { std::memset(out, 0, sizeof(float) * 2 * frames); return; }
+    if (!swapLock.owns_lock()) { std::memset(out, 0, sizeof(float) * 2 * frames); m.lastFrames = 0; return; }
     double req = m.seekReq.exchange(-1.0);
     if (req >= 0) {
         m.srcPos = req * m.sr; m.needReseek = true; m.locateNextBeat(); m.fadeInLeft = 0;
@@ -436,7 +447,7 @@ void PlaybackEngine::render(float* out, int frames) {
     }
     std::memset(out, 0, sizeof(float) * 2 * frames);
     if (!m.playing || m.totalFrames == 0) {
-        m.ciActive = false; m.ciActiveA = false; m.active.clear(); m.posOut = m.srcPos; return;
+        m.ciActive = false; m.ciActiveA = false; m.active.clear(); m.posOut = m.srcPos; m.lastFrames = 0; return;
     }
     int done = 0;
     while (done < frames) {
@@ -447,9 +458,11 @@ void PlaybackEngine::render(float* out, int frames) {
             m.countInChunk(out + 2 * done, n); done += n; continue;
         }
         if (m.srcPos >= m.totalFrames) { m.playing = false; break; }
+        { const long sf = m.stopFrame.load(); if (sf >= 0 && m.srcPos >= (double)sf) { m.playing = false; break; } }
         done += m.renderChunk(out + 2 * done, std::min(kMaxChunk, frames - done));
     }
     m.posOut = m.srcPos;
+    m.lastFrames = done;
 }
 
 } // namespace beatcore

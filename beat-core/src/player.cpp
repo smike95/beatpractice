@@ -64,73 +64,136 @@ struct Player::Impl {
 
     struct ExpJob {
         std::string outPath, songPath, stemCache;
-        bool metronome = false, useStems = false;
+        std::vector<std::string> stemNames;
+        bool metronome = false, useStems = false, separate = false;
+        int countInBars = 0;
+        bool hasRange = false; double rangeA = 0, rangeB = 0;       // original-song seconds
+        std::vector<int> stemIdx; std::vector<float> stemGain;      // parts to include and their levels
         std::shared_ptr<const BeatMap> map;
         double speed = 1.0; float vol = 1.0f; int click = 0; MetronomeSettings met;
-        float gains[8];
     };
 
     static void putU32(FILE* f, uint32_t v) { std::fwrite(&v, 4, 1, f); }
     static void putU16(FILE* f, uint16_t v) { std::fwrite(&v, 2, 1, f); }
 
+    // Renders everything `e` plays into a 16-bit stereo WAV. Progress goes from p0 to p1. Returns false when cancelled or failed
+    // (cancel: expState is set to 0 and the file is removed; failure: expFail() was called).
+    bool renderToWav(PlaybackEngine& e, const std::string& path, double a, double b, bool hasRange, double speed, float p0, float p1) {
+        FILE* f = bcpath::open(path, "wb");
+        if (!f) { expFail("Cannot create the output file."); return false; }
+        auto removeFile = [&] { std::error_code ec; std::filesystem::remove(bcpath::make(path), ec); };
+        // 16-bit stereo WAV header (sizes are patched at the end)
+        std::fwrite("RIFF", 1, 4, f); putU32(f, 0); std::fwrite("WAVEfmt ", 1, 8, f);
+        putU32(f, 16); putU16(f, 1); putU16(f, 2); putU32(f, (uint32_t)kEngineRate); putU32(f, (uint32_t)kEngineRate * 4); putU16(f, 4); putU16(f, 16);
+        std::fwrite("data", 1, 4, f); putU32(f, 0);
+        const double songDur = std::max(1.0, e.durationSeconds());
+        const double from = hasRange ? a : 0.0, to = hasRange ? b : songDur;
+        const double span = std::max(0.25, to - from);
+        if (hasRange) e.setStopAt(to);
+        e.seekSeconds(from); e.play();
+        // upper bound: the part itself at this speed, plus room for a count-in of up to 4 bars of 16 beats at 30 BPM
+        const long maxFrames = (long)((span / std::max(0.25, speed) + 130.0) * kEngineRate);
+        const int B = 4410;
+        std::vector<float> blk(2 * B); std::vector<int16_t> pcm(2 * B);
+        long total = 0;
+        while (e.isPlaying() && total < maxFrames) {
+            if (expCancel.load()) { std::fclose(f); removeFile(); expState = 0; return false; }
+            e.render(blk.data(), B);
+            const int valid = std::max(0, std::min(B, e.lastRenderFrames()));   // the last block may be shorter: no trailing silence
+            for (int i = 0; i < 2 * valid; ++i) { float v = blk[i]; v = v > 1.f ? 1.f : (v < -1.f ? -1.f : v); pcm[i] = (int16_t)std::lrintf(v * 32767.f); }
+            if (valid > 0 && std::fwrite(pcm.data(), 2, (size_t)2 * valid, f) != (size_t)2 * valid) {
+                std::fclose(f); removeFile(); expFail("Cannot write the output file (disk full?)."); return false;
+            }
+            total += valid;
+            const double frac = std::max(0.0, std::min(1.0, (e.positionSeconds() - from) / span));
+            expProg = p0 + (p1 - p0) * (float)frac;
+        }
+        const uint32_t dataBytes = (uint32_t)(total * 4);
+        std::fseek(f, 4, SEEK_SET); putU32(f, 36 + dataBytes);
+        std::fseek(f, 40, SEEK_SET); putU32(f, dataBytes);
+        std::fclose(f);
+        expProg = p1;
+        return true;
+    }
+
+    // one engine for one output file. tracks: the parts that are heard (empty = the song itself, or silence when `silentMain`)
+    std::unique_ptr<PlaybackEngine> makeExportEngine(const ExpJob& j, std::vector<float> mainStereo,
+                                                     std::vector<std::vector<float>> tracks, const std::vector<float>& gains,
+                                                     bool metronome, int countInBars, bool silentCountIn, float songVol) {
+        auto e = std::make_unique<PlaybackEngine>(kEngineRate);
+        e->setSong(std::move(mainStereo)); e->setBeatMap(*j.map); e->setSpeed(j.speed);
+        MetronomeSettings ms = j.met; ms.enabled = metronome; e->setMetronome(ms);
+        e->setSongVolume(songVol); e->setClickSound(j.click);
+        CountInSettings ci; ci.bars = metronome || silentCountIn ? countInBars : 0; e->setCountIn(ci);
+        e->setCountInSilent(silentCountIn);
+        if (!tracks.empty()) {
+            e->setStems(std::move(tracks));
+            for (size_t k = 0; k < gains.size(); ++k) e->setStemGain((int)k, gains[k]);
+            e->setStemsEnabled(true);
+        }
+        return e;
+    }
+
+    static std::vector<float> stemToFloat(const StemSet& set, size_t k) {
+        const long T = set.frames; const int16_t* p = set.pcm[k].data();
+        std::vector<float> v((size_t)2 * T);
+        for (long i = 0; i < T; ++i) { v[2*i] = p[i] / 32768.f; v[2*i+1] = p[T + i] / 32768.f; }
+        return v;
+    }
+    static std::string stripWav(const std::string& p) {
+        if (p.size() > 4 && (p.compare(p.size() - 4, 4, ".wav") == 0 || p.compare(p.size() - 4, 4, ".WAV") == 0)) return p.substr(0, p.size() - 4);
+        return p;
+    }
+
     void runExport(const ExpJob& j) {
-        FILE* f = nullptr;
         try {
             expProg = 0.01f;
-            std::vector<float> stereo = decodeAudioFile(j.songPath, 2, kEngineRate);
-            if (stereo.size() < 2 * (size_t)kEngineRate) return expFail("Cannot decode the file for export.");
-            PlaybackEngine e(kEngineRate);
-            e.setSong(std::move(stereo)); e.setBeatMap(*j.map); e.setSpeed(j.speed);
-            MetronomeSettings ms = j.met; ms.enabled = j.metronome; e.setMetronome(ms);
-            e.setSongVolume(j.vol); e.setClickSound(j.click); e.setCountIn(CountInSettings{});
-            if (j.useStems) {
-                StemSet set;
-                if (!set.load(j.stemCache)) return expFail("Separated parts of this song were not found on disk.");
-                std::vector<std::vector<float>> tracks;
-                for (size_t k = 0; k < set.pcm.size(); ++k) {
-                    const long T = set.frames; const int16_t* p = set.pcm[k].data();
-                    std::vector<float> v((size_t)2 * T);
-                    for (long i = 0; i < T; ++i) { v[2*i] = p[i] / 32768.f; v[2*i+1] = p[T + i] / 32768.f; }
-                    tracks.push_back(std::move(v));
-                    std::vector<int16_t>().swap(set.pcm[k]);
-                }
-                e.setStems(std::move(tracks));
-                for (int k = 0; k < 8; ++k) e.setStemGain(k, j.gains[k]);
-                e.setStemsEnabled(true);
+            // ---- the song itself (no separated parts) ----
+            if (!j.useStems) {
+                std::vector<float> stereo = decodeAudioFile(j.songPath, 2, kEngineRate);
+                if (stereo.size() < 2 * (size_t)kEngineRate) return expFail("Cannot decode the file for export.");
+                if (j.hasRange && j.rangeA >= (double)(stereo.size() / 2) / kEngineRate) return expFail("The selected part is outside the song.");
+                auto e = makeExportEngine(j, std::move(stereo), {}, {}, j.metronome, j.countInBars, false, j.vol);
+                if (expCancel.load()) { expState = 0; return; }
+                if (!renderToWav(*e, j.outPath, j.rangeA, j.rangeB, j.hasRange, j.speed, 0.05f, 0.99f)) return;
+                expProg = 1.f; expState = 2; return;
             }
-            if (expCancel.load()) { expState = 0; return; }
-            expProg = 0.05f;
-            f = bcpath::open(j.outPath, "wb");
-            if (!f) return expFail("Cannot create the output file.");
-            // 16-bit stereo WAV header (sizes are patched at the end)
-            std::fwrite("RIFF", 1, 4, f); putU32(f, 0); std::fwrite("WAVEfmt ", 1, 8, f);
-            putU32(f, 16); putU16(f, 1); putU16(f, 2); putU32(f, (uint32_t)kEngineRate); putU32(f, (uint32_t)kEngineRate * 4); putU16(f, 4); putU16(f, 16);
-            std::fwrite("data", 1, 4, f); putU32(f, 0);
-            e.seekSeconds(0); e.play();
-            const double dur = std::max(1.0, e.durationSeconds());
-            const long maxFrames = (long)((dur / std::max(0.25, j.speed) + 10.0) * kEngineRate);
-            const int B = 4410;
-            std::vector<float> blk(2 * B); std::vector<int16_t> pcm(2 * B);
-            long total = 0;
-            while (e.isPlaying() && total < maxFrames) {
-                if (expCancel.load()) {
-                    std::fclose(f); f = nullptr;
-                    std::error_code ec; std::filesystem::remove(bcpath::make(j.outPath), ec);
-                    expState = 0; return;
+            // ---- separated parts ----
+            StemSet set;
+            if (!set.load(j.stemCache)) return expFail("Separated parts of this song were not found on disk.");
+            for (int k : j.stemIdx) if (k < 0 || (size_t)k >= set.pcm.size()) return expFail("A selected part does not exist in this song.");
+            const size_t silentLen = (size_t)2 * set.frames;
+            if (!j.separate) {                                       // all selected parts mixed into ONE file, at their levels
+                std::vector<std::vector<float>> tracks; std::vector<float> gains;
+                for (size_t n = 0; n < j.stemIdx.size(); ++n) {
+                    tracks.push_back(stemToFloat(set, (size_t)j.stemIdx[n]));
+                    gains.push_back(j.stemGain[n]);
                 }
-                e.render(blk.data(), B);
-                for (int i = 0; i < 2 * B; ++i) { float v = blk[i]; v = v > 1.f ? 1.f : (v < -1.f ? -1.f : v); pcm[i] = (int16_t)std::lrintf(v * 32767.f); }
-                if (std::fwrite(pcm.data(), 2, (size_t)2 * B, f) != (size_t)2 * B) { std::fclose(f); f = nullptr; return expFail("Cannot write the output file (disk full?)."); }
-                total += B;
-                expProg = 0.05f + 0.94f * (float)std::min(1.0, e.positionSeconds() / dur);
+                auto e = makeExportEngine(j, std::vector<float>(silentLen, 0.f), std::move(tracks), gains, j.metronome, j.countInBars, false, j.vol);
+                if (expCancel.load()) { expState = 0; return; }
+                if (!renderToWav(*e, j.outPath, j.rangeA, j.rangeB, j.hasRange, j.speed, 0.05f, 0.99f)) return;
+                expProg = 1.f; expState = 2; return;
             }
-            const uint32_t dataBytes = (uint32_t)(total * 4);
-            std::fseek(f, 4, SEEK_SET); putU32(f, 36 + dataBytes);
-            std::fseek(f, 40, SEEK_SET); putU32(f, dataBytes);
-            std::fclose(f); f = nullptr;
+            // one file per selected part (original level, no volume changes: ready to be mixed elsewhere), plus a click file when the
+            // metronome is on. Every file has the same length: a count-in is silent in the parts and audible in the click file.
+            const std::string base = stripWav(j.outPath);
+            const int files = (int)j.stemIdx.size() + (j.metronome ? 1 : 0);
+            int done = 0;
+            for (size_t n = 0; n < j.stemIdx.size(); ++n, ++done) {
+                std::vector<std::vector<float>> tracks; tracks.push_back(stemToFloat(set, (size_t)j.stemIdx[n]));
+                auto e = makeExportEngine(j, std::vector<float>(silentLen, 0.f), std::move(tracks), {1.0f}, false, j.countInBars, j.countInBars > 0 && j.metronome, 1.0f);
+                if (expCancel.load()) { expState = 0; return; }
+                const std::string nm = (size_t)j.stemIdx[n] < set.names.size() ? set.names[(size_t)j.stemIdx[n]] : ("part" + std::to_string(n + 1));
+                const float p0 = 0.02f + 0.97f * done / files, p1 = 0.02f + 0.97f * (done + 1) / files;
+                if (!renderToWav(*e, base + " - " + nm + ".wav", j.rangeA, j.rangeB, j.hasRange, j.speed, p0, p1)) return;
+            }
+            if (j.metronome) {
+                auto e = makeExportEngine(j, std::vector<float>(silentLen, 0.f), {}, {}, true, j.countInBars, false, 0.f);
+                if (expCancel.load()) { expState = 0; return; }
+                if (!renderToWav(*e, base + " - click.wav", j.rangeA, j.rangeB, j.hasRange, j.speed, 0.02f + 0.97f * done / files, 0.99f)) return;
+            }
             expProg = 1.f; expState = 2;
         } catch (const std::exception& ex) {
-            if (f) std::fclose(f);
             expFail(std::string("Export failed: ") + ex.what());
         }
     }
@@ -406,17 +469,29 @@ void Player::setStemsEnabled(bool on) { impl_->stemsOn = on; if (auto* e = impl_
 bool Player::stemsEnabled() const { auto* e = impl_->engine.load(); return e && e->stemsEnabled(); }
 void Player::setStemGain(int i, float g) { if (i >= 0 && i < 8) { impl_->stemGains[i] = g; if (auto* e = impl_->engine.load()) e->setStemGain(i, g); } }
 bool Player::exportStart(const std::string& path, bool withMetronome) {
+    // legacy form: the song as it sounds now (parts with a non-zero level, at their levels)
+    ExportRequest r; r.path = path; r.withMetronome = withMetronome;
+    if (impl_->stemState.load() == (int)StemState::Ready && impl_->stemsOn.load())
+        for (int k = 0; k < 8 && k < (int)stemNames().size(); ++k) { float g = impl_->stemGains[k].load(); if (g > 0.f) { r.stems.push_back(k); r.stemGains.push_back(g); } }
+    return exportStart(r);
+}
+bool Player::exportStart(const ExportRequest& r) {
     auto& m = *impl_;
     if (m.state.load() != (int)PlayerState::Ready || m.expState.load() == 1) return false;
     m.expStopAndJoin();
     Impl::ExpJob j;
-    { std::lock_guard<std::mutex> l(m.mu); j.map = m.map; }
+    { std::lock_guard<std::mutex> l(m.mu); j.map = m.map; j.stemNames = m.stemNamesV; }
     if (!j.map) return false;
-    j.outPath = path; j.songPath = m.songPath; j.metronome = withMetronome;
+    j.outPath = r.path; j.songPath = m.songPath; j.metronome = r.withMetronome; j.separate = r.separate;
+    j.countInBars = std::max(0, std::min(4, r.countInBars));
+    if (r.rangeB > r.rangeA && r.rangeA >= 0) { j.hasRange = true; j.rangeA = r.rangeA; j.rangeB = r.rangeB; }
     j.speed = m.speedS.load(); j.vol = m.volS.load(); j.click = m.clickS.load(); j.met = m.metS;
-    j.useStems = m.stemState.load() == (int)StemState::Ready && m.stemsOn.load();
-    if (j.useStems) j.stemCache = m.stemCacheFile(m.stemModelPath());
-    for (int k = 0; k < 8; ++k) j.gains[k] = m.stemGains[k].load();
+    if (!r.stems.empty()) {
+        if (m.stemState.load() != (int)StemState::Ready) return false;
+        j.useStems = true; j.stemIdx = r.stems;
+        for (size_t k = 0; k < r.stems.size(); ++k) j.stemGain.push_back(k < r.stemGains.size() ? std::max(0.f, std::min(1.5f, r.stemGains[k])) : 1.0f);
+        j.stemCache = m.stemCacheFile(m.stemModelPath());
+    }
     { std::lock_guard<std::mutex> l(m.mu); m.expErr.clear(); }
     m.expProg = 0.f; m.expState = 1;
     Impl* im = &m;

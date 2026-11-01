@@ -44,6 +44,11 @@ target_link_libraries(engine_test beatcore)
 set_target_properties(engine_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 add_test(NAME engine_test COMMAND engine_test)
 
+add_executable(export_engine_test tests/export_engine_test.cpp)
+target_link_libraries(export_engine_test beatcore)
+set_target_properties(export_engine_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+add_test(NAME export_engine_test COMMAND export_engine_test)
+
 add_executable(sounds_test tests/sounds_test.cpp)
 target_link_libraries(sounds_test beatcore)
 set_target_properties(sounds_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")

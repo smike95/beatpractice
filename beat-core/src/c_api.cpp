@@ -32,6 +32,13 @@ int bc_is_counting_in(bc_player* h) { return h && h->p.isCountingIn() ? 1 : 0; }
 int bc_set_meter_mode(bc_player* h, int mode) { return h && h->p.setMeterMode(mode) ? 1 : 0; }
 int bc_meter_mode(bc_player* h) { return h ? h->p.meterMode() : 0; }
 int bc_export_start(bc_player* h, const char* path, int met) { return h && path && h->p.exportStart(path, met != 0) ? 1 : 0; }
+int bc_export_start_ex(bc_player* h, const char* path, int met, int count_in_bars, double ra, double rb, int separate,
+                       const int* stems, const float* gains, int n) {
+    if (!h || !path) return 0;
+    beatcore::ExportRequest r; r.path = path; r.withMetronome = met != 0; r.countInBars = count_in_bars; r.rangeA = ra; r.rangeB = rb; r.separate = separate != 0;
+    for (int i = 0; stems && i < n; ++i) { r.stems.push_back(stems[i]); r.stemGains.push_back(gains ? gains[i] : 1.0f); }
+    return h->p.exportStart(r) ? 1 : 0;
+}
 int bc_export_state(bc_player* h) { return h ? h->p.exportState() : 0; }
 float bc_export_progress(bc_player* h) { return h ? h->p.exportProgress() : 0.f; }
 const char* bc_export_error(bc_player* h) { if (!h) return ""; h->err = h->p.exportError(); return h->err.c_str(); }

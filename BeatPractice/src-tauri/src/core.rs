@@ -55,6 +55,7 @@ pub struct Core {
     stems_state: Option<unsafe extern "C" fn(P) -> c_int>,
     stems_progress: Option<unsafe extern "C" fn(P) -> c_float>,
     export_start: Option<unsafe extern "C" fn(P, *const c_char, c_int) -> c_int>,
+    export_start_ex: Option<unsafe extern "C" fn(P, *const c_char, c_int, c_int, c_double, c_double, c_int, *const c_int, *const c_float, c_int) -> c_int>,
     export_state: Option<unsafe extern "C" fn(P) -> c_int>,
     export_progress: Option<unsafe extern "C" fn(P) -> c_float>,
     export_error: Option<unsafe extern "C" fn(P) -> *const c_char>,
@@ -206,6 +207,7 @@ impl Core {
                 stems_state: opt_sym!(lib, "bc_stems_state", unsafe extern "C" fn(P) -> c_int),
                 stems_progress: opt_sym!(lib, "bc_stems_progress", unsafe extern "C" fn(P) -> c_float),
                 export_start: opt_sym!(lib, "bc_export_start", unsafe extern "C" fn(P, *const c_char, c_int) -> c_int),
+                export_start_ex: opt_sym!(lib, "bc_export_start_ex", unsafe extern "C" fn(P, *const c_char, c_int, c_int, c_double, c_double, c_int, *const c_int, *const c_float, c_int) -> c_int),
                 export_state: opt_sym!(lib, "bc_export_state", unsafe extern "C" fn(P) -> c_int),
                 export_progress: opt_sym!(lib, "bc_export_progress", unsafe extern "C" fn(P) -> c_float),
                 export_error: opt_sym!(lib, "bc_export_error", unsafe extern "C" fn(P) -> *const c_char),
@@ -289,6 +291,15 @@ impl Core {
         let f = self.export_start.ok_or_else(|| "Ця версія ядра не вміє експортувати".to_string())?;
         let c = CString::new(path.as_bytes()).map_err(|e| e.to_string())?;
         Ok(unsafe { f(self.p, c.as_ptr(), metronome as c_int) } != 0)
+    }
+    pub fn has_export_ex(&self) -> bool { self.export_start_ex.is_some() }
+    /// Extended export: loop range, count-in, chosen parts, separate files. `range` = (a, b) in seconds, b <= a means the whole song.
+    #[allow(clippy::too_many_arguments)]
+    pub fn export_start_ex(&self, path: &str, metronome: bool, count_in_bars: i32, range: (f64, f64), separate: bool, stems: &[i32], gains: &[f32]) -> Result<bool, String> {
+        let f = self.export_start_ex.ok_or_else(|| "Ця версія ядра не вміє експортувати частину, відлік і окремі партії: оновіть beat-core".to_string())?;
+        let c = CString::new(path.as_bytes()).map_err(|e| e.to_string())?;
+        let n = stems.len().min(gains.len());
+        Ok(unsafe { f(self.p, c.as_ptr(), metronome as c_int, count_in_bars as c_int, range.0, range.1, separate as c_int, stems.as_ptr(), gains.as_ptr(), n as c_int) } != 0)
     }
     pub fn export_state(&self) -> i32 { self.export_state.map_or(0, |f| unsafe { f(self.p) }) }
     pub fn export_progress(&self) -> f32 { self.export_progress.map_or(0.0, |f| unsafe { f(self.p) }) }

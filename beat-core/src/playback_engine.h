@@ -67,6 +67,16 @@ public:
     // While counting in: beat = number (1-based) of the click that was most recently played, total = clicks in the count-in.
     bool countInBeat(int* beat, int* total) const;
 
+    // Count-in clicks can be made silent (the timing stays the same). Used by the export of separate parts, so that
+    // every file has the same lead-in and the files stay aligned.
+    void setCountInSilent(bool silent);
+
+    // Offline use (export): playback stops by itself when the sound reaches `sourceSeconds` of the ORIGINAL song
+    // (sample-exact, with a ~1 ms fade-out). A negative value removes the limit. Not meant to be combined with an A-B loop.
+    void setStopAt(double sourceSeconds);
+    // Number of frames that the last render() call filled with sound (the rest of the buffer is silence). 0 when paused.
+    int lastRenderFrames() const;
+
     // Metronome sound: 0 classic, 1 wood block, 2 hi-hat, 3 rim click, 4 cowbell, 5 electronic beep.
     static constexpr int kClickSounds = 6;
     static int clickSoundCount() { return kClickSounds; }

@@ -8,6 +8,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <vector>
 
 namespace beatcore {
 
@@ -15,6 +16,17 @@ enum class PlayerState { Idle = 0, Decoding = 1, Analyzing = 2, Ready = 3, Error
 enum class StemState { None = 0, Running = 1, Ready = 2, Error = 3 };
 
 struct BeatInfo { int beatIndex = -1; int posInBar = 0; int barLength = 0; bool countingIn = false; };
+
+// What to export. path: the WAV file (when `separate`, the base name: files are "<base> - <part>.wav" and "<base> - click.wav").
+struct ExportRequest {
+    std::string path;
+    bool withMetronome = false;
+    int countInBars = 0;              // 0 = none; a count-in is only made together with the metronome
+    double rangeA = -1, rangeB = -1;  // original-song seconds; rangeB > rangeA >= 0 exports only this part (e.g. the loop)
+    bool separate = false;            // one file per part instead of one mix
+    std::vector<int> stems;           // parts to include (indices of stemNames()); empty = the song without separation
+    std::vector<float> stemGains;     // their levels (0..1.5); used for the mix, parts exported separately keep their original level
+};
 
 class Player {
 public:
@@ -72,6 +84,7 @@ public:
     // Runs in the background (does not disturb playback). State: 0 none, 1 running, 2 done, 3 error. The metronome is
     // included only if withMetronome is true.
     bool exportStart(const std::string& wavPath, bool withMetronome);   // false if no song is ready or an export is running
+    bool exportStart(const ExportRequest& r);   // tempo is the current one; the song volume applies to the mix only
     int exportState() const; float exportProgress() const; std::string exportError() const;
     void exportCancel();
 

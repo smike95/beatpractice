@@ -23,7 +23,6 @@ import {
   Upload,
   Music,
   Music2,
-  Layers,
   Sliders,
   Zap,
   Timer,
@@ -125,7 +124,15 @@ export default function App() {
     ro.observe(el);
     return () => ro.disconnect();
   }, [player.init?.loaded]);
-  const [activeTab, setActiveTab] = useState<'metro' | 'training' | 'stems'>('metro');
+  // the folded part of the mixer (stem separation) remembers whether it was open
+  const [mixerOpen, setMixerOpen] = useState<boolean>(() => {
+    try { return localStorage.getItem('beatpractice_mixer_open') === '1'; } catch { return false; }
+  });
+  const toggleMixer = () => setMixerOpen((v) => {
+    try { localStorage.setItem('beatpractice_mixer_open', v ? '0' : '1'); } catch { /* ignore */ }
+    return !v;
+  });
+  const [activeTab, setActiveTab] = useState<'metro' | 'training'>('metro');
 
   // Theme state: 'light' | 'dark' | 'system'
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -245,7 +252,6 @@ export default function App() {
   const TABS = [
     { id: 'metro' as const, Icon: Sliders, label: lang === 'en' ? 'Metronome & tempo' : 'Метроном та темп' },
     { id: 'training' as const, Icon: Timer, label: lang === 'en' ? 'Training' : 'Тренування' },
-    { id: 'stems' as const, Icon: Layers, label: t('tabStems') },
   ];
 
   const themeLangButtons = (sfx: string) => (
@@ -645,7 +651,12 @@ export default function App() {
                 isMetronomeEnabled={metronomeConfig.enabled}
                 onMetronomeVolumeChange={(vol) => setMetronomeConfig(prev => ({ ...prev, volume: vol }))}
                 onMetronomeToggle={() => setMetronomeConfig(prev => ({ ...prev, enabled: !prev.enabled }))}
-              />
+                expanded={mixerOpen}
+                onExpandedToggle={toggleMixer}
+                lang={lang}
+              >
+                <StemsPanel player={player} lang={lang} />
+              </TrackMetronomeMixer>
             </div>
 
 
@@ -686,7 +697,7 @@ export default function App() {
             {player.message && <p className="mt-3 text-xs text-rose-400">{player.message}</p>}
           </section>
 
-          {/* Tabs: Metronome & tempo / Training / Stems */}
+          {/* Tabs: Metronome & tempo / Training (stem separation is in the folded mixer) */}
           <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 flex-wrap">
             {TABS.map(({ id, Icon, label }) => (
               <button
@@ -875,8 +886,6 @@ export default function App() {
             </div>
           )}
 
-          {/* TAB 3: Stem separation */}
-          {activeTab === 'stems' && <StemsPanel player={player} lang={lang} />}
         </main>
       </div>
 
@@ -890,7 +899,10 @@ export default function App() {
           currentBpm={track.bpmExact}
           stemNames={player.stemsState === 2 ? (player.stemsInfo?.names ?? []) : []}
           stemMuted={(player.stemsState === 2 ? (player.stemsInfo?.names ?? []) : []).map((_, i) => !!player.stemMix.mute[i])}
+          stemGains={(player.stemsInfo?.names ?? []).map((_, i) => player.stemMix.gain[i] ?? 1)}
           metronomeOn={player.metronomeConfig.enabled}
+          countInBars={player.metronomeConfig.countInBars}
+          loop={loop}
           onClose={() => setExporting(false)}
         />
       )}

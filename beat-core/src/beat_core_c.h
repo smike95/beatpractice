@@ -39,6 +39,12 @@ BC_API double bc_position(bc_player*);                 /* original-song seconds 
 /* Export the song as it sounds now (tempo, volume, parts on/off and levels) to a 16-bit WAV file, in the background.
    bc_export_state: 0 none, 1 running, 2 done, 3 error. Returns 1 if started. */
 BC_API int         bc_export_start(bc_player*, const char* wav_path, int with_metronome);
+/* Extended export. count_in_bars: 0..4 (only with the metronome). range_a/range_b (seconds of the original song): if range_b > range_a >= 0,
+   only that part is exported (e.g. the A-B loop). stems/gains/n_stems: the parts to include and their levels (n_stems = 0: the song as it is).
+   separate = 0: one mix file. separate = 1: one file per part, "<path without .wav> - <part>.wav" (original level), plus "... - click.wav" with the
+   metronome when with_metronome is set. All files have the same length (a count-in is silent in the parts) so they stay aligned. */
+BC_API int         bc_export_start_ex(bc_player*, const char* wav_path, int with_metronome, int count_in_bars,
+                                      double range_a, double range_b, int separate, const int* stems, const float* gains, int n_stems);
 BC_API int         bc_export_state(bc_player*);
 BC_API float       bc_export_progress(bc_player*);
 BC_API const char* bc_export_error(bc_player*);

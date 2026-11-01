@@ -65,6 +65,17 @@ export interface ExportStatus {
   error: string;
 }
 
+export interface ExportOptions {
+  path: string;
+  metronome: boolean;
+  countInBars: number; // 0 = no count-in (only used together with the metronome)
+  rangeA: number; // seconds; rangeB <= rangeA = the whole song
+  rangeB: number;
+  separate: boolean; // one file per part (+ click file)
+  stems: number[]; // indices of the parts to include; empty = the song as it is
+  gains: number[]; // their levels, same order
+}
+
 export interface SongData {
   times: number[];
   posInBar: number[];
@@ -81,6 +92,11 @@ export const core = {
   caps: () => invoke<Caps>("core_caps"),
   stemsInfo: () => invoke<StemsInfo>("core_stems_info"),
   exportStart: (path: string, metronome: boolean) => invoke<boolean>("core_export_start", { path, metronome }),
+  exportStartEx: (o: ExportOptions) =>
+    invoke<boolean>("core_export_start_ex", {
+      path: o.path, metronome: o.metronome, countInBars: o.countInBars, rangeA: o.rangeA, rangeB: o.rangeB,
+      separate: o.separate, stems: o.stems, gains: o.gains,
+    }),
   exportStatus: () => invoke<ExportStatus>("core_export_status"),
   exportCancel: () => invoke<void>("core_export_cancel"),
   stemsStart: () => invoke<boolean>("core_stems_start"),

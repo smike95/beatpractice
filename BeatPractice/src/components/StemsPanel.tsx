@@ -25,6 +25,7 @@ function mmss(sec: number): string {
 }
 
 export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
+  // lives inside the folded part of the mixer: a light block, not a separate card
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const { caps, stemsInfo: info, stemsState: state, stemsProgress: progress, stemMix, ready } = player;
   const names = info?.names ?? [];
@@ -39,7 +40,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   const elapsed = state === 1 ? (now - player.stemsStartedAt) / 1000 : 0;
   const eta = progress > 0.04 ? (elapsed * (1 - progress)) / progress : NaN;
 
-  const card = "bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4";
+  const card = "border-t border-slate-200 dark:border-slate-800 pt-3 space-y-4";
   const btn =
     "px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
   const primary =
@@ -180,7 +181,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
         })}
       </div>
       <p className="text-xs text-slate-500">
-        {L("Гучність «Трек» у верхньому мікшері діє й на розділені партії. Метроном і відлік працюють так само.", "The 'Track' volume in the top mixer applies to the stems too. Metronome and count-in work as usual.")}
+        {L("Гучність «Трек» вище діє й на розділені партії. Метроном і відлік працюють так само.", "The 'Track' volume above applies to the stems too. Metronome and count-in work as usual.")}
       </p>
     </section>
   );
