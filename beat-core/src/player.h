@@ -26,6 +26,10 @@ struct ExportRequest {
     bool separate = false;            // one file per part instead of one mix
     std::vector<int> stems;           // parts to include (indices of stemNames()); empty = the song without separation
     std::vector<float> stemGains;     // their levels (0..1.5); used for the mix, parts exported separately keep their original level
+    double speedRatio = 0;            // tempo of the export as target_bpm / song_bpm (0.25..2); <= 0 = the current tempo of the player
+    int accent = -1;                  // accent on the first beat of the clicks: -1 as in the player, 0 off, 1 on
+    int quiet = -1;                   // quiet bars (as set in the player): -1 as in the player, 0 off, 1 on
+    int clickIntoStem = -1;           // separate files: index of the part that also gets the clicks; -1 = the clicks go to their own file
 };
 
 class Player {
@@ -54,6 +58,8 @@ public:
     void seekSeconds(double s); double positionSeconds() const;
     void setSpeed(double ratio); double speed() const;
     void setMetronome(const MetronomeSettings& s);
+    MetronomeSettings metronomeSettings() const;
+    long loopWraps() const;
     void setSongVolume(float v);
     void setCountIn(const CountInSettings& s); bool isCountingIn() const;
     bool countInBeat(int* beat, int* total) const;   // see PlaybackEngine::countInBeat

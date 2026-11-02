@@ -104,6 +104,9 @@ export function usePlayer() {
     accentFirstBeat: false,
     countInBars: 0,
     countInOnLoop: false,
+    quietEnabled: false,
+    quietClickBars: 2,
+    quietBars: 1,
   });
   const [trackVolume, setTrackVolume] = useState(0.85);
   const [isTrackMuted, setIsTrackMuted] = useState(false);
@@ -285,6 +288,7 @@ export function usePlayer() {
     if (!songReady) return;
     core.setMetronome(metronomeConfig.enabled, metronomeConfig.volume, metronomeConfig.accentFirstBeat).catch(() => {});
     core.setCountIn(metronomeConfig.countInBars, metronomeConfig.countInOnLoop).catch(() => {});
+    core.setQuietBars(metronomeConfig.quietEnabled, metronomeConfig.quietClickBars, metronomeConfig.quietBars).catch(() => {});
     core.setSongVolume(isTrackMuted ? 0 : trackVolume).catch(() => {});
   }, [songReady, metronomeConfig, trackVolume, isTrackMuted]);
 
@@ -470,7 +474,7 @@ export function usePlayer() {
     async (start: number, end: number) => {
       if (!ready || !activeId) return;
       const idx = loops.length === 0 ? 0 : Math.min(selectedLoop, loops.length - 1);
-      const slot: LoopSlot = { start, end };
+      const slot: LoopSlot = { start, end, ...(loops[idx]?.name ? { name: loops[idx].name } : {}) };   // the name stays
       const ok = await core.setLoop(start, end);
       if (!ok) {
         setMessage("Ядро не прийняло цикл (завеликий або замалий).");

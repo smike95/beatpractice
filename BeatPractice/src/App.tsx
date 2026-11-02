@@ -8,6 +8,8 @@ import { Waveform } from './components/Waveform';
 import { LoopsPanel } from './components/LoopsPanel';
 import { StemsPanel } from './components/StemsPanel';
 import { ClickMetronomePanel } from './components/ClickMetronomePanel';
+import { QuietBarsPanel } from './components/QuietBarsPanel';
+import { RampPanel } from './components/RampPanel';
 import { TrackEditDialog } from './components/TrackEditDialog';
 import { ExportDialog } from './components/ExportDialog';
 import { Slider } from './components/Slider';
@@ -861,8 +863,28 @@ export default function App() {
                 lang={lang}
                 volume={metronomeConfig.volume}
                 accent={metronomeConfig.accentFirstBeat}
+                quiet={{ enabled: metronomeConfig.quietEnabled, clickBars: metronomeConfig.quietClickBars, quietBars: metronomeConfig.quietBars }}
                 trackPlaying={isPlaying}
                 onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}
+              />
+              <QuietBarsPanel
+                lang={lang}
+                config={metronomeConfig}
+                onChange={(patch) => player.setMetronomeConfig((prev) => ({ ...prev, ...patch }))}
+                loopOn={player.activeLoop !== null}
+              />
+              <RampPanel
+                lang={lang}
+                ready={!!track && player.ready}
+                playing={isPlaying}
+                currentBpm={track ? track.bpmExact : 0}
+                originalBpm={track ? track.originalBpmExact : 0}
+                loopActive={player.activeLoop !== null}
+                loopWraps={player.snap?.loopWraps ?? 0}
+                position={currentTime}
+                duration={track ? track.duration : 0}
+                onSetBpm={(bpm) => player.changeBpm(bpm)}
+                onPlay={() => { if (!isPlaying) player.togglePlay(); }}
               />
               <LoopsPanel
                 loops={player.loops}
@@ -909,8 +931,11 @@ export default function App() {
           stemMuted={(player.stemsState === 2 ? (player.stemsInfo?.names ?? []) : []).map((_, i) => !!player.stemMix.mute[i])}
           stemGains={(player.stemsInfo?.names ?? []).map((_, i) => player.stemMix.gain[i] ?? 1)}
           metronomeOn={player.metronomeConfig.enabled}
+          accentOn={player.metronomeConfig.accentFirstBeat}
+          quiet={{ enabled: metronomeConfig.quietEnabled, clickBars: metronomeConfig.quietClickBars, quietBars: metronomeConfig.quietBars }}
           countInBars={player.metronomeConfig.countInBars}
-          loop={loop}
+          loops={player.loops}
+          activeLoop={player.activeLoop}
           onClose={() => setExporting(false)}
         />
       )}

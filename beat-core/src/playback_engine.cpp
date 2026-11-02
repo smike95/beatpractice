@@ -102,6 +102,16 @@ struct PlaybackEngine::Impl {
     std::atomic<double> seekReq{-1.0};
     std::atomic<float> songVol{1.0f}, metVol{0.8f};
     std::atomic<bool> metOn{true}, accent{true};
+    std::atomic<bool> quietOnA{false}; std::atomic<int> clickBarsA{2}, quietBarsA{1};
+    std::vector<int> beatOrd;                     // bar number (0-based) of each beat, counted over the whole song
+    std::atomic<long> wrapCount{0};               // A-B loop wraps so far
+    // true when the click of beat `idx` must be silent (quiet bars); `base` = bar number where the pattern starts
+    bool quietBeat(size_t idx, int base) const {
+        if (!quietOnA.load() || idx >= beatOrd.size()) return false;
+        const int cb = std::max(1, clickBarsA.load()), qb = std::max(1, quietBarsA.load()), cyc = cb + qb;
+        const int rel = beatOrd[idx] - base;
+        return (((rel % cyc) + cyc) % cyc) >= cb;
+    }
     std::atomic<double> posOut{0.0};
     std::atomic<uint64_t> loopPacked{0};          // (A frame << 32) | B frame ; 0 = no loop
     std::atomic<int> ciBarsA{0};
@@ -310,9 +320,14 @@ struct PlaybackEngine::Impl {
         if (metOn.load() && playFirst >= 0) {
             const float mv = metVol.load(); const bool acc = accent.load();
             const int sid = std::max(0, std::min(kClickSounds - 1, clickSoundA.load()));
+            int qBase = 0;
+            if (quietOnA.load() && !beatOrd.empty()) {
+                size_t b0 = loopOn ? (size_t)(std::lower_bound(beatSample.begin(), beatSample.end(), lo - 1e-6) - beatSample.begin()) : (size_t)std::max(0L, playFirst);
+                qBase = beatOrd[std::min(b0, beatOrd.size() - 1)];
+            }
             while (nextBeat < beatSample.size() && beatSample[nextBeat] < effEnd) {
                 long idx = (long)nextBeat;
-                if (idx >= playFirst && idx <= playLast) {
+                if (idx >= playFirst && idx <= playLast && !quietBeat(nextBeat, qBase)) {
                     int off = (int)std::floor((beatSample[nextBeat] - srcStart) / rate + 0.5);
                     off = std::max(0, std::min(n - 1, off));
                     bool first = acc && beatPos[nextBeat] == 1;
@@ -326,6 +341,7 @@ struct PlaybackEngine::Impl {
         mixClicks(out, n);
 
         if (wrapNow) {
+            ++wrapCount;
             srcPos = lo + (srcEnd - hi);                // carry the sub-sample overshoot: loops never drift
             needReseek = true; fadeInLeft = kLoopFade;
             nextBeat = std::lower_bound(beatSample.begin(), beatSample.end(), lo - 1e-6) - beatSample.begin();
@@ -359,6 +375,8 @@ void PlaybackEngine::setBeatMap(const BeatMap& map) {
     std::lock_guard<std::mutex> g(m.swapMu);                     // the audio thread is not inside render() while this runs
     m.beatSample.clear(); m.beatPos = map.posInBar; m.beatBarLen = map.barLength;
     for (double t : map.beats) m.beatSample.push_back(t * m.sr);
+    m.beatOrd.assign(map.beats.size(), 0);
+    { int ord = -1; for (size_t i = 0; i < map.beats.size(); ++i) { if (i < map.posInBar.size() && map.posInBar[i] == 1) ++ord; m.beatOrd[i] = std::max(0, ord); } }
     m.playFirst = map.playFirstBeat; m.playLast = map.playLastBeat;
     m.locateNextBeat();
 }
@@ -396,7 +414,9 @@ void PlaybackEngine::setSpeed(double r) { impl_->speedA = std::max(0.25, std::mi
 double PlaybackEngine::speed() const { return impl_->speedA; }
 void PlaybackEngine::setMetronome(const MetronomeSettings& s) {
     impl_->metOn = s.enabled; impl_->metVol = s.volume; impl_->accent = s.accentFirstBeat;
+    impl_->quietOnA = s.quietEnabled; impl_->clickBarsA = std::max(1, std::min(16, s.clickBars)); impl_->quietBarsA = std::max(1, std::min(16, s.quietBars));
 }
+long PlaybackEngine::loopWraps() const { return impl_->wrapCount.load(); }
 void PlaybackEngine::setSongVolume(float v) { impl_->songVol = std::max(0.f, std::min(1.5f, v)); }
 void PlaybackEngine::setCountIn(const CountInSettings& s) { impl_->ciBarsA = std::max(0, std::min(4, s.bars)); impl_->ciEveryLoopA = s.everyLoopRestart; }
 bool PlaybackEngine::isCountingIn() const { return impl_->ciActiveA; }

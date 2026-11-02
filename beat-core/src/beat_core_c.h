@@ -39,12 +39,24 @@ BC_API double bc_position(bc_player*);                 /* original-song seconds 
 /* Export the song as it sounds now (tempo, volume, parts on/off and levels) to a 16-bit WAV file, in the background.
    bc_export_state: 0 none, 1 running, 2 done, 3 error. Returns 1 if started. */
 BC_API int         bc_export_start(bc_player*, const char* wav_path, int with_metronome);
-/* Extended export. count_in_bars: 0..4 (only with the metronome). range_a/range_b (seconds of the original song): if range_b > range_a >= 0,
-   only that part is exported (e.g. the A-B loop). stems/gains/n_stems: the parts to include and their levels (n_stems = 0: the song as it is).
+/* Extended export. Options (fill the whole struct; unused fields = 0, use -1 where noted):
+   count_in_bars 0..4 (only with the metronome). range_a/range_b (seconds of the original song): if range_b > range_a >= 0, only that part is
+   exported (e.g. an A-B loop). stems/gains/n_stems: the parts to include and their levels (n_stems = 0: the song as it is).
    separate = 0: one mix file. separate = 1: one file per part, "<path without .wav> - <part>.wav" (original level), plus "... - click.wav" with the
-   metronome when with_metronome is set. All files have the same length (a count-in is silent in the parts) so they stay aligned. */
-BC_API int         bc_export_start_ex(bc_player*, const char* wav_path, int with_metronome, int count_in_bars,
-                                      double range_a, double range_b, int separate, const int* stems, const float* gains, int n_stems);
+   metronome when with_metronome is set, unless click_into_stem (index of a part, else -1) says that part gets the clicks. All files have the same
+   length (a count-in is silent in the parts that carry no clicks) so they stay aligned.
+   speed_ratio: tempo of the export (target_bpm / song_bpm, 0.25..2), <= 0 = the current tempo of the player.
+   accent / quiet: -1 as set in the player, 0 off, 1 on (accent on the first beat; quiet bars with the player's bar counts). */
+typedef struct {
+    const char* path;
+    int with_metronome, count_in_bars;
+    double range_a, range_b;
+    int separate;
+    const int* stems; const float* gains; int n_stems;
+    double speed_ratio;
+    int accent, quiet, click_into_stem;
+} bc_export_opts;
+BC_API int         bc_export_start_ex(bc_player*, const bc_export_opts* opts);
 BC_API int         bc_export_state(bc_player*);
 BC_API float       bc_export_progress(bc_player*);
 BC_API const char* bc_export_error(bc_player*);
@@ -54,6 +66,11 @@ BC_API void   bc_set_speed(bc_player*, double ratio);  /* 0.25 .. 2.0 ; target_b
 BC_API double bc_speed(bc_player*);
 
 BC_API void bc_set_metronome(bc_player*, int enabled, float volume, int accent_first_beat);
+/* Quiet bars: the clicks sound for click_bars bars (1..16), then are silent for quiet_bars bars (1..16), and so on. The bars are counted from the
+   start of the A-B loop while it is on (every pass is the same), otherwise from the first bar. Count-in clicks are not affected. */
+BC_API void bc_set_quiet_bars(bc_player*, int enabled, int click_bars, int quiet_bars);
+/* number of times the A-B loop has wrapped from B to A since the song was opened (to count passes) */
+BC_API long bc_loop_wraps(bc_player*);
 BC_API void bc_set_song_volume(bc_player*, float volume);
 BC_API void bc_set_count_in(bc_player*, int bars, int every_loop_restart);
 BC_API int  bc_is_counting_in(bc_player*);

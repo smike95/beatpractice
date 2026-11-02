@@ -18,6 +18,11 @@ struct MetronomeSettings {
     bool  enabled = true;
     float volume = 0.8f;          // 0..1.5
     bool  accentFirstBeat = true; // higher tone on the first beat of each bar
+    // Quiet bars: the clicks sound for `clickBars` bars, then are silent for `quietBars` bars, and so on. The bars are counted from the
+    // loop start while an A-B loop is on (so every pass sounds the same), otherwise from the first bar of the song.
+    bool  quietEnabled = false;
+    int   clickBars = 2;          // 1..16
+    int   quietBars = 1;          // 1..16
 };
 
 struct CountInSettings {
@@ -76,6 +81,8 @@ public:
     void setStopAt(double sourceSeconds);
     // Number of frames that the last render() call filled with sound (the rest of the buffer is silence). 0 when paused.
     int lastRenderFrames() const;
+    // How many times the A-B loop has wrapped from B back to A since the engine was made (for training modes that count passes).
+    long loopWraps() const;
 
     // Metronome sound: 0 classic, 1 wood block, 2 hi-hat, 3 rim click, 4 cowbell, 5 electronic beep.
     static constexpr int kClickSounds = 6;

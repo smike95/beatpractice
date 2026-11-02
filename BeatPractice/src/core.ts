@@ -53,6 +53,7 @@ export interface Snapshot {
   speed: number;
   countingIn: boolean;
   loopEnabled: boolean;
+  loopWraps?: number; // how many times the A-B loop has wrapped (counts passes)
   beat: BeatNow | null;
   countIn: CountInNow | null;
   stems: StemsNow;
@@ -74,6 +75,10 @@ export interface ExportOptions {
   separate: boolean; // one file per part (+ click file)
   stems: number[]; // indices of the parts to include; empty = the song as it is
   gains: number[]; // their levels, same order
+  speedRatio: number; // tempo of the export as target_bpm / song_bpm; <= 0 = the current tempo
+  accent: number; // accent on the first beat: -1 as in the player, 0 off, 1 on
+  quiet: number; // quiet bars: -1 as in the player, 0 off, 1 on
+  clickIntoStem: number; // separate files: index of the part that also gets the clicks, -1 = own click file
 }
 
 export interface SongData {
@@ -92,11 +97,7 @@ export const core = {
   caps: () => invoke<Caps>("core_caps"),
   stemsInfo: () => invoke<StemsInfo>("core_stems_info"),
   exportStart: (path: string, metronome: boolean) => invoke<boolean>("core_export_start", { path, metronome }),
-  exportStartEx: (o: ExportOptions) =>
-    invoke<boolean>("core_export_start_ex", {
-      path: o.path, metronome: o.metronome, countInBars: o.countInBars, rangeA: o.rangeA, rangeB: o.rangeB,
-      separate: o.separate, stems: o.stems, gains: o.gains,
-    }),
+  exportStartEx: (o: ExportOptions) => invoke<boolean>("core_export_start_ex", { options: o }),
   exportStatus: () => invoke<ExportStatus>("core_export_status"),
   exportCancel: () => invoke<void>("core_export_cancel"),
   stemsStart: () => invoke<boolean>("core_stems_start"),
@@ -110,6 +111,8 @@ export const core = {
   pause: () => invoke<void>("core_pause"),
   seek: (seconds: number) => invoke<void>("core_seek", { seconds }),
   setSpeed: (ratio: number) => invoke<void>("core_set_speed", { ratio }),
+  setQuietBars: (enabled: boolean, clickBars: number, quietBars: number) =>
+    invoke<void>("core_set_quiet_bars", { enabled, clickBars, quietBars }),
   setMetronome: (enabled: boolean, volume: number, accent: boolean) =>
     invoke<void>("core_set_metronome", { enabled, volume, accent }),
   setSongVolume: (volume: number) => invoke<void>("core_set_song_volume", { volume }),

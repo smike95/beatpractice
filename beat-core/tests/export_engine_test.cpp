@@ -71,6 +71,24 @@ int main() {
     auto ew = mk(1.0, false, 0, false, 1.f);
     Rendered rw = renderPart(*ew, 0.0, -1.0, 1.0);
     expect(rw.stopped && std::fabs((double)rw.pcm.size() / 2 / SR - SECONDS) < 0.003, "whole song: exact length", (double)rw.pcm.size() / 2 / SR);
+    // quiet bars: 1 bar of clicks, 1 bar silent (bars are 2 s long, the first bar starts at 1.0 s)
+    {
+        auto eq = mk(1.0, true, 0, false, 0.f);
+        MetronomeSettings ms; ms.enabled = true; ms.volume = 0.8f; ms.quietEnabled = true; ms.clickBars = 1; ms.quietBars = 1; eq->setMetronome(ms);
+        Rendered rq = renderPart(*eq, 1.0, 9.0, 1.0);          // part starts at bar 1
+        expect(rms(rq.pcm, 0.0, 2.0) > 1e-3, "quiet bars: bar 1 clicks");
+        expect(rms(rq.pcm, 2.05, 3.95) < 1e-6, "quiet bars: bar 2 silent");
+        expect(rms(rq.pcm, 4.0, 6.0) > 1e-3, "quiet bars: bar 3 clicks");
+        expect(rms(rq.pcm, 6.05, 7.95) < 1e-6, "quiet bars: bar 4 silent");
+        // with a loop the pattern restarts at A on every pass; loop = bars 3..6 (5.0 .. 13.0 s), pattern click, quiet, click, quiet
+        auto el = mk(1.0, true, 0, false, 0.f);
+        el->setMetronome(ms); el->setLoop(5.0, 13.0); el->seekSeconds(5.0); el->play();
+        std::vector<float> all; std::vector<float> blk(2 * 4410);
+        for (int i = 0; i < 170; ++i) { el->render(blk.data(), 4410); all.insert(all.end(), blk.begin(), blk.end()); }   // 17 s
+        expect(rms(all, 0.0, 2.0) > 1e-3 && rms(all, 2.05, 3.95) < 1e-6 && rms(all, 4.0, 6.0) > 1e-3 && rms(all, 6.05, 7.9) < 1e-6, "loop pass 1: click, quiet, click, quiet");
+        expect(rms(all, 8.0, 10.0) > 1e-3 && rms(all, 10.05, 11.95) < 1e-6 && rms(all, 12.0, 14.0) > 1e-3, "loop pass 2 starts again with clicks", rms(all, 8.0, 10.0));
+        expect(el->loopWraps() == 2, "loop wraps are counted", (double)el->loopWraps());
+    }
     printf(failures ? "\nFAILURES: %d\n" : "\nALL PASSED\n", failures);
     return failures ? 1 : 0;
 }

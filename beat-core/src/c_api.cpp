@@ -25,18 +25,23 @@ void bc_seek(bc_player* h, double s) { if (h) h->p.seekSeconds(s); }
 double bc_position(bc_player* h) { return h ? h->p.positionSeconds() : 0; }
 void bc_set_speed(bc_player* h, double r) { if (h) h->p.setSpeed(r); }
 double bc_speed(bc_player* h) { return h ? h->p.speed() : 1.0; }
-void bc_set_metronome(bc_player* h, int en, float vol, int acc) { if (!h) return; MetronomeSettings s; s.enabled = en != 0; s.volume = vol; s.accentFirstBeat = acc != 0; h->p.setMetronome(s); }
+void bc_set_metronome(bc_player* h, int en, float vol, int acc) { if (!h) return; MetronomeSettings s = h->p.metronomeSettings(); s.enabled = en != 0; s.volume = vol; s.accentFirstBeat = acc != 0; h->p.setMetronome(s); }
+void bc_set_quiet_bars(bc_player* h, int on, int click_bars, int quiet_bars) {
+    if (!h) return; MetronomeSettings s = h->p.metronomeSettings(); s.quietEnabled = on != 0; s.clickBars = click_bars; s.quietBars = quiet_bars; h->p.setMetronome(s);
+}
+long bc_loop_wraps(bc_player* h) { return h ? h->p.loopWraps() : 0; }
 void bc_set_song_volume(bc_player* h, float v) { if (h) h->p.setSongVolume(v); }
 void bc_set_count_in(bc_player* h, int bars, int every) { if (!h) return; CountInSettings s; s.bars = bars; s.everyLoopRestart = every != 0; h->p.setCountIn(s); }
 int bc_is_counting_in(bc_player* h) { return h && h->p.isCountingIn() ? 1 : 0; }
 int bc_set_meter_mode(bc_player* h, int mode) { return h && h->p.setMeterMode(mode) ? 1 : 0; }
 int bc_meter_mode(bc_player* h) { return h ? h->p.meterMode() : 0; }
 int bc_export_start(bc_player* h, const char* path, int met) { return h && path && h->p.exportStart(path, met != 0) ? 1 : 0; }
-int bc_export_start_ex(bc_player* h, const char* path, int met, int count_in_bars, double ra, double rb, int separate,
-                       const int* stems, const float* gains, int n) {
-    if (!h || !path) return 0;
-    beatcore::ExportRequest r; r.path = path; r.withMetronome = met != 0; r.countInBars = count_in_bars; r.rangeA = ra; r.rangeB = rb; r.separate = separate != 0;
-    for (int i = 0; stems && i < n; ++i) { r.stems.push_back(stems[i]); r.stemGains.push_back(gains ? gains[i] : 1.0f); }
+int bc_export_start_ex(bc_player* h, const bc_export_opts* o) {
+    if (!h || !o || !o->path) return 0;
+    beatcore::ExportRequest r; r.path = o->path; r.withMetronome = o->with_metronome != 0; r.countInBars = o->count_in_bars;
+    r.rangeA = o->range_a; r.rangeB = o->range_b; r.separate = o->separate != 0;
+    for (int i = 0; o->stems && i < o->n_stems; ++i) { r.stems.push_back(o->stems[i]); r.stemGains.push_back(o->gains ? o->gains[i] : 1.0f); }
+    r.speedRatio = o->speed_ratio; r.accent = o->accent; r.quiet = o->quiet; r.clickIntoStem = o->click_into_stem;
     return h->p.exportStart(r) ? 1 : 0;
 }
 int bc_export_state(bc_player* h) { return h ? h->p.exportState() : 0; }

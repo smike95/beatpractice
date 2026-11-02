@@ -23,10 +23,11 @@ export function ClickMetronomePanel(props: {
   lang: Lang;
   volume: number;          // 0..2, the metronome level from the mixer
   accent: boolean;         // accent on the first beat
+  quiet?: { enabled: boolean; clickBars: number; quietBars: number };   // quiet bars, as in the Training tab
   trackPlaying: boolean;
   onPauseTrack: () => void;
 }) {
-  const { lang, volume, accent, trackPlaying, onPauseTrack } = props;
+  const { lang, volume, accent, quiet, trackPlaying, onPauseTrack } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const saved = useRef(loadSaved());
   const [bpm, setBpm] = useState(saved.current.bpm);
@@ -38,8 +39,8 @@ export function ClickMetronomePanel(props: {
   const ctxRef = useRef<AudioContext | null>(null);
   const timerRef = useRef<number | null>(null);
   const flashTimers = useRef<number[]>([]);
-  const live = useRef({ bpm, beats, volume, accent });
-  live.current = { bpm, beats, volume, accent };
+  const live = useRef({ bpm, beats, volume, accent, quiet });
+  live.current = { bpm, beats, volume, accent, quiet };
 
   useEffect(() => { try { localStorage.setItem(KEY, JSON.stringify({ bpm, beats })); } catch { /* ignore */ } }, [bpm, beats]);
 
@@ -71,11 +72,14 @@ export function ClickMetronomePanel(props: {
       const tick = () => {
         // schedule every beat that falls into the next 120 ms; the tempo is read again for each beat
         while (next < ctx.currentTime + 0.12) {
-          const { bpm: b, beats: n, accent: acc } = live.current;
+          const { bpm: b, beats: n, accent: acc, quiet: q } = live.current;
           const pos = beatIdx % n;
-          click(next, acc && pos === 0);
+          // quiet bars: the bars are counted from the start, `clickBars` with clicks, then `quietBars` without
+          const bar = Math.floor(beatIdx / n);
+          const silent = !!q && q.enabled && bar % (q.clickBars + q.quietBars) >= q.clickBars;
+          if (!silent) click(next, acc && pos === 0);
           const delay = Math.max(0, (next - ctx.currentTime) * 1000);
-          const id = window.setTimeout(() => setFlash(pos), delay);
+          const id = window.setTimeout(() => setFlash(silent ? -1 : pos), delay);
           flashTimers.current.push(id);
           if (flashTimers.current.length > 16) flashTimers.current.shift();
           next += 60 / b;

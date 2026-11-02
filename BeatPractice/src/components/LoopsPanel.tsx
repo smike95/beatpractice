@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Plus, Repeat, X } from "lucide-react";
-import { LoopSlot } from "../types";
+import { LoopSlot, loopLabel } from "../types";
 import { Switch } from "./Switch";
 
 interface Props {
@@ -59,6 +59,34 @@ function BarInput(props: { value: number; min: number; max: number; disabled?: b
   );
 }
 
+/** The loop's name: type freely, applied on Enter / leaving the field; empty = the default "Loop N". */
+function NameInput(props: { value: string; placeholder: string; label: string; onCommit: (v: string) => void }) {
+  const { value, placeholder, label, onCommit } = props;
+  const [draft, setDraft] = useState<string | null>(null);
+  useEffect(() => setDraft(null), [value]);
+  const commit = () => { if (draft !== null && draft.trim() !== value) onCommit(draft.trim()); setDraft(null); };
+  return (
+    <input
+      type="text"
+      value={draft ?? value}
+      placeholder={placeholder}
+      maxLength={40}
+      aria-label={label}
+      title={label}
+      onClick={(e) => e.stopPropagation()}
+      onFocus={(e) => e.currentTarget.select()}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={commit}
+      onKeyDown={(e) => {
+        e.stopPropagation();
+        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
+        if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
+      }}
+      className="min-w-0 w-40 sm:w-56 px-2 py-0.5 rounded-lg bg-transparent border border-transparent hover:border-slate-700 focus:border-sky-500 focus:bg-slate-950 text-sm font-bold text-slate-100 focus:outline-none"
+    />
+  );
+}
+
 export function LoopsPanel(props: Props) {
   const { loops, activeLoop, selectedLoop, barTimes, duration, ready, lang, maxLoops, currentBar } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
@@ -71,6 +99,8 @@ export function LoopsPanel(props: Props) {
     const b = Math.min(Math.max(a, to), total);
     return { start: barTimes[a - 1], end: b < total ? barTimes[b] : duration };
   };
+
+  const keepName = (old: LoopSlot, next: LoopSlot): LoopSlot => (old.name ? { ...next, name: old.name } : next);
 
   const btn =
     "px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
@@ -96,7 +126,7 @@ export function LoopsPanel(props: Props) {
 
       {loops.length === 0 && (
         <div className="rounded-xl border border-dashed border-slate-700 p-4 flex items-center justify-between gap-3 flex-wrap">
-          <div className="text-sm text-slate-300 font-semibold">{L("Цикл 1", "Loop 1")} <span className="text-slate-500 font-normal">— {L("ще не задано", "not set yet")}</span></div>
+          <div className="text-sm text-slate-300 font-semibold">{loopLabel(undefined, 0, lang)} <span className="text-slate-500 font-normal">— {L("ще не задано", "not set yet")}</span></div>
           <button className={btn} disabled={!ready} onClick={props.onAdd}>{L("Створити з поточного такту", "Create from the current bar")}</button>
         </div>
       )}
@@ -114,7 +144,8 @@ export function LoopsPanel(props: Props) {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 text-sm font-bold text-slate-100">
                 <span className={`w-5 h-5 rounded-md text-xs flex items-center justify-center font-mono ${on ? "bg-sky-600 text-white" : "bg-slate-800 text-slate-300"}`}>{i + 1}</span>
-                {L("Цикл", "Loop")} {i + 1}
+                <NameInput value={s.name ?? ""} placeholder={loopLabel(undefined, i, lang)} label={L("Назва циклу (можна перейменувати)", "Loop name (you can rename it)")}
+                  onCommit={(v) => props.onUpdate(i, { start: s.start, end: s.end, ...(v ? { name: v } : {}) })} />
                 <span className="text-xs font-normal text-slate-400 font-mono">
                   {tb - fb + 1} {L("такт.", "bars")}
                 </span>
@@ -141,17 +172,17 @@ export function LoopsPanel(props: Props) {
               <label className="flex items-center gap-1.5">
                 {L("З такту", "From bar")}
                 <BarInput value={fb} min={1} max={Math.max(1, total)} disabled={!ready || total === 0}
-                  onCommit={(v) => props.onUpdate(i, slotFromBars(v, Math.max(v, tb)))} />
+                  onCommit={(v) => props.onUpdate(i, keepName(s, slotFromBars(v, Math.max(v, tb))))} />
               </label>
               <label className="flex items-center gap-1.5">
                 {L("по такт", "to bar")}
                 <BarInput value={tb} min={1} max={Math.max(1, total)} disabled={!ready || total === 0}
-                  onCommit={(v) => props.onUpdate(i, slotFromBars(Math.min(fb, v), v))} />
+                  onCommit={(v) => props.onUpdate(i, keepName(s, slotFromBars(Math.min(fb, v), v)))} />
               </label>
-              <button className={btn} disabled={!ready || total === 0} onClick={() => props.onUpdate(i, slotFromBars(currentBar, Math.max(currentBar, tb)))}>
+              <button className={btn} disabled={!ready || total === 0} onClick={() => props.onUpdate(i, keepName(s, slotFromBars(currentBar, Math.max(currentBar, tb))))}>
                 {L("Початок = поточний такт", "Start = current bar")}
               </button>
-              <button className={btn} disabled={!ready || total === 0} onClick={() => props.onUpdate(i, slotFromBars(Math.min(fb, currentBar), currentBar))}>
+              <button className={btn} disabled={!ready || total === 0} onClick={() => props.onUpdate(i, keepName(s, slotFromBars(Math.min(fb, currentBar), currentBar)))}>
                 {L("Кінець = поточний такт", "End = current bar")}
               </button>
               <span className="text-slate-500">/ {total || "—"}</span>

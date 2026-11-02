@@ -41,6 +41,7 @@ struct Snapshot {
     speed: f64,
     counting_in: bool,
     loop_enabled: bool,
+    loop_wraps: i64,
     beat: Option<BeatNow>,
     count_in: Option<CountInNow>,
     stems: StemsNow,
@@ -194,6 +195,7 @@ fn core_snapshot(state: State<AppState>) -> Result<Snapshot, String> {
             speed: c.speed(),
             counting_in: c.is_counting_in(),
             loop_enabled: c.loop_enabled(),
+            loop_wraps: c.loop_wraps(),
             count_in: c.count_in_beat().map(|(beat, total)| CountInNow { beat, total }),
             stems: StemsNow { state: c.stems_state(), progress: c.stems_progress(), enabled: c.stems_enabled() },
             beat: c.current_beat().map(|b| BeatNow {
@@ -252,13 +254,35 @@ struct ExportStatus {
 fn core_export_start(state: State<AppState>, path: String, metronome: bool) -> Result<bool, String> {
     with_core(&state, |c| c.export_start(&path, metronome))?
 }
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ExportOptionsIn {
+    path: String,
+    metronome: bool,
+    count_in_bars: i32,
+    range_a: f64,
+    range_b: f64,
+    separate: bool,
+    stems: Vec<i32>,
+    gains: Vec<f32>,
+    speed_ratio: f64,
+    accent: i32,
+    quiet: i32,
+    click_into_stem: i32,
+}
 #[tauri::command]
-#[allow(clippy::too_many_arguments)]
-fn core_export_start_ex(
-    state: State<AppState>, path: String, metronome: bool, count_in_bars: i32, range_a: f64, range_b: f64,
-    separate: bool, stems: Vec<i32>, gains: Vec<f32>,
-) -> Result<bool, String> {
-    with_core(&state, |c| c.export_start_ex(&path, metronome, count_in_bars, (range_a, range_b), separate, &stems, &gains))?
+fn core_export_start_ex(state: State<AppState>, options: ExportOptionsIn) -> Result<bool, String> {
+    let o = options;
+    with_core(&state, |c| {
+        c.export_start_ex(&core::ExportArgs {
+            path: o.path, metronome: o.metronome, count_in_bars: o.count_in_bars, range: (o.range_a, o.range_b), separate: o.separate,
+            stems: o.stems, gains: o.gains, speed_ratio: o.speed_ratio, accent: o.accent, quiet: o.quiet, click_into_stem: o.click_into_stem,
+        })
+    })?
+}
+#[tauri::command]
+fn core_set_quiet_bars(state: State<AppState>, enabled: bool, click_bars: i32, quiet_bars: i32) -> Result<(), String> {
+    with_core(&state, |c| c.set_quiet_bars(enabled, click_bars, quiet_bars))
 }
 #[tauri::command]
 fn core_export_status(state: State<AppState>) -> Result<ExportStatus, String> {
@@ -352,6 +376,7 @@ pub fn run() {
             core_stems_start,
             core_export_start,
             core_export_start_ex,
+            core_set_quiet_bars,
             core_export_status,
             core_export_cancel,
             core_stems_cancel,

@@ -566,6 +566,7 @@ svg.lucide { width: 24px !important; height: 24px !important; flex-shrink: 0; }
 .track-edit-cover { background: #0f172a; border-color: #475569; color: #94a3b8; }
 .track-edit-btn { background: #334155; border-color: #64748b; color: #f1f5f9; }
 .track-edit-btn:hover { background: #475569; }
+.track-edit-section { border-color: #475569; }
 .track-edit-close { color: #cbd5e1; }
 .track-edit-close:hover { background: #334155; color: #fff; }
 html.light .track-edit-dialog { background: #ffffff; border-color: #94a3b8; color: #0f172a; }
@@ -575,6 +576,7 @@ html.light .track-edit-label { color: #334155; }
 html.light .track-edit-cover { background: #f1f5f9; border-color: #94a3b8; color: #475569; }
 html.light .track-edit-btn { background: #e2e8f0 !important; border-color: #94a3b8 !important; color: #0f172a !important; }
 html.light .track-edit-btn:hover { background: #cbd5e1 !important; }
+html.light .track-edit-section { border-color: #94a3b8; }
 html.light .track-edit-close { color: #334155; }
 html.light .track-edit-close:hover { background: #e2e8f0; color: #0f172a; }
 

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Bookmark, LocateFixed } from "lucide-react";
 import { SongData } from "../core";
-import { LoopRange, LoopSlot } from "../types";
+import { LoopRange, LoopSlot, loopLabel } from "../types";
 import { TempoSection } from "../utils/sections";
 
 type Lang = "uk" | "en";
@@ -324,7 +324,7 @@ export function Waveform(props: Props) {
       ctx.fillStyle = colors.loopText;
       ctx.font = "bold 15px Menlo, monospace";
       ctx.textBaseline = "middle";
-      ctx.fillText(`${L("Цикл", "Loop")} ${(activeLoop ?? 0) + 1}`, Math.max(x0, 0) + 8, RULER_H / 2 + 1);
+      ctx.fillText(loopLabel(loops[activeLoop ?? 0], activeLoop ?? 0, lang), Math.max(x0, 0) + 8, RULER_H / 2 + 1);
     }
 
     // playhead

@@ -66,7 +66,7 @@ struct Player::Impl {
         std::string outPath, songPath, stemCache;
         std::vector<std::string> stemNames;
         bool metronome = false, useStems = false, separate = false;
-        int countInBars = 0;
+        int countInBars = 0, clickIntoStem = -1;
         bool hasRange = false; double rangeA = 0, rangeB = 0;       // original-song seconds
         std::vector<int> stemIdx; std::vector<float> stemGain;      // parts to include and their levels
         std::shared_ptr<const BeatMap> map;
@@ -177,17 +177,19 @@ struct Player::Impl {
             // one file per selected part (original level, no volume changes: ready to be mixed elsewhere), plus a click file when the
             // metronome is on. Every file has the same length: a count-in is silent in the parts and audible in the click file.
             const std::string base = stripWav(j.outPath);
-            const int files = (int)j.stemIdx.size() + (j.metronome ? 1 : 0);
+            const bool clickFile = j.metronome && j.clickIntoStem < 0;
+            const int files = (int)j.stemIdx.size() + (clickFile ? 1 : 0);
             int done = 0;
             for (size_t n = 0; n < j.stemIdx.size(); ++n, ++done) {
+                const bool withClick = j.metronome && j.clickIntoStem == j.stemIdx[n];   // this part carries the clicks
                 std::vector<std::vector<float>> tracks; tracks.push_back(stemToFloat(set, (size_t)j.stemIdx[n]));
-                auto e = makeExportEngine(j, std::vector<float>(silentLen, 0.f), std::move(tracks), {1.0f}, false, j.countInBars, j.countInBars > 0 && j.metronome, 1.0f);
+                auto e = makeExportEngine(j, std::vector<float>(silentLen, 0.f), std::move(tracks), {1.0f}, withClick, j.countInBars, !withClick, 1.0f);
                 if (expCancel.load()) { expState = 0; return; }
                 const std::string nm = (size_t)j.stemIdx[n] < set.names.size() ? set.names[(size_t)j.stemIdx[n]] : ("part" + std::to_string(n + 1));
                 const float p0 = 0.02f + 0.97f * done / files, p1 = 0.02f + 0.97f * (done + 1) / files;
                 if (!renderToWav(*e, base + " - " + nm + ".wav", j.rangeA, j.rangeB, j.hasRange, j.speed, p0, p1)) return;
             }
-            if (j.metronome) {
+            if (clickFile) {
                 auto e = makeExportEngine(j, std::vector<float>(silentLen, 0.f), {}, {}, true, j.countInBars, false, 0.f);
                 if (expCancel.load()) { expState = 0; return; }
                 if (!renderToWav(*e, base + " - click.wav", j.rangeA, j.rangeB, j.hasRange, j.speed, 0.02f + 0.97f * done / files, 0.99f)) return;
@@ -430,6 +432,8 @@ void Player::seekSeconds(double s) { if (auto* e = impl_->engine.load()) e->seek
 double Player::positionSeconds() const { WITH_ENGINE(e->positionSeconds(), 0.0); }
 void Player::setSpeed(double r) { impl_->speedS = r; if (auto* e = impl_->engine.load()) e->setSpeed(r); }
 double Player::speed() const { return impl_->speedS; }
+MetronomeSettings Player::metronomeSettings() const { return impl_->metS; }
+long Player::loopWraps() const { auto* e = impl_->engine.load(); return e ? e->loopWraps() : 0; }
 void Player::setMetronome(const MetronomeSettings& s) { impl_->metS = s; if (auto* e = impl_->engine.load()) e->setMetronome(s); }
 void Player::setSongVolume(float v) { impl_->volS = v; if (auto* e = impl_->engine.load()) e->setSongVolume(v); }
 void Player::setCountIn(const CountInSettings& s) { impl_->ciS = s; if (auto* e = impl_->engine.load()) e->setCountIn(s); }
@@ -483,9 +487,13 @@ bool Player::exportStart(const ExportRequest& r) {
     { std::lock_guard<std::mutex> l(m.mu); j.map = m.map; j.stemNames = m.stemNamesV; }
     if (!j.map) return false;
     j.outPath = r.path; j.songPath = m.songPath; j.metronome = r.withMetronome; j.separate = r.separate;
-    j.countInBars = std::max(0, std::min(4, r.countInBars));
+    j.countInBars = r.withMetronome ? std::max(0, std::min(4, r.countInBars)) : 0;   // a count-in is made only with the metronome
+    j.clickIntoStem = r.clickIntoStem;
     if (r.rangeB > r.rangeA && r.rangeA >= 0) { j.hasRange = true; j.rangeA = r.rangeA; j.rangeB = r.rangeB; }
-    j.speed = m.speedS.load(); j.vol = m.volS.load(); j.click = m.clickS.load(); j.met = m.metS;
+    j.speed = r.speedRatio > 0 ? std::max(0.25, std::min(2.0, r.speedRatio)) : m.speedS.load();
+    j.vol = m.volS.load(); j.click = m.clickS.load(); j.met = m.metS;
+    if (r.accent >= 0) j.met.accentFirstBeat = r.accent != 0;
+    if (r.quiet >= 0) j.met.quietEnabled = r.quiet != 0;
     if (!r.stems.empty()) {
         if (m.stemState.load() != (int)StemState::Ready) return false;
         j.useStems = true; j.stemIdx = r.stems;

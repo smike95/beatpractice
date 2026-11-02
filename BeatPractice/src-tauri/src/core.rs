@@ -5,6 +5,39 @@ use libloading::Library;
 use std::ffi::{c_char, c_double, c_float, c_int, c_void, CStr, CString};
 use std::path::Path;
 
+/// Mirrors bc_export_opts of the core library (fields in the same order).
+#[repr(C)]
+struct ExportOpts {
+    path: *const c_char,
+    with_metronome: c_int,
+    count_in_bars: c_int,
+    range_a: c_double,
+    range_b: c_double,
+    separate: c_int,
+    stems: *const c_int,
+    gains: *const c_float,
+    n_stems: c_int,
+    speed_ratio: c_double,
+    accent: c_int,
+    quiet: c_int,
+    click_into_stem: c_int,
+}
+
+/// What the UI asks for in an export (see ExportOptions in core.ts).
+pub struct ExportArgs {
+    pub path: String,
+    pub metronome: bool,
+    pub count_in_bars: i32,
+    pub range: (f64, f64),
+    pub separate: bool,
+    pub stems: Vec<i32>,
+    pub gains: Vec<f32>,
+    pub speed_ratio: f64,
+    pub accent: i32,
+    pub quiet: i32,
+    pub click_into_stem: i32,
+}
+
 type P = *mut c_void;
 
 pub const BC_ERROR: i32 = 4;
@@ -55,7 +88,9 @@ pub struct Core {
     stems_state: Option<unsafe extern "C" fn(P) -> c_int>,
     stems_progress: Option<unsafe extern "C" fn(P) -> c_float>,
     export_start: Option<unsafe extern "C" fn(P, *const c_char, c_int) -> c_int>,
-    export_start_ex: Option<unsafe extern "C" fn(P, *const c_char, c_int, c_int, c_double, c_double, c_int, *const c_int, *const c_float, c_int) -> c_int>,
+    export_start_ex: Option<unsafe extern "C" fn(P, *const ExportOpts) -> c_int>,
+    set_quiet_bars: Option<unsafe extern "C" fn(P, c_int, c_int, c_int)>,
+    loop_wraps: Option<unsafe extern "C" fn(P) -> std::ffi::c_long>,
     export_state: Option<unsafe extern "C" fn(P) -> c_int>,
     export_progress: Option<unsafe extern "C" fn(P) -> c_float>,
     export_error: Option<unsafe extern "C" fn(P) -> *const c_char>,
@@ -207,7 +242,9 @@ impl Core {
                 stems_state: opt_sym!(lib, "bc_stems_state", unsafe extern "C" fn(P) -> c_int),
                 stems_progress: opt_sym!(lib, "bc_stems_progress", unsafe extern "C" fn(P) -> c_float),
                 export_start: opt_sym!(lib, "bc_export_start", unsafe extern "C" fn(P, *const c_char, c_int) -> c_int),
-                export_start_ex: opt_sym!(lib, "bc_export_start_ex", unsafe extern "C" fn(P, *const c_char, c_int, c_int, c_double, c_double, c_int, *const c_int, *const c_float, c_int) -> c_int),
+                export_start_ex: opt_sym!(lib, "bc_export_start_ex", unsafe extern "C" fn(P, *const ExportOpts) -> c_int),
+                set_quiet_bars: opt_sym!(lib, "bc_set_quiet_bars", unsafe extern "C" fn(P, c_int, c_int, c_int)),
+                loop_wraps: opt_sym!(lib, "bc_loop_wraps", unsafe extern "C" fn(P) -> std::ffi::c_long),
                 export_state: opt_sym!(lib, "bc_export_state", unsafe extern "C" fn(P) -> c_int),
                 export_progress: opt_sym!(lib, "bc_export_progress", unsafe extern "C" fn(P) -> c_float),
                 export_error: opt_sym!(lib, "bc_export_error", unsafe extern "C" fn(P) -> *const c_char),
@@ -292,14 +329,23 @@ impl Core {
         let c = CString::new(path.as_bytes()).map_err(|e| e.to_string())?;
         Ok(unsafe { f(self.p, c.as_ptr(), metronome as c_int) } != 0)
     }
+    pub fn set_quiet_bars(&self, enabled: bool, click_bars: i32, quiet_bars: i32) {
+        if let Some(f) = self.set_quiet_bars { unsafe { f(self.p, enabled as c_int, click_bars, quiet_bars) } }
+    }
+    pub fn loop_wraps(&self) -> i64 { self.loop_wraps.map(|f| unsafe { f(self.p) } as i64).unwrap_or(0) }
     pub fn has_export_ex(&self) -> bool { self.export_start_ex.is_some() }
-    /// Extended export: loop range, count-in, chosen parts, separate files. `range` = (a, b) in seconds, b <= a means the whole song.
-    #[allow(clippy::too_many_arguments)]
-    pub fn export_start_ex(&self, path: &str, metronome: bool, count_in_bars: i32, range: (f64, f64), separate: bool, stems: &[i32], gains: &[f32]) -> Result<bool, String> {
+    /// Extended export: loop range, tempo, count-in, chosen parts, separate files, metronome options.
+    pub fn export_start_ex(&self, a: &ExportArgs) -> Result<bool, String> {
         let f = self.export_start_ex.ok_or_else(|| "Ця версія ядра не вміє експортувати частину, відлік і окремі партії: оновіть beat-core".to_string())?;
-        let c = CString::new(path.as_bytes()).map_err(|e| e.to_string())?;
-        let n = stems.len().min(gains.len());
-        Ok(unsafe { f(self.p, c.as_ptr(), metronome as c_int, count_in_bars as c_int, range.0, range.1, separate as c_int, stems.as_ptr(), gains.as_ptr(), n as c_int) } != 0)
+        let c = CString::new(a.path.as_bytes()).map_err(|e| e.to_string())?;
+        let n = a.stems.len().min(a.gains.len());
+        let o = ExportOpts {
+            path: c.as_ptr(), with_metronome: a.metronome as c_int, count_in_bars: a.count_in_bars,
+            range_a: a.range.0, range_b: a.range.1, separate: a.separate as c_int,
+            stems: a.stems.as_ptr(), gains: a.gains.as_ptr(), n_stems: n as c_int,
+            speed_ratio: a.speed_ratio, accent: a.accent, quiet: a.quiet, click_into_stem: a.click_into_stem,
+        };
+        Ok(unsafe { f(self.p, &o) } != 0)
     }
     pub fn export_state(&self) -> i32 { self.export_state.map_or(0, |f| unsafe { f(self.p) }) }
     pub fn export_progress(&self) -> f32 { self.export_progress.map_or(0.0, |f| unsafe { f(self.p) }) }
