@@ -12,6 +12,7 @@ import { QuietBarsPanel } from './components/QuietBarsPanel';
 import { RampPanel } from './components/RampPanel';
 import { TrackEditDialog } from './components/TrackEditDialog';
 import { ExportDialog } from './components/ExportDialog';
+import { PackDialog } from './components/PackDialog';
 import { Slider } from './components/Slider';
 import { Switch } from './components/Switch';
 import { WindowControls } from './components/WindowControls';
@@ -44,6 +45,7 @@ import {
   SkipForward,
   Pencil,
   Download,
+  Package,
   Info,
 } from 'lucide-react';
 
@@ -115,6 +117,7 @@ export default function App() {
 
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [packing, setPacking] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   // the playlist column is as tall as the window below the header: remember the header height
   const headerRef = useRef<HTMLElement>(null);
@@ -324,6 +327,15 @@ export default function App() {
                   className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
                 >
                   <Download className="w-6 h-6" />
+                </button>
+                <button
+                  id="btn-save-pack"
+                  onClick={() => setPacking(true)}
+                  disabled={!(track && player.ready) || player.caps?.packs === false}
+                  title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
+                  className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
+                >
+                  <Package className="w-6 h-6" />
                 </button>
               {/* Transport: back / play / next / what happens at the end (as in common players) */}
               <div id="transport-cluster" className="flex items-center gap-2 shrink-0">
@@ -938,6 +950,33 @@ export default function App() {
           activeLoop={player.activeLoop}
           onClose={() => setExporting(false)}
         />
+      )}
+
+      {packing && track && (
+        <PackDialog
+          lang={lang}
+          displayName={track.displayName}
+          title={track.title}
+          artist={track.artist}
+          duration={track.duration}
+          stemNames={player.stemsState === 2 ? (player.stemsInfo?.names ?? []) : []}
+          loops={player.loops}
+          onClose={() => setPacking(false)}
+        />
+      )}
+
+      {player.packNotice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
+          <div role="alertdialog" aria-modal="true" id="pack-owner-notice" className="track-edit-dialog w-full max-w-md rounded-2xl border shadow-2xl p-5 space-y-4">
+            <h3 className="text-base font-bold">{lang === 'en' ? 'This pack was made for another owner' : 'Цей пакет створено для іншого власника'}</h3>
+            <p className="text-sm">{lang === 'en'
+              ? 'Packs are meant for the devices of the person who made them. Passing a pack to someone else is your own responsibility.'
+              : 'Пакети призначені для пристроїв того, хто їх створив. Передача пакета іншим людям відбувається на вашу відповідальність.'}</p>
+            <div className="flex justify-end">
+              <button id="btn-pack-notice-ok" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={player.dismissPackNotice}>{lang === 'en' ? 'I understand' : 'Розумію'}</button>
+            </div>
+          </div>
+        </div>
       )}
 
       {editing && track && activeTrackId && (

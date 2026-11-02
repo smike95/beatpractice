@@ -39,6 +39,7 @@ export interface Caps {
   countInBeats: boolean;
   stems: boolean; // the core can separate stems at all
   meterModes: boolean; // the core can re-read the bar structure in different modes
+  packs?: boolean; // the core can open and save .beatpack files
 }
 
 export interface Snapshot {
@@ -81,6 +82,30 @@ export interface ExportOptions {
   clickIntoStem: number; // separate files: index of the part that also gets the clicks, -1 = own click file
 }
 
+export interface PackInfo {
+  isPack: boolean;
+  title?: string;
+  artist?: string;
+  owner?: string;
+  createdBy?: string;
+  model?: string;
+  hasMix?: boolean;
+  tracks?: string[];
+  loops?: { name: string; start: number; end: number }[];
+}
+
+export interface PackOptions {
+  path: string;
+  title: string;
+  artist: string;
+  owner: string;
+  createdBy: string;
+  groups: string; // "0,2;1;3,4": parts of a group joined by ",", groups by ";" ("" = no parts, only the song)
+  groupNames: string; // names of the groups joined by ";" (empty = the part names joined with "+")
+  loops: string; // lines "start|end|name\n"
+  includeMix: boolean;
+}
+
 export interface SongData {
   times: number[];
   posInBar: number[];
@@ -98,6 +123,10 @@ export const core = {
   stemsInfo: () => invoke<StemsInfo>("core_stems_info"),
   exportStart: (path: string, metronome: boolean) => invoke<boolean>("core_export_start", { path, metronome }),
   exportStartEx: (o: ExportOptions) => invoke<boolean>("core_export_start_ex", { options: o }),
+  packInfo: async (): Promise<PackInfo> => {
+    try { return JSON.parse(await invoke<string>("core_pack_info")) as PackInfo; } catch { return { isPack: false }; }
+  },
+  packSave: (o: PackOptions) => invoke<boolean>("core_pack_save", { options: o }),
   exportStatus: () => invoke<ExportStatus>("core_export_status"),
   exportCancel: () => invoke<void>("core_export_cancel"),
   stemsStart: () => invoke<boolean>("core_stems_start"),

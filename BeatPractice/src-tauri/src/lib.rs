@@ -79,6 +79,7 @@ struct Caps {
     count_in_beats: bool,
     stems: bool,
     meter_modes: bool,
+    packs: bool,
 }
 
 #[derive(Serialize)]
@@ -226,7 +227,7 @@ fn core_song_data(state: State<AppState>) -> Result<SongData, String> {
 fn core_caps(state: State<AppState>) -> Result<Caps, String> {
     with_core(&state, |c| {
         let sounds = c.click_sound_count();
-        Caps { click_sounds: sounds, count_in_beats: sounds > 0, stems: c.has_stems(), meter_modes: c.has_meter_modes() }
+        Caps { click_sounds: sounds, count_in_beats: sounds > 0, stems: c.has_stems(), meter_modes: c.has_meter_modes(), packs: c.has_packs() }
     })
 }
 
@@ -277,6 +278,34 @@ fn core_export_start_ex(state: State<AppState>, options: ExportOptionsIn) -> Res
         c.export_start_ex(&core::ExportArgs {
             path: o.path, metronome: o.metronome, count_in_bars: o.count_in_bars, range: (o.range_a, o.range_b), separate: o.separate,
             stems: o.stems, gains: o.gains, speed_ratio: o.speed_ratio, accent: o.accent, quiet: o.quiet, click_into_stem: o.click_into_stem,
+        })
+    })?
+}
+#[derive(serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PackOptionsIn {
+    path: String,
+    title: String,
+    artist: String,
+    owner: String,
+    created_by: String,
+    groups: String,
+    group_names: String,
+    loops: String,
+    include_mix: bool,
+}
+/// JSON text about the opened pack (the UI parses it).
+#[tauri::command]
+fn core_pack_info(state: State<AppState>) -> Result<String, String> {
+    with_core(&state, |c| c.pack_info())
+}
+#[tauri::command]
+fn core_pack_save(state: State<AppState>, options: PackOptionsIn) -> Result<bool, String> {
+    let o = options;
+    with_core(&state, |c| {
+        c.pack_save(&core::PackArgs {
+            path: o.path, title: o.title, artist: o.artist, owner: o.owner, created_by: o.created_by,
+            groups: o.groups, group_names: o.group_names, loops: o.loops, include_mix: o.include_mix,
         })
     })?
 }
@@ -377,6 +406,8 @@ pub fn run() {
             core_export_start,
             core_export_start_ex,
             core_set_quiet_bars,
+            core_pack_info,
+            core_pack_save,
             core_export_status,
             core_export_cancel,
             core_stems_cancel,

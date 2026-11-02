@@ -3,9 +3,10 @@ import { open } from "@tauri-apps/plugin-dialog";
 import { getCurrentWebview } from "@tauri-apps/api/webview";
 import { BC, Caps, core, InitInfo, Snapshot, SongData, StemsInfo } from "../core";
 import { AudioTrackInfo, LoopRange, LoopSlot, MetronomeConfig, PlayMode, PlaylistItem, StemMix } from "../types";
+import { getOwnerId } from "../utils/license";
 import { barStartTimes, computeSections, TempoSection, tempoVaries } from "../utils/sections";
 
-const AUDIO_EXTS = ["mp3", "wav", "flac", "ogg"];
+const AUDIO_EXTS = ["mp3", "wav", "flac", "ogg", "beatpack"];
 const STORE_KEY = "rt_playlist_v1";
 const NO_LOOP: LoopRange = { active: false, start: 0, end: 0 };
 const MAX_LOOPS = 3;
@@ -199,6 +200,9 @@ export function usePlayer() {
     core.caps().then(setCaps).catch(() => setCaps({ clickSounds: 0, countInBeats: false, stems: false, meterModes: false }));
   }, [init?.loaded]);
 
+  // a pack from another owner: shown until the user confirms
+  const [packNotice, setPackNotice] = useState<{ owner: string; title: string } | null>(null);
+
   const patchItem = useCallback((id: string, patch: (it: PlaylistItem) => PlaylistItem) => {
     setPlaylist((prev) => prev.map((it) => (it.id === id ? patch(it) : it)));
   }, []);
@@ -256,6 +260,24 @@ export function usePlayer() {
         } else {
           await core.clearLoop();
           setActiveLoop(null);
+        }
+        // a .beatpack brings its own title, loops and owner
+        const pk = await core.packInfo();
+        if (pk.isPack) {
+          const mine = getOwnerId();
+          if (pk.owner && mine && pk.owner !== mine) setPackNotice({ owner: pk.owner, title: pk.title || item?.name || "" });
+          if (item) {
+            const imported: LoopSlot[] = item.loops.length === 0 && pk.loops
+              ? pk.loops.slice(0, MAX_LOOPS).filter((l) => l.end > l.start).map((l) => ({ start: l.start, end: l.end, ...(l.name ? { name: l.name } : {}) }))
+              : [];
+            patchItem(id, (it) => ({
+              ...it,
+              title: it.title || pk.title || undefined,
+              artist: it.artist || pk.artist || undefined,
+              loops: imported.length ? imported : it.loops,
+            }));
+            if (imported.length) setLoops(imported);
+          }
         }
         setSong(data);
         if (item) {
@@ -554,7 +576,7 @@ export function usePlayer() {
     (paths: string[]) => {
       const good = paths.filter(isAudio);
       if (good.length === 0) {
-        if (paths.length > 0) setMessage("Підтримуються файли mp3, wav, flac, ogg.");
+        if (paths.length > 0) setMessage("Підтримуються файли mp3, wav, flac, ogg і пакети beatpack.");
         return;
       }
       const known = new Set(playlistRef.current.map((p) => p.path));
@@ -584,7 +606,7 @@ export function usePlayer() {
     const res = await open({
       multiple: true,
       title: "Додати аудіо",
-      filters: [{ name: "Аудіо", extensions: AUDIO_EXTS }],
+      filters: [{ name: "Аудіо та пакети BeatPack", extensions: AUDIO_EXTS }],
     });
     if (Array.isArray(res)) addFiles(res);
     else if (typeof res === "string") addFiles([res]);
@@ -807,6 +829,8 @@ export function usePlayer() {
     chooseCoreDir,
     message,
     setMessage,
+    packNotice,
+    dismissPackNotice: () => setPackNotice(null),
     snap,
     song,
     ready,

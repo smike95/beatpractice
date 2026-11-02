@@ -23,6 +23,35 @@ struct ExportOpts {
     click_into_stem: c_int,
 }
 
+/// Mirrors bc_pack_opts of the core library (fields in the same order).
+#[repr(C)]
+struct PackOpts {
+    path: *const c_char,
+    title: *const c_char,
+    artist: *const c_char,
+    owner: *const c_char,
+    created_by: *const c_char,
+    groups: *const c_char,
+    group_names: *const c_char,
+    loops: *const c_char,
+    include_mix: c_int,
+    include_acts: c_int,
+    flac_level: c_int,
+}
+
+/// What the UI asks for when saving a .beatpack (see PackOptions in core.ts).
+pub struct PackArgs {
+    pub path: String,
+    pub title: String,
+    pub artist: String,
+    pub owner: String,
+    pub created_by: String,
+    pub groups: String,
+    pub group_names: String,
+    pub loops: String,
+    pub include_mix: bool,
+}
+
 /// What the UI asks for in an export (see ExportOptions in core.ts).
 pub struct ExportArgs {
     pub path: String,
@@ -89,6 +118,8 @@ pub struct Core {
     stems_progress: Option<unsafe extern "C" fn(P) -> c_float>,
     export_start: Option<unsafe extern "C" fn(P, *const c_char, c_int) -> c_int>,
     export_start_ex: Option<unsafe extern "C" fn(P, *const ExportOpts) -> c_int>,
+    pack_info: Option<unsafe extern "C" fn(P) -> *const c_char>,
+    pack_save: Option<unsafe extern "C" fn(P, *const PackOpts) -> c_int>,
     set_quiet_bars: Option<unsafe extern "C" fn(P, c_int, c_int, c_int)>,
     loop_wraps: Option<unsafe extern "C" fn(P) -> std::ffi::c_long>,
     export_state: Option<unsafe extern "C" fn(P) -> c_int>,
@@ -243,6 +274,8 @@ impl Core {
                 stems_progress: opt_sym!(lib, "bc_stems_progress", unsafe extern "C" fn(P) -> c_float),
                 export_start: opt_sym!(lib, "bc_export_start", unsafe extern "C" fn(P, *const c_char, c_int) -> c_int),
                 export_start_ex: opt_sym!(lib, "bc_export_start_ex", unsafe extern "C" fn(P, *const ExportOpts) -> c_int),
+                pack_info: opt_sym!(lib, "bc_pack_info", unsafe extern "C" fn(P) -> *const c_char),
+                pack_save: opt_sym!(lib, "bc_pack_save", unsafe extern "C" fn(P, *const PackOpts) -> c_int),
                 set_quiet_bars: opt_sym!(lib, "bc_set_quiet_bars", unsafe extern "C" fn(P, c_int, c_int, c_int)),
                 loop_wraps: opt_sym!(lib, "bc_loop_wraps", unsafe extern "C" fn(P) -> std::ffi::c_long),
                 export_state: opt_sym!(lib, "bc_export_state", unsafe extern "C" fn(P) -> c_int),
@@ -333,6 +366,25 @@ impl Core {
         if let Some(f) = self.set_quiet_bars { unsafe { f(self.p, enabled as c_int, click_bars, quiet_bars) } }
     }
     pub fn loop_wraps(&self) -> i64 { self.loop_wraps.map(|f| unsafe { f(self.p) } as i64).unwrap_or(0) }
+    pub fn has_packs(&self) -> bool { self.pack_info.is_some() && self.pack_save.is_some() }
+    /// JSON about the opened pack ({"isPack":false} for an ordinary song).
+    pub fn pack_info(&self) -> String {
+        match self.pack_info {
+            Some(f) => unsafe { let s = f(self.p); if s.is_null() { "{\"isPack\":false}".into() } else { CStr::from_ptr(s).to_string_lossy().into_owned() } },
+            None => "{\"isPack\":false}".into(),
+        }
+    }
+    pub fn pack_save(&self, a: &PackArgs) -> Result<bool, String> {
+        let f = self.pack_save.ok_or_else(|| "Ця версія ядра не вміє зберігати пакети: оновіть beat-core".to_string())?;
+        let cs = |s: &str| CString::new(s.replace('\0', "")).map_err(|e| e.to_string());
+        let (path, title, artist, owner, by, groups, names, loops) = (cs(&a.path)?, cs(&a.title)?, cs(&a.artist)?, cs(&a.owner)?, cs(&a.created_by)?, cs(&a.groups)?, cs(&a.group_names)?, cs(&a.loops)?);
+        let o = PackOpts {
+            path: path.as_ptr(), title: title.as_ptr(), artist: artist.as_ptr(), owner: owner.as_ptr(), created_by: by.as_ptr(),
+            groups: groups.as_ptr(), group_names: names.as_ptr(), loops: loops.as_ptr(),
+            include_mix: a.include_mix as c_int, include_acts: 1, flac_level: 5,
+        };
+        Ok(unsafe { f(self.p, &o) } != 0)
+    }
     pub fn has_export_ex(&self) -> bool { self.export_start_ex.is_some() }
     /// Extended export: loop range, tempo, count-in, chosen parts, separate files, metronome options.
     pub fn export_start_ex(&self, a: &ExportArgs) -> Result<bool, String> {
