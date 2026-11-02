@@ -39,3 +39,10 @@ opens it without the neural networks. Made by `writePackage`, opened by `readPac
 (an ordinary song gives the message "opens only .beatpack files"), plays them, and keeps the sound as 16-bit samples that are moved into the engine
 (a pack with 6 tracks of 4 minutes needs about 340 MB at the peak, the full core with float tracks needed twice that). It does not keep a second
 copy of the sound, so it cannot export a pack to WAV or pack it again; the computer does that. Add `-DBEATCORE_PACK_WRITER=OFF` to drop libFLAC too.
+
+## Memory notes (measured with the real models, htdemucs_6s fp16)
+
+* Loading the separation model with graph optimisation (`ORT_ENABLE_ALL`) needs more than 3.8 GB of RAM here (the process was killed on a 4 GB machine).
+  With `lowMemory` (no graph optimisation) it loads with about 1 GB and separates a 12 s clip in 26 s on one core (2.2x real time).
+  The player picks `lowMemory` by itself when the device has less than 8 GB of RAM or `bc_set_low_memory(1)` was called.
+* Separated parts go into the engine as 16-bit samples without a float copy.

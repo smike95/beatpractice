@@ -1,6 +1,7 @@
 #include "portable_path.h"
 #include "player.h"
 #include "package.h"
+#include "sysmem.h"
 #include "../third_party/json.hpp"
 #include "audio_file.h"
 #include "stem_separator.h"
@@ -56,6 +57,7 @@ struct Player::Impl {
     std::string stemErr; std::vector<std::string> stemNamesV;   // guarded by mu
 
     // ---- an opened .beatpack: the sound lives in memory (there is no source file and no cache to read it from) ----
+    std::atomic<bool> lowMemory{false};           // phones: keep the song as 16-bit samples
     bool isPack = false;                          // set by the worker before Ready; read after Ready
     std::shared_ptr<StemSet> packSet;             // the separated tracks of the pack (null if the pack has none)
     std::shared_ptr<std::vector<int16_t>> packMix;// the original song of the pack, planar (null = sum of the tracks)
@@ -295,7 +297,9 @@ struct Player::Impl {
                 std::vector<float> L(T), R(T);
                 for (long i = 0; i < T; ++i) { L[i] = st[2*i]; R[i] = st[2*i+1]; }
                 std::vector<float>().swap(st);
-                StemSeparator sep(model);
+                // a computer with less than 8 GB of memory, or a phone, cannot load the model with graph optimisation
+                const uint64_t ram = physicalMemoryBytes();
+                StemSeparator sep(model, lowMemory.load() || (ram > 0 && ram < (8ull << 30)));
                 if (!sep.ok()) {
                     if (stemSkip.load() == 0) {            // try the next model file (e.g. the 4-part one) once
                         stemSkip = 1;
@@ -319,15 +323,10 @@ struct Player::Impl {
             }
             if (stemCancel.load() || songGen.load() != gen || engine.load() != e) { stemState = (int)StemState::None; return; }
             stemProg = 0.96f;
-            std::vector<std::vector<float>> tracks;
-            for (size_t k = 0; k < set.pcm.size(); ++k) {
-                const long T = set.frames; const int16_t* p = set.pcm[k].data();
-                std::vector<float> v((size_t)2 * T);
-                for (long i = 0; i < T; ++i) { v[2*i] = p[i] / 32768.f; v[2*i+1] = p[T + i] / 32768.f; }
-                tracks.push_back(std::move(v));
-                std::vector<int16_t>().swap(set.pcm[k]);
-            }
-            e->setStems(std::move(tracks));
+            // the separator makes 16-bit tracks: they go into the engine as they are (moved, no float copy, a quarter of the memory)
+            std::vector<std::vector<int16_t>> tracks;
+            for (size_t k = 0; k < set.pcm.size(); ++k) tracks.push_back(std::move(set.pcm[k]));
+            e->setStemsPcm16(std::move(tracks));
             for (int k = 0; k < 8; ++k) e->setStemGain(k, stemGains[k].load());
             e->setStemsEnabled(stemsOn.load());
             { std::lock_guard<std::mutex> l(mu); stemNamesV = set.names; stemErr.clear(); }
@@ -427,7 +426,13 @@ struct Player::Impl {
             // The original song can be played while the rhythm is still being analysed: the engine is published now
             // (without a beat map and without metronome); the beat map is added to the same engine when it is ready.
             auto* e = new PlaybackEngine(kEngineRate);
-            e->setSong(std::move(stereo));
+            if (lowMemory.load()) {                                    // phones: the song as 16-bit samples (half the memory)
+                const long T = (long)(stereo.size() / 2);
+                std::vector<int16_t> pl((size_t)2 * T);
+                for (long i = 0; i < T; ++i) for (int c = 0; c < 2; ++c) { float v = stereo[(size_t)2 * i + c]; v = v > 1.f ? 1.f : (v < -1.f ? -1.f : v); pl[(size_t)c * T + i] = (int16_t)std::lrintf(v * 32767.f); }
+                std::vector<float>().swap(stereo);
+                e->setSongPcm16(std::move(pl), T);
+            } else e->setSong(std::move(stereo));
             e->setSpeed(speedS); e->setSongVolume(volS);
             { MetronomeSettings off = metS; off.enabled = false; e->setMetronome(off); }
             if (!startDevice()) { delete e; return fail("Cannot open the sound output device."); }
@@ -609,6 +614,7 @@ bool Player::exportStart(const ExportRequest& r) {
     m.expWorker = std::thread([im, j] { im->runExport(j); });
     return true;
 }
+void Player::setLowMemory(bool on) { impl_->lowMemory = on; }
 bool Player::isPack() const { return impl_->isPack; }
 std::string Player::packInfoJson() const {
     auto& m = *impl_; nlohmann::json j;

@@ -105,6 +105,7 @@ public:
     // included only if withMetronome is true.
     bool exportStart(const std::string& wavPath, bool withMetronome);   // false if no song is ready or an export is running
     // ---- .beatpack: openFile() accepts such a file too (no analysis, no models needed) ----
+    void setLowMemory(bool on);                  // before openFile(): keep the song as 16-bit samples (half the memory; for phones)
     bool isPack() const;                         // the current song was opened from a pack
     std::string packInfoJson() const;            // {"isPack":..,"title","artist","owner","createdBy","model","hasMix","tracks":[..],"loops":[{name,start,end}]}
     bool packSave(const PackRequest& r);         // runs in the background; progress and result come through exportState()/exportProgress()/exportError()

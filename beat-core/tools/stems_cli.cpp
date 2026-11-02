@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
         if (a == "--model") model = nx(); else if (a == "--keep") keep = nx(); else if (a == "--out") out = nx();
         else if (a == "--probe") probe = true; else if (a == "--save-cache") cacheOut = nx(); else if (a[0] != '-') in = a; }
     if (model.empty()) { fprintf(stderr, "usage: stems_cli song.mp3 --model model.onnx [--keep drums,guitar|all] [--out dir]\n"); return 1; }
-    StemSeparator sep(model);
+    StemSeparator sep(model, std::getenv("BC_LOWMEM") != nullptr);   // BC_LOWMEM=1: for computers with little memory
     if (!sep.ok()) { printf("MODEL NOT USABLE: %s\n", sep.error().c_str()); return 2; }
     printf("model OK: %zu sources (", sep.sourceNames().size());
     for (auto& n : sep.sourceNames()) printf(" %s", n.c_str());

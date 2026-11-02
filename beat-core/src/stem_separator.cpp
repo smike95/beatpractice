@@ -2,6 +2,7 @@
 #include "stem_separator.h"
 #include <onnxruntime_cxx_api.h>
 #include <algorithm>
+#include <cstdlib>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
@@ -74,11 +75,16 @@ struct StemSeparator::Impl {
     }
 };
 
-StemSeparator::StemSeparator(const std::string& modelPath) : impl_(new Impl) {
+StemSeparator::StemSeparator(const std::string& modelPath, bool lowMemory) : impl_(new Impl) {
     auto& m = *impl_;
     try {
         m.opts.SetIntraOpNumThreads(4);
-        m.opts.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+        if (lowMemory) {
+            // Optimising the graph while loading (constant folding, fusion) needs several GB for this model, more than a small computer or
+            // a phone has. Without it the model loads with about 1 GB, and separating a song takes a little longer.
+            m.opts.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_DISABLE_ALL);
+            m.opts.DisableCpuMemArena(); m.opts.DisableMemPattern();
+        } else m.opts.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
         m.sess.reset(new Ort::Session(m.env, bcpath::make(modelPath).c_str(), m.opts));
         if (m.sess->GetInputCount() != 1 || m.sess->GetOutputCount() != 1) {
             m.err = "unsupported model: it has " + std::to_string(m.sess->GetInputCount()) + " inputs and " +

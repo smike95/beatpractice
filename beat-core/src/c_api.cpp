@@ -44,6 +44,7 @@ int bc_export_start_ex(bc_player* h, const bc_export_opts* o) {
     r.speedRatio = o->speed_ratio; r.accent = o->accent; r.quiet = o->quiet; r.clickIntoStem = o->click_into_stem;
     return h->p.exportStart(r) ? 1 : 0;
 }
+void bc_set_low_memory(bc_player* h, int on) { if (h) h->p.setLowMemory(on != 0); }
 const char* bc_pack_info(bc_player* h) { if (!h) return "{}"; h->tmp = h->p.packInfoJson(); return h->tmp.c_str(); }
 int bc_pack_save(bc_player* h, const bc_pack_opts* o) {
     if (!h || !o || !o->path) return 0;

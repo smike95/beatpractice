@@ -25,7 +25,8 @@ std::vector<std::string> defaultSourceNames(int count);
 
 class StemSeparator {
 public:
-    explicit StemSeparator(const std::string& modelPath);
+    // lowMemory: load the model without graph optimisation (about 1 GB instead of several GB; a bit slower). Needed on small computers and phones.
+    explicit StemSeparator(const std::string& modelPath, bool lowMemory = false);
     ~StemSeparator();
 
     bool ok() const;
