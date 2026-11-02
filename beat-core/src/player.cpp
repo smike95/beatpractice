@@ -226,7 +226,9 @@ struct Player::Impl {
         }
     }
 
+#ifdef BEATCORE_WITH_ANALYSIS
     std::unique_ptr<BeatAnalyzer> analyzer;
+#endif
     ma_context ctx; bool ctxInit = false; ma_device dev; bool devInit = false;
 
     static void callback(ma_device* d, void* out, const void*, ma_uint32 frames) {
@@ -273,6 +275,9 @@ struct Player::Impl {
     void stemFail(const std::string& m) { { std::lock_guard<std::mutex> l(mu); stemErr = m; } stemState = (int)StemState::Error; }
 
     void runStems(int gen) {
+#ifndef BEATCORE_WITH_ANALYSIS
+        (void)gen; return stemFail("Separating a song needs the full version of the program. Open a .beatpack made on a computer instead.");
+#else
         try {
             PlaybackEngine* e = engine.load();
             if (!e) return stemFail("No song is loaded.");
@@ -328,6 +333,7 @@ struct Player::Impl {
             { std::lock_guard<std::mutex> l(mu); stemNamesV = set.names; stemErr.clear(); }
             stemProg = 1.f; stemState = (int)StemState::Ready;
         } catch (const std::exception& ex) { stemFail(std::string("Stem separation failed: ") + ex.what()); }
+#endif
     }
 
     bool earlyPublished = false;   // the engine was handed to the sound device before the analysis finished (worker thread only)
@@ -361,42 +367,49 @@ struct Player::Impl {
             if (pkg->sampleRate != kEngineRate) return fail("This pack has a sample rate that this version cannot play.");
             if (pkg->map.beats.size() < 8) return fail("The pack has no usable beat map.");
 
-            auto set = std::make_shared<StemSet>();
-            set->frames = T; set->sampleRate = pkg->sampleRate; set->names = pkg->trackNames; set->pcm = std::move(pkg->tracks);
-            std::shared_ptr<std::vector<int16_t>> mix;
-            if (!pkg->mix.empty()) mix = std::make_shared<std::vector<int16_t>>(std::move(pkg->mix));
-            std::vector<float> stereo = packMainFloat(set.get(), mix.get(), T);
+            const bool hasTracks = !pkg->tracks.empty(), hadMix = !pkg->mix.empty();
+            const std::vector<std::string> names = pkg->trackNames;
+            std::vector<int16_t> main16;                                  // the song for the engine: the mix, or the sum of the tracks
+            if (hadMix) main16 = pkg->mix;                                 // (a copy is kept below in the full version)
+            else { std::vector<const std::vector<int16_t>*> all; for (auto& t : pkg->tracks) all.push_back(&t); main16 = sumTracks(all); }
             prog = 0.93f;
-
+            std::shared_ptr<StemSet> keepSet; std::shared_ptr<std::vector<int16_t>> keepMix;
+#ifdef BEATCORE_WITH_ANALYSIS
+            // the full version keeps the sound also for export and for packing again; a phone does not (it has little memory)
+            if (hasTracks) { keepSet = std::make_shared<StemSet>(); keepSet->frames = T; keepSet->sampleRate = pkg->sampleRate; keepSet->names = names; keepSet->pcm = pkg->tracks; }
+            if (hadMix) keepMix = std::make_shared<std::vector<int16_t>>(std::move(pkg->mix));
+#else
+            std::vector<int16_t>().swap(pkg->mix);
+#endif
             auto bm = std::make_shared<BeatMap>(pkg->map);
             auto* e = new PlaybackEngine(kEngineRate);
-            e->setSong(std::move(stereo)); e->setBeatMap(*bm);
+            e->setSongPcm16(std::move(main16), T); e->setBeatMap(*bm);
             e->setSpeed(speedS); e->setSongVolume(volS);
             e->setMetronome(metS); e->setCountIn(ciS); e->setClickSound(clickS);
             if (!startDevice()) { delete e; return fail("Cannot open the sound output device."); }
-
-            std::vector<std::vector<float>> tracks;
-            if (!set->pcm.empty()) {
-                for (auto& t : set->pcm) tracks.push_back(planarToFloat(t, T));
-                e->setStems(std::move(tracks));
+            if (hasTracks) {
+                e->setStemsPcm16(std::move(pkg->tracks));                  // moved in: no second copy of the sound
                 for (int k = 0; k < 8; ++k) e->setStemGain(k, stemGains[k].load());
                 e->setStemsEnabled(false);
             }
             {
                 std::lock_guard<std::mutex> l(mu);
                 if (!pkg->acts.beat.empty()) { lastActs = pkg->acts; haveActs = true; }
-                map = bm; packMeta = pkg->meta; packLoops = pkg->loops; packHadMix = (bool)mix;
-                if (!set->pcm.empty()) stemNamesV = set->names;
+                map = bm; packMeta = pkg->meta; packLoops = pkg->loops; packHadMix = hadMix;
+                if (hasTracks) stemNamesV = names;
             }
-            isPack = true; packMix = mix; packSet = set->pcm.empty() ? nullptr : set;
+            isPack = true; packMix = keepMix; packSet = keepSet;
             { PlaybackEngine* old = engine.exchange(e); if (old) { old->pause(); std::this_thread::sleep_for(std::chrono::milliseconds(250)); delete old; } }
-            if (packSet) { stemProg = 1.f; stemState = (int)StemState::Ready; }
+            if (hasTracks) { stemProg = 1.f; stemState = (int)StemState::Ready; }
             prog = 1.f; state = (int)PlayerState::Ready;
         } catch (const std::exception& ex) { fail(std::string("Cannot open the pack: ") + ex.what()); }
     }
 
     void run(std::string path) {
         if (isPackPath(path)) return runPack(path);
+#ifndef BEATCORE_WITH_ANALYSIS
+        return fail("This version of the program opens only .beatpack files. Make one on a computer and copy it here.");
+#else
         isPack = false; packSet.reset(); packMix.reset();
         { std::lock_guard<std::mutex> l(mu); packLoops.clear(); packMeta = PackMeta(); }
         try {
@@ -449,6 +462,7 @@ struct Player::Impl {
             earlyPublished = false;
             prog = 1.f; state = (int)PlayerState::Ready;
         } catch (const std::exception& ex) { fail(std::string("Analysis failed: ") + ex.what()); }
+#endif
     }
 };
 
@@ -585,7 +599,10 @@ bool Player::exportStart(const ExportRequest& r) {
         if (m.isPack) { j.packSet = m.packSet; if (!j.packSet) return false; }
         else j.stemCache = m.stemCacheFile(m.stemModelPath());
     }
-    if (m.isPack) j.packMix = m.packMix, j.packSet = j.packSet ? j.packSet : m.packSet;
+    if (m.isPack) {
+        j.packMix = m.packMix; if (!j.packSet) j.packSet = m.packSet;
+        if (!j.packSet && !j.packMix) return false;      // this version did not keep the sound of the pack (a phone): it cannot export it
+    }
     { std::lock_guard<std::mutex> l(m.mu); m.expErr.clear(); }
     m.expProg = 0.f; m.expState = 1;
     Impl* im = &m;
@@ -611,6 +628,7 @@ bool Player::packSave(const PackRequest& r) {
     std::shared_ptr<const BeatMap> bm; Activations acts; bool haveActs;
     { std::lock_guard<std::mutex> l(m.mu); bm = m.map; acts = m.lastActs; haveActs = m.haveActs; }
     if (!bm) return false;
+    if (m.isPack && !m.packSet && !m.packMix) return false;     // not kept in this version (a phone)
     const bool wantStems = !r.groups.empty();
     if (wantStems && m.stemState.load() != (int)StemState::Ready) return false;
     if (!wantStems && !r.includeMix) return false;

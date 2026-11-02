@@ -89,6 +89,29 @@ int main() {
         expect(rms(all, 8.0, 10.0) > 1e-3 && rms(all, 10.05, 11.95) < 1e-6 && rms(all, 12.0, 14.0) > 1e-3, "loop pass 2 starts again with clicks", rms(all, 8.0, 10.0));
         expect(el->loopWraps() == 2, "loop wraps are counted", (double)el->loopWraps());
     }
+    // 16-bit storage sounds like float storage: whole song and stems, at speed 1 (bypass) and at other speeds (stretcher)
+    {
+        const long F = (long)SR * SECONDS;
+        auto to16 = [&](const std::vector<float>& f) { std::vector<int16_t> v((size_t)2 * F); for (long i = 0; i < F; ++i) { v[(size_t)i] = (int16_t)std::lrintf(f[2*i] * 32768.f); v[(size_t)F + i] = (int16_t)std::lrintf(f[2*i+1] * 32768.f); } return v; };
+        for (double speed : {1.0, 0.8}) {
+            auto mkE = [&](bool pcm16) {
+                auto e = std::make_unique<PlaybackEngine>(SR);
+                std::vector<float> s1 = tone(0.2), s2(2 * (size_t)F);
+                for (long i = 0; i < F; ++i) { float x = (float)(0.15 * std::sin(2 * M_PI * 660.0 * i / SR)); s2[2*i] = x; s2[2*i+1] = x; }
+                if (pcm16) { e->setSongPcm16(to16(s1), F); e->setStemsPcm16({to16(s1), to16(s2)}); }
+                else { e->setSong(s1); e->setStems({s1, s2}); }
+                e->setBeatMap(makeMap()); e->setSpeed(speed); e->setStemsEnabled(true); e->setStemGain(0, 1.f); e->setStemGain(1, 0.5f);
+                e->seekSeconds(2.0); e->play(); return e;
+            };
+            auto ef = mkE(false), ei = mkE(true);
+            std::vector<float> a, b, blk(2 * 4410);
+            for (int i = 0; i < 100; ++i) { ef->render(blk.data(), 4410); a.insert(a.end(), blk.begin(), blk.end()); ei->render(blk.data(), 4410); b.insert(b.end(), blk.begin(), blk.end()); }
+            double maxd = 0; for (size_t i = 0; i < a.size(); ++i) maxd = std::max(maxd, (double)std::fabs(a[i] - b[i]));
+            char nm[96]; snprintf(nm, sizeof nm, "16-bit stems/song equal float ones (speed %.1f): max difference", speed);
+            expect(maxd < 0.0005 && rms(a, 0.5, 9.0) > 0.05, nm, maxd);
+            expect(ef->peaks().size() == ei->peaks().size(), "  waveform overview has the same size");
+        }
+    }
     printf(failures ? "\nFAILURES: %d\n" : "\nALL PASSED\n", failures);
     return failures ? 1 : 0;
 }

@@ -6,10 +6,14 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# BEATCORE_WITH_ANALYSIS=ON (default): the full core: analyses songs and separates parts with neural networks (needs ONNX Runtime).
+# BEATCORE_WITH_ANALYSIS=OFF: the small core for phones: plays and exports what a computer prepared (.beatpack files); needs no ONNX Runtime.
+option(BEATCORE_WITH_ANALYSIS "Build the analysis and stem separation (needs ONNX Runtime)" ON)
+
 # Point this at the unpacked ONNX Runtime for your platform (folder that contains include/ and lib/)
 set(ORT_DIR "" CACHE PATH "ONNX Runtime root (contains include/ and lib/)")
-if(NOT ORT_DIR)
-  message(FATAL_ERROR "Pass -DORT_DIR=/path/to/onnxruntime")
+if(BEATCORE_WITH_ANALYSIS AND NOT ORT_DIR)
+  message(FATAL_ERROR "Pass -DORT_DIR=/path/to/onnxruntime (or -DBEATCORE_WITH_ANALYSIS=OFF for the small core)")
 endif()
 
 find_package(Threads REQUIRED)
@@ -19,16 +23,22 @@ endif()
 if(MSVC)
   add_compile_options(/utf-8 /EHsc)
 endif()
-add_library(beatcore STATIC src/beat_analyzer.cpp src/beat_decode.cpp src/audio_file.cpp src/playback_engine.cpp
-            src/miniaudio_impl.cpp src/stem_separator.cpp src/player.cpp src/package.cpp src/c_api.cpp)
+add_library(beatcore STATIC src/beat_decode.cpp src/audio_file.cpp src/playback_engine.cpp
+            src/miniaudio_impl.cpp src/stem_set.cpp src/player.cpp src/package.cpp src/c_api.cpp)
 set_target_properties(beatcore PROPERTIES POSITION_INDEPENDENT_CODE ON CXX_VISIBILITY_PRESET hidden)
-target_include_directories(beatcore PUBLIC src third_party ${ORT_DIR}/include)
-if(NOT EXISTS "${ORT_DIR}/lib")
-  message(FATAL_ERROR "ORT_DIR/lib not found: ${ORT_DIR}\nDelete the build folder and run cmake again with the correct -DORT_DIR=...")
+target_include_directories(beatcore PUBLIC src third_party)
+target_link_libraries(beatcore PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
+if(BEATCORE_WITH_ANALYSIS)
+  target_sources(beatcore PRIVATE src/beat_analyzer.cpp src/stem_separator.cpp)
+  target_compile_definitions(beatcore PUBLIC BEATCORE_WITH_ANALYSIS=1)
+  target_include_directories(beatcore PUBLIC ${ORT_DIR}/include)
+  if(NOT EXISTS "${ORT_DIR}/lib")
+    message(FATAL_ERROR "ORT_DIR/lib not found: ${ORT_DIR}\nDelete the build folder and run cmake again with the correct -DORT_DIR=...")
+  endif()
+  unset(ORT_LIB CACHE)   # do not remember an old ONNX Runtime location between runs
+  find_library(ORT_LIB onnxruntime PATHS ${ORT_DIR}/lib NO_DEFAULT_PATH REQUIRED)
+  target_link_libraries(beatcore PUBLIC ${ORT_LIB})
 endif()
-unset(ORT_LIB CACHE)   # do not remember an old ONNX Runtime location between runs
-find_library(ORT_LIB onnxruntime PATHS ${ORT_DIR}/lib NO_DEFAULT_PATH REQUIRED)
-target_link_libraries(beatcore PUBLIC ${ORT_LIB} Threads::Threads ${CMAKE_DL_LIBS})
 
 # Packs (.beatpack): reading needs nothing extra; writing needs libFLAC (BSD licence), fetched and built here.
 # On a device that only opens packs (e.g. Android) configure with -DBEATCORE_PACK_WRITER=OFF.
@@ -53,9 +63,11 @@ if(BEATCORE_PACK_WRITER)
   target_compile_definitions(beatcore PUBLIC BEATCORE_PACK_WRITER=1)
 endif()
 
+if(BEATCORE_WITH_ANALYSIS)
 add_executable(analyze_cli tools/analyze_cli.cpp)
 target_link_libraries(analyze_cli beatcore)
 set_target_properties(analyze_cli PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+endif()
 
 add_executable(render_cli tools/render_cli.cpp)
 target_link_libraries(render_cli beatcore)
@@ -93,19 +105,25 @@ set_target_properties(stems_engine_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" 
 add_test(NAME stems_engine_test COMMAND stems_engine_test)
 
 # end-to-end stem separation through the C API (needs a model folder containing a stem model, htdemucs*.onnx; see the file header)
+if(BEATCORE_WITH_ANALYSIS)
 add_executable(stems_player_test tests/stems_player_test.cpp)
 target_link_libraries(stems_player_test beatcore_c)
 set_target_properties(stems_player_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+endif()
 
 # interactive terminal player (to test sound output without the application)
+if(BEATCORE_WITH_ANALYSIS)
 add_executable(play_cli tools/play_cli.cpp)
 target_link_libraries(play_cli beatcore)
 set_target_properties(play_cli PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+endif()
 
 # integration test with a fake sound device
+if(BEATCORE_WITH_ANALYSIS)
 add_executable(player_test tests/player_test.cpp)
 target_link_libraries(player_test beatcore)
 set_target_properties(player_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+endif()
 
 # shared library loaded by the BeatPractice application: libbeatcore_c.dylib / .so / beatcore_c.dll
 add_library(beatcore_c SHARED src/c_api.cpp)
@@ -113,13 +131,17 @@ target_link_libraries(beatcore_c PRIVATE beatcore)
 set_target_properties(beatcore_c PROPERTIES CXX_VISIBILITY_PRESET hidden BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "@loader_path;${ORT_DIR}/lib")
 
 # splits a song into parts (needs a Demucs ONNX model); also prints what a model looks like (--probe)
+if(BEATCORE_WITH_ANALYSIS)
 add_executable(stems_cli tools/stems_cli.cpp)
 target_link_libraries(stems_cli beatcore)
 set_target_properties(stems_cli PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+endif()
 
+if(BEATCORE_WITH_ANALYSIS)
 add_executable(stems_test tests/stems_test.cpp)
 target_link_libraries(stems_test beatcore)
 set_target_properties(stems_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+endif()
 
 # bar structure and tempo recognition on saved network output
 add_executable(meter_test tests/meter_test.cpp)

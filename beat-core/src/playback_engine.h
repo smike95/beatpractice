@@ -37,6 +37,9 @@ public:
 
     // interleaved stereo float at outputSampleRate
     void setSong(std::vector<float> interleavedStereo);
+    // The same with 16-bit samples, planar (left channel, then right channel; `frames` each). Uses a quarter of the memory of setSong()
+    // and moves the vector in without a copy. Meant for phones.
+    void setSongPcm16(std::vector<int16_t> planar, long frames);
     void setBeatMap(const BeatMap& map);          // beat times are in seconds of the ORIGINAL song
 
     // Waveform overview: loudest absolute sample in each 10 ms of the song (0..1), kPeaksPerSecond values per second.
@@ -60,6 +63,8 @@ public:
     // only after setStemsEnabled(true). While enabled, each part has its own level (setStemGain, 0..1.5) and the
     // original mix is silent. Switching is seamless in time (the parts start exactly where the song is).
     void setStems(std::vector<std::vector<float>> interleavedStereoTracks);
+    // 16-bit variant of setStems(): every track planar (left, then right), moved in without a copy
+    void setStemsPcm16(std::vector<std::vector<int16_t>> planarTracks);
     void setStemsEnabled(bool on);
     bool stemsEnabled() const;
     int stemCount() const;

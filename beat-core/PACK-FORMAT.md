@@ -32,3 +32,10 @@ opens it without the neural networks. Made by `writePackage`, opened by `readPac
 
 `BEATCORE_PACK_WRITER=ON` (default) fetches and builds libFLAC 1.4.3 (BSD) for writing. A device that only opens packs configures with
 `-DBEATCORE_PACK_WRITER=OFF`: reading uses the FLAC decoder already inside miniaudio.
+
+## The small core (phones)
+
+`-DBEATCORE_WITH_ANALYSIS=OFF` builds the core without ONNX Runtime, the networks and the separation code. It opens `.beatpack` files only
+(an ordinary song gives the message "opens only .beatpack files"), plays them, and keeps the sound as 16-bit samples that are moved into the engine
+(a pack with 6 tracks of 4 minutes needs about 340 MB at the peak, the full core with float tracks needed twice that). It does not keep a second
+copy of the sound, so it cannot export a pack to WAV or pack it again; the computer does that. Add `-DBEATCORE_PACK_WRITER=OFF` to drop libFLAC too.

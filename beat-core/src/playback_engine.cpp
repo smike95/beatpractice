@@ -70,13 +70,26 @@ constexpr int kMaxStems = 8;
 
 // One stereo track (the whole song, or one stem) with its own time stretcher.
 struct Track {
-    std::vector<float> L, R;                       // planar, with a second of zero padding at the end
+    std::vector<float> L, R;                       // planar, with a second of zero padding at the end (float tracks)
+    // 16-bit tracks (low memory, e.g. phones): planar left|right in one vector, converted to float chunk by chunk
+    bool is16 = false; std::vector<int16_t> pcm16; long frames16 = 0;
+    std::vector<float> scrL, scrR;                 // float copy of the chunk that is fed to the stretcher (16-bit tracks)
+    inline float sampleL(long k) const { return is16 ? ((k >= 0 && k < frames16) ? pcm16[(size_t)k] * (1.f / 32768.f) : 0.f) : L[(size_t)k]; }
+    inline float sampleR(long k) const { return is16 ? ((k >= 0 && k < frames16) ? pcm16[(size_t)frames16 + (size_t)k] * (1.f / 32768.f) : 0.f) : R[(size_t)k]; }
+    // pointers to `n` float samples per channel starting at `start`; zero beyond the end
+    void input(long start, int n, const float* in[2]) {
+        if (!is16) { in[0] = L.data() + start; in[1] = R.data() + start; return; }
+        if ((int)scrL.size() < n) { scrL.resize((size_t)n); scrR.resize((size_t)n); }   // grows once; sized up front in the constructor
+        for (int i = 0; i < n; ++i) { const long k = start + i; scrL[(size_t)i] = sampleL(k); scrR[(size_t)i] = sampleR(k); }
+        in[0] = scrL.data(); in[1] = scrR.data();
+    }
     std::vector<float> outL, outR;                 // output of the last chunk
     signalsmith::stretch::SignalsmithStretch<float> stretch;
     explicit Track(int sr) {
         stretch.presetDefault(2, (float)sr);
         stretch.setTransposeFactor(1.0f);
         outL.resize(kMaxChunk); outR.resize(kMaxChunk);
+        scrL.reserve(kMaxChunk * 4 + 65536); scrR.reserve(kMaxChunk * 4 + 65536);
     }
 };
 }
@@ -162,7 +175,7 @@ struct PlaybackEngine::Impl {
             t.stretch.reset();
             t.stretch.setTransposeFactor(1.0f);
             len = t.stretch.outputSeekLength((float)rate);
-            const float* in[2] = {t.L.data() + start, t.R.data() + start};
+            const float* in[2]; t.input(start, len, in);
             t.stretch.outputSeek(in, len);
         }
         inCursor = start + len;
@@ -272,8 +285,8 @@ struct PlaybackEngine::Impl {
                 Track& t = *act[a];
                 for (int i = 0; i < n; ++i) {
                     long k = base + i;
-                    t.outL[i] = (k >= 0 && k < totalFrames) ? t.L[k] : 0.f;
-                    t.outR[i] = (k >= 0 && k < totalFrames) ? t.R[k] : 0.f;
+                    t.outL[i] = (k >= 0 && k < totalFrames) ? t.sampleL(k) : 0.f;
+                    t.outR[i] = (k >= 0 && k < totalFrames) ? t.sampleR(k) : 0.f;
                 }
             }
             appliedRate = 1.0; needReseek = true;       // stretcher state is stale after bypass
@@ -282,7 +295,7 @@ struct PlaybackEngine::Impl {
             int inN = (int)(target - inCursor);
             for (int a = 0; a < na; ++a) {
                 Track& t = *act[a];
-                const float* in[2] = {t.L.data() + inCursor, t.R.data() + inCursor};
+                const float* in[2]; t.input(inCursor, inN, in);
                 float* o[2] = {t.outL.data(), t.outR.data()};
                 t.stretch.process(in, inN, o, n);
             }
@@ -365,7 +378,21 @@ void PlaybackEngine::setSong(std::vector<float> st) {
     const long hop = std::max(1, m.sr / kPeaksPerSecond);
     m.peaks.assign((size_t)((m.totalFrames + hop - 1) / hop), 0.f);
     for (long i = 0; i < m.totalFrames; ++i) {
-        float v = std::max(std::fabs(m.main.L[i]), std::fabs(m.main.R[i]));
+        float v = std::max(std::fabs(m.main.sampleL(i)), std::fabs(m.main.sampleR(i)));
+        float& p = m.peaks[(size_t)(i / hop)]; if (v > p) p = v;
+    }
+}
+// 16-bit variant: the vector is planar (left channel, then right channel) and is moved in, not copied
+void PlaybackEngine::setSongPcm16(std::vector<int16_t> planar, long frames) {
+    auto& m = *impl_;
+    m.totalFrames = frames;
+    m.main.L.clear(); m.main.R.clear(); m.main.L.shrink_to_fit(); m.main.R.shrink_to_fit();
+    m.main.is16 = true; m.main.pcm16 = std::move(planar); m.main.frames16 = frames;
+    m.srcPos = 0; m.needReseek = true; m.locateNextBeat(); m.posOut = 0;
+    const long hop = std::max(1, m.sr / kPeaksPerSecond);
+    m.peaks.assign((size_t)((m.totalFrames + hop - 1) / hop), 0.f);
+    for (long i = 0; i < m.totalFrames; ++i) {
+        float v = std::max(std::fabs(m.main.sampleL(i)), std::fabs(m.main.sampleR(i)));
         float& p = m.peaks[(size_t)(i / hop)]; if (v > p) p = v;
     }
 }
@@ -393,6 +420,26 @@ void PlaybackEngine::setStems(std::vector<std::vector<float>> tracks) {
         ns.push_back(std::move(t));
     }
     std::lock_guard<std::mutex> g(m.swapMu);                     // waits until the audio thread is not inside render()
+    m.stems = std::move(ns);
+    m.stemCountA = (int)m.stems.size();
+    for (auto& x : m.stemGainA) x = 1.0f;
+    m.needReseek = true;
+}
+void PlaybackEngine::setStemsPcm16(std::vector<std::vector<int16_t>> tracks) {
+    auto& m = *impl_;
+    std::vector<std::unique_ptr<Track>> ns;
+    for (auto& pc : tracks) {
+        if ((int)ns.size() >= kMaxStems) break;
+        auto t = std::make_unique<Track>(m.sr);
+        t->is16 = true; t->frames16 = std::min<long>(m.totalFrames, (long)(pc.size() / 2));
+        if ((long)(pc.size() / 2) != m.totalFrames) {            // a different length: re-lay the planes to the song's length (rare)
+            std::vector<int16_t> fit((size_t)2 * m.totalFrames, 0); const long n = t->frames16; const long src = (long)(pc.size() / 2);
+            for (long i = 0; i < n; ++i) { fit[(size_t)i] = pc[(size_t)i]; fit[(size_t)m.totalFrames + i] = pc[(size_t)src + i]; }
+            t->pcm16 = std::move(fit); t->frames16 = m.totalFrames;
+        } else t->pcm16 = std::move(pc);
+        ns.push_back(std::move(t));
+    }
+    std::lock_guard<std::mutex> g(m.swapMu);
     m.stems = std::move(ns);
     m.stemCountA = (int)m.stems.size();
     for (auto& x : m.stemGainA) x = 1.0f;

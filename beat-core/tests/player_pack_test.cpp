@@ -46,6 +46,7 @@ int main() {
     pl.play(); std::this_thread::sleep_for(std::chrono::milliseconds(300));
     expect(pl.positionSeconds() > 0.1, "it plays", pl.positionSeconds()); pl.pause();
 
+#ifdef BEATCORE_WITH_ANALYSIS
     // export as separate files from the pack, loop part only
     ExportRequest er; er.path = "/tmp/ppout.wav"; er.stems = {0, 2}; er.stemGains = {1.f, 1.f}; er.separate = true; er.rangeA = 1.25; er.rangeB = 3.25;
     expect(pl.exportStart(er), "export two tracks as separate files from the pack");
@@ -69,8 +70,27 @@ int main() {
     PackRequest pr2; pr2.path = "/tmp/pp3.beatpack"; pr2.includeMix = true; pr2.createdBy = "test";
     expect(pl.packSave(pr2) && waitFor([&] { return pl.exportState() != 1; }) && pl.exportState() == 2, "pack with no parts (the song only)");
     Package q2; expect(readPackage("/tmp/pp3.beatpack", q2, &err) && q2.trackNames.empty() && q2.mix.size() == (size_t)2 * frames, "it has only the mix (sum of the tracks)");
+#else
+    // the small core (phones) does not keep the sound of a pack in a second copy: it cannot export it or pack it again, and says so
+    ExportRequest er; er.path = "/tmp/ppout_lite.wav"; er.stems = {0}; er.stemGains = {1.f}; er.separate = true;
+    expect(!pl.exportStart(er), "small core: export from a pack is refused (no extra copy kept)");
+    PackRequest pr; pr.path = "/tmp/pp_lite.beatpack"; pr.groups = {{0}}; pr.createdBy = "test";
+    expect(!pl.packSave(pr), "small core: packing again is refused");
+    Package q; err.clear();
+    expect(writePackage("/tmp/pp2.beatpack", p, &err), "(make the second test pack directly)");
+    p.trackNames = {"drums", "bass", "vocals"};
+#endif
     // a pack is opened again: the second one has no mix and 2 tracks
+    #ifndef BEATCORE_WITH_ANALYSIS
+    { Package two = p; two.tracks = {sumTracks({&p.tracks[0], &p.tracks[1]}), p.tracks[2]}; two.trackNames = {"rhythm", "vocals"}; writePackage("/tmp/pp2.beatpack", two, &err); }
+#endif
     expect(pl.openFile("/tmp/pp2.beatpack") && waitFor([&] { return pl.state() == PlayerState::Ready; }) && pl.stemNames().size() == 2, "the merged pack opens too");
+    expect(pl.stemsState() == StemState::Ready, "its parts are ready (16-bit tracks in the engine)");
+    pl.play(); std::this_thread::sleep_for(std::chrono::milliseconds(300)); expect(pl.positionSeconds() > 0.1, "and it plays", pl.positionSeconds()); pl.pause();
+    // an ordinary song cannot be analysed here (small core), the full core would need models
+#ifndef BEATCORE_WITH_ANALYSIS
+    expect(pl.openFile("/tmp/pp.wav") && waitFor([&] { return pl.state() == PlayerState::Error; }) && pl.error().find("beatpack") != std::string::npos, "small core: an ordinary song gives a clear message");
+#endif
     // an ordinary file that is no pack and no audio fails cleanly
     expect(waitFor([&] { return pl.openFile("/tmp/pp.beatpack.nothere.beatpack"); }, 2000), "a missing pack file can be tried");
     expect(waitFor([&] { return pl.state() == PlayerState::Error; }), "a missing pack gives an error, not a crash");
