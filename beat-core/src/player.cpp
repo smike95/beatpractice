@@ -1,5 +1,7 @@
 #include "portable_path.h"
 #include "player.h"
+#include "package.h"
+#include "../third_party/json.hpp"
 #include "audio_file.h"
 #include "stem_separator.h"
 #include "../third_party/miniaudio.h"
@@ -53,6 +55,12 @@ struct Player::Impl {
     std::atomic<int> meterMode{0};
     std::string stemErr; std::vector<std::string> stemNamesV;   // guarded by mu
 
+    // ---- an opened .beatpack: the sound lives in memory (there is no source file and no cache to read it from) ----
+    bool isPack = false;                          // set by the worker before Ready; read after Ready
+    std::shared_ptr<StemSet> packSet;             // the separated tracks of the pack (null if the pack has none)
+    std::shared_ptr<std::vector<int16_t>> packMix;// the original song of the pack, planar (null = sum of the tracks)
+    PackMeta packMeta; std::vector<PackLoop> packLoops; bool packHadMix = false;   // guarded by mu
+
     // ---- export of the modified song to a WAV file (own engine, runs offline in the background) ----
     std::thread expWorker;
     std::atomic<int> expState{0};                 // 0 none, 1 running, 2 done, 3 error
@@ -71,7 +79,22 @@ struct Player::Impl {
         std::vector<int> stemIdx; std::vector<float> stemGain;      // parts to include and their levels
         std::shared_ptr<const BeatMap> map;
         double speed = 1.0; float vol = 1.0f; int click = 0; MetronomeSettings met;
+        std::shared_ptr<StemSet> packSet; std::shared_ptr<std::vector<int16_t>> packMix;   // when the song is an opened pack
     };
+
+    // planar int16 (left then right) -> interleaved float
+    static std::vector<float> planarToFloat(const std::vector<int16_t>& v, long frames) {
+        std::vector<float> o((size_t)2 * frames);
+        for (long i = 0; i < frames; ++i) { o[2*i] = v[(size_t)i] / 32768.f; o[2*i+1] = v[(size_t)frames + i] / 32768.f; }
+        return o;
+    }
+    // the song of a pack as interleaved float: its mix, or the sum of its tracks
+    static std::vector<float> packMainFloat(const StemSet* set, const std::vector<int16_t>* mix, long frames) {
+        if (mix && mix->size() == (size_t)2 * frames) return planarToFloat(*mix, frames);
+        std::vector<float> o((size_t)2 * frames, 0.f);
+        if (set) for (auto& t : set->pcm) for (long i = 0; i < frames; ++i) { o[2*i] += t[(size_t)i] / 32768.f; o[2*i+1] += t[(size_t)frames + i] / 32768.f; }
+        return o;
+    }
 
     static void putU32(FILE* f, uint32_t v) { std::fwrite(&v, 4, 1, f); }
     static void putU16(FILE* f, uint16_t v) { std::fwrite(&v, 2, 1, f); }
@@ -150,7 +173,9 @@ struct Player::Impl {
             expProg = 0.01f;
             // ---- the song itself (no separated parts) ----
             if (!j.useStems) {
-                std::vector<float> stereo = decodeAudioFile(j.songPath, 2, kEngineRate);
+                std::vector<float> stereo = j.packSet || j.packMix
+                    ? packMainFloat(j.packSet.get(), j.packMix.get(), j.packSet ? j.packSet->frames : (long)(j.packMix->size() / 2))
+                    : decodeAudioFile(j.songPath, 2, kEngineRate);
                 if (stereo.size() < 2 * (size_t)kEngineRate) return expFail("Cannot decode the file for export.");
                 if (j.hasRange && j.rangeA >= (double)(stereo.size() / 2) / kEngineRate) return expFail("The selected part is outside the song.");
                 auto e = makeExportEngine(j, std::move(stereo), {}, {}, j.metronome, j.countInBars, false, j.vol);
@@ -159,8 +184,9 @@ struct Player::Impl {
                 expProg = 1.f; expState = 2; return;
             }
             // ---- separated parts ----
-            StemSet set;
-            if (!set.load(j.stemCache)) return expFail("Separated parts of this song were not found on disk.");
+            StemSet loaded;
+            if (!j.packSet && !loaded.load(j.stemCache)) return expFail("Separated parts of this song were not found on disk.");
+            const StemSet& set = j.packSet ? *j.packSet : loaded;
             for (int k : j.stemIdx) if (k < 0 || (size_t)k >= set.pcm.size()) return expFail("A selected part does not exist in this song.");
             const size_t silentLen = (size_t)2 * set.frames;
             if (!j.separate) {                                       // all selected parts mixed into ONE file, at their levels
@@ -315,7 +341,64 @@ struct Player::Impl {
         state = (int)PlayerState::Error;
     }
 
+    static bool isPackPath(const std::string& p) {
+        const size_t n = p.size(); if (n < 9) return false;
+        std::string e = p.substr(n - 9); for (auto& c : e) c = (char)std::tolower((unsigned char)c);
+        return e == ".beatpack";
+    }
+
+    // Opens a .beatpack: no decoding of a source file, no analysis, no models.
+    void runPack(const std::string& path) {
+        try {
+            state = (int)PlayerState::Decoding; prog = 0.f; cached = false;
+            stemState = (int)StemState::None; stemProg = 0.f; stemsOn = false;
+            { std::lock_guard<std::mutex> l(mu); stemErr.clear(); stemNamesV.clear(); haveActs = false; packLoops.clear(); packMeta = PackMeta(); }
+            isPack = false; packSet.reset(); packMix.reset();
+            songPath = path; songGen++;
+            auto pkg = std::make_unique<Package>(); std::string perr;
+            if (!readPackage(path, *pkg, &perr, true, [this](float p) { prog = 0.9f * p; return true; })) return fail(perr);
+            const long T = pkg->frames;
+            if (pkg->sampleRate != kEngineRate) return fail("This pack has a sample rate that this version cannot play.");
+            if (pkg->map.beats.size() < 8) return fail("The pack has no usable beat map.");
+
+            auto set = std::make_shared<StemSet>();
+            set->frames = T; set->sampleRate = pkg->sampleRate; set->names = pkg->trackNames; set->pcm = std::move(pkg->tracks);
+            std::shared_ptr<std::vector<int16_t>> mix;
+            if (!pkg->mix.empty()) mix = std::make_shared<std::vector<int16_t>>(std::move(pkg->mix));
+            std::vector<float> stereo = packMainFloat(set.get(), mix.get(), T);
+            prog = 0.93f;
+
+            auto bm = std::make_shared<BeatMap>(pkg->map);
+            auto* e = new PlaybackEngine(kEngineRate);
+            e->setSong(std::move(stereo)); e->setBeatMap(*bm);
+            e->setSpeed(speedS); e->setSongVolume(volS);
+            e->setMetronome(metS); e->setCountIn(ciS); e->setClickSound(clickS);
+            if (!startDevice()) { delete e; return fail("Cannot open the sound output device."); }
+
+            std::vector<std::vector<float>> tracks;
+            if (!set->pcm.empty()) {
+                for (auto& t : set->pcm) tracks.push_back(planarToFloat(t, T));
+                e->setStems(std::move(tracks));
+                for (int k = 0; k < 8; ++k) e->setStemGain(k, stemGains[k].load());
+                e->setStemsEnabled(false);
+            }
+            {
+                std::lock_guard<std::mutex> l(mu);
+                if (!pkg->acts.beat.empty()) { lastActs = pkg->acts; haveActs = true; }
+                map = bm; packMeta = pkg->meta; packLoops = pkg->loops; packHadMix = (bool)mix;
+                if (!set->pcm.empty()) stemNamesV = set->names;
+            }
+            isPack = true; packMix = mix; packSet = set->pcm.empty() ? nullptr : set;
+            { PlaybackEngine* old = engine.exchange(e); if (old) { old->pause(); std::this_thread::sleep_for(std::chrono::milliseconds(250)); delete old; } }
+            if (packSet) { stemProg = 1.f; stemState = (int)StemState::Ready; }
+            prog = 1.f; state = (int)PlayerState::Ready;
+        } catch (const std::exception& ex) { fail(std::string("Cannot open the pack: ") + ex.what()); }
+    }
+
     void run(std::string path) {
+        if (isPackPath(path)) return runPack(path);
+        isPack = false; packSet.reset(); packMix.reset();
+        { std::lock_guard<std::mutex> l(mu); packLoops.clear(); packMeta = PackMeta(); }
         try {
             state = (int)PlayerState::Decoding; prog = 0.f; cached = false;
             stemState = (int)StemState::None; stemProg = 0.f; stemsOn = false;
@@ -455,9 +538,10 @@ bool Player::stemsCached() const {
 bool Player::stemsStart() {
     auto& m = *impl_;
     if (state() != PlayerState::Ready) return false;
+    if (m.stemState.load() == (int)StemState::Ready) return true;
+    if (m.isPack) return false;                                   // a pack has its tracks already (or none): nothing to separate here
     if (m.stemModelPath().empty()) { m.stemFail("Stem model not found in " + m.modelDir + " (htdemucs.onnx or htdemucs_fp16weights.onnx)."); return false; }
     if (m.stemState.load() == (int)StemState::Running) return false;
-    if (m.stemState.load() == (int)StemState::Ready) return true;
     m.stemsStopAndJoin();
     m.stemState = (int)StemState::Running; m.stemProg = 0.f;
     const int gen = m.songGen.load();
@@ -498,14 +582,102 @@ bool Player::exportStart(const ExportRequest& r) {
         if (m.stemState.load() != (int)StemState::Ready) return false;
         j.useStems = true; j.stemIdx = r.stems;
         for (size_t k = 0; k < r.stems.size(); ++k) j.stemGain.push_back(k < r.stemGains.size() ? std::max(0.f, std::min(1.5f, r.stemGains[k])) : 1.0f);
-        j.stemCache = m.stemCacheFile(m.stemModelPath());
+        if (m.isPack) { j.packSet = m.packSet; if (!j.packSet) return false; }
+        else j.stemCache = m.stemCacheFile(m.stemModelPath());
     }
+    if (m.isPack) j.packMix = m.packMix, j.packSet = j.packSet ? j.packSet : m.packSet;
     { std::lock_guard<std::mutex> l(m.mu); m.expErr.clear(); }
     m.expProg = 0.f; m.expState = 1;
     Impl* im = &m;
     m.expWorker = std::thread([im, j] { im->runExport(j); });
     return true;
 }
+bool Player::isPack() const { return impl_->isPack; }
+std::string Player::packInfoJson() const {
+    auto& m = *impl_; nlohmann::json j;
+    std::lock_guard<std::mutex> l(m.mu);
+    j["isPack"] = m.isPack;
+    if (!m.isPack) return j.dump();
+    j["title"] = m.packMeta.title; j["artist"] = m.packMeta.artist; j["owner"] = m.packMeta.ownerId; j["createdBy"] = m.packMeta.createdBy; j["model"] = m.packMeta.modelName;
+    j["hasMix"] = m.packHadMix; j["tracks"] = m.stemNamesV;
+    j["loops"] = nlohmann::json::array(); for (auto& lp : m.packLoops) j["loops"].push_back({{"name", lp.name}, {"start", lp.start}, {"end", lp.end}});
+    return j.dump();
+}
+
+bool Player::packSave(const PackRequest& r) {
+    auto& m = *impl_;
+    if (m.state.load() != (int)PlayerState::Ready || m.expState.load() == 1) return false;
+    m.expStopAndJoin();
+    std::shared_ptr<const BeatMap> bm; Activations acts; bool haveActs;
+    { std::lock_guard<std::mutex> l(m.mu); bm = m.map; acts = m.lastActs; haveActs = m.haveActs; }
+    if (!bm) return false;
+    const bool wantStems = !r.groups.empty();
+    if (wantStems && m.stemState.load() != (int)StemState::Ready) return false;
+    if (!wantStems && !r.includeMix) return false;
+    const std::string songPath = m.songPath, stemCache = (wantStems && !m.isPack) ? m.stemCacheFile(m.stemModelPath()) : std::string();
+    std::shared_ptr<StemSet> pset = m.isPack ? m.packSet : nullptr; std::shared_ptr<std::vector<int16_t>> pmix = m.isPack ? m.packMix : nullptr;
+    const bool fromPack = m.isPack;
+    { std::lock_guard<std::mutex> l(m.mu); m.expErr.clear(); }
+    m.expProg = 0.f; m.expState = 1;
+    Impl* im = &m;
+    m.expWorker = std::thread([im, r, bm, acts, haveActs, wantStems, songPath, stemCache, pset, pmix, fromPack] {
+        try {
+            im->expProg = 0.02f;
+            Package pkg;
+            pkg.meta.title = r.title; pkg.meta.artist = r.artist; pkg.meta.ownerId = r.ownerId; pkg.meta.createdBy = r.createdBy;
+            pkg.sampleRate = kEngineRate; pkg.map = *bm; pkg.loops = r.loops;
+            if (r.includeActs && haveActs) pkg.acts = acts;
+            StemSet loaded; const StemSet* set = nullptr;
+            if (wantStems) {
+                if (pset) set = pset.get();
+                else { if (!loaded.load(stemCache)) return im->expFail("Separated parts of this song were not found on disk."); set = &loaded; }
+                pkg.frames = set->frames;
+                // groups: a single part keeps its own name, merged parts are summed; parts in no group go together into "rest"
+                std::vector<bool> used(set->pcm.size(), false);
+                auto addGroup = [&](const std::vector<int>& idx, const std::string& name) {
+                    std::vector<const std::vector<int16_t>*> parts; std::vector<std::string> names;
+                    for (int k : idx) { parts.push_back(&set->pcm[(size_t)k]); names.push_back((size_t)k < set->names.size() ? set->names[(size_t)k] : "part"); }
+                    pkg.tracks.push_back(parts.size() == 1 ? *parts[0] : sumTracks(parts));
+                    std::string nm = name; if (nm.empty()) { for (size_t i = 0; i < names.size(); ++i) nm += (i ? "+" : "") + names[i]; }
+                    pkg.trackNames.push_back(nm);
+                };
+                for (size_t g = 0; g < r.groups.size(); ++g) {
+                    std::vector<int> idx; for (int k : r.groups[g]) if (k >= 0 && (size_t)k < set->pcm.size() && !used[(size_t)k]) { used[(size_t)k] = true; idx.push_back(k); }
+                    if (!idx.empty()) addGroup(idx, g < r.groupNames.size() ? r.groupNames[g] : std::string());
+                }
+                std::vector<int> rest; for (size_t k = 0; k < used.size(); ++k) if (!used[k]) rest.push_back((int)k);
+                if (!rest.empty()) addGroup(rest, "rest");
+                if (pkg.tracks.empty()) return im->expFail("No parts to pack.");
+            }
+            if (r.includeMix || !wantStems) {
+                if (pmix) { pkg.mix = *pmix; if (!pkg.frames) pkg.frames = (long)(pkg.mix.size() / 2); }
+                else if (fromPack) {                       // the opened pack has no mix: the song is the sum of its tracks
+                    if (!pset) return im->expFail("The pack has no sound to pack again.");
+                    std::vector<const std::vector<int16_t>*> all; for (auto& t : pset->pcm) all.push_back(&t);
+                    pkg.mix = sumTracks(all); if (!pkg.frames) pkg.frames = pset->frames;
+                }
+                else {
+                    std::vector<float> st = decodeAudioFile(songPath, 2, kEngineRate);
+                    if (st.size() < 2 * (size_t)kEngineRate) return im->expFail("Cannot decode the song again to pack it.");
+                    const long T = (long)(st.size() / 2); const long F = pkg.frames ? pkg.frames : T;   // the length of the parts decides
+                    pkg.mix.assign((size_t)2 * F, 0);
+                    for (long i = 0; i < std::min(T, F); ++i) {
+                        for (int c = 0; c < 2; ++c) { float v = st[(size_t)2 * i + c]; v = v > 1.f ? 1.f : (v < -1.f ? -1.f : v); pkg.mix[(size_t)c * F + i] = (int16_t)std::lrintf(v * 32767.f); }
+                    }
+                    pkg.frames = F;
+                }
+                if (pkg.mix.size() != (size_t)2 * pkg.frames) return im->expFail("The song and its parts differ in length.");
+            }
+            if (im->expCancel.load()) { im->expState = 0; return; }
+            std::string err;
+            const bool ok = writePackage(r.path, pkg, &err, r.flacLevel, [im](float p) { im->expProg = 0.1f + 0.89f * p; return !im->expCancel.load(); });
+            if (!ok) { if (err == "Cancelled.") { im->expState = 0; return; } return im->expFail(err); }
+            im->expProg = 1.f; im->expState = 2;
+        } catch (const std::exception& ex) { im->expFail(std::string("Cannot create the pack: ") + ex.what()); }
+    });
+    return true;
+}
+
 int Player::exportState() const { return impl_->expState.load(); }
 float Player::exportProgress() const { return impl_->expProg.load(); }
 std::string Player::exportError() const { std::lock_guard<std::mutex> l(impl_->mu); return impl_->expErr; }

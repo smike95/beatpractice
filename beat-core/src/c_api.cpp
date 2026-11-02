@@ -44,6 +44,24 @@ int bc_export_start_ex(bc_player* h, const bc_export_opts* o) {
     r.speedRatio = o->speed_ratio; r.accent = o->accent; r.quiet = o->quiet; r.clickIntoStem = o->click_into_stem;
     return h->p.exportStart(r) ? 1 : 0;
 }
+const char* bc_pack_info(bc_player* h) { if (!h) return "{}"; h->tmp = h->p.packInfoJson(); return h->tmp.c_str(); }
+int bc_pack_save(bc_player* h, const bc_pack_opts* o) {
+    if (!h || !o || !o->path) return 0;
+    beatcore::PackRequest r; r.path = o->path;
+    r.title = o->title ? o->title : ""; r.artist = o->artist ? o->artist : ""; r.ownerId = o->owner ? o->owner : ""; r.createdBy = o->created_by ? o->created_by : "";
+    r.includeMix = o->include_mix != 0; r.includeActs = o->include_acts != 0; r.flacLevel = o->flac_level > 0 ? o->flac_level : 5;
+    // groups come as a text: parts of a group separated by ',', groups by ';', e.g. "0,2;1;3,4" ; names by ';' too (may be empty)
+    if (o->groups) { std::string g = o->groups; size_t pos = 0;
+        while (pos <= g.size()) { size_t e = g.find(';', pos); if (e == std::string::npos) e = g.size(); std::vector<int> idx; std::string seg = g.substr(pos, e - pos); size_t q = 0;
+            while (q < seg.size()) { size_t c = seg.find(',', q); if (c == std::string::npos) c = seg.size(); if (c > q) idx.push_back(std::atoi(seg.substr(q, c - q).c_str())); q = c + 1; }
+            if (!idx.empty()) r.groups.push_back(idx); pos = e + 1; } }
+    if (o->group_names) { std::string g = o->group_names; size_t pos = 0; while (pos <= g.size()) { size_t e = g.find(';', pos); if (e == std::string::npos) e = g.size(); r.groupNames.push_back(g.substr(pos, e - pos)); pos = e + 1; } }
+    if (o->loops) { std::string s = o->loops; size_t pos = 0;   // loops as lines "start|end|name\n"
+        while (pos < s.size()) { size_t e = s.find('\n', pos); if (e == std::string::npos) e = s.size(); std::string line = s.substr(pos, e - pos); pos = e + 1;
+            size_t a1 = line.find('|'), a2 = a1 == std::string::npos ? a1 : line.find('|', a1 + 1); if (a2 == std::string::npos) continue;
+            r.loops.push_back({line.substr(a2 + 1), std::atof(line.substr(0, a1).c_str()), std::atof(line.substr(a1 + 1, a2 - a1 - 1).c_str())}); } }
+    return h->p.packSave(r) ? 1 : 0;
+}
 int bc_export_state(bc_player* h) { return h ? h->p.exportState() : 0; }
 float bc_export_progress(bc_player* h) { return h ? h->p.exportProgress() : 0.f; }
 const char* bc_export_error(bc_player* h) { if (!h) return ""; h->err = h->p.exportError(); return h->err.c_str(); }

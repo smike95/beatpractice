@@ -9,6 +9,7 @@
 #include <string>
 #include <thread>
 #include <vector>
+#include "package.h"
 
 namespace beatcore {
 
@@ -30,6 +31,19 @@ struct ExportRequest {
     int accent = -1;                  // accent on the first beat of the clicks: -1 as in the player, 0 off, 1 on
     int quiet = -1;                   // quiet bars (as set in the player): -1 as in the player, 0 off, 1 on
     int clickIntoStem = -1;           // separate files: index of the part that also gets the clicks; -1 = the clicks go to their own file
+};
+
+// What to put into a .beatpack (see package.h). Parts are listed by index of stemNames(); every part ends up in exactly one track:
+// a group with one part keeps that part's name, a group with several parts is summed, parts in no group go together into "rest".
+struct PackRequest {
+    std::string path;
+    std::string title, artist, ownerId, createdBy;
+    std::vector<std::vector<int>> groups;       // empty = no parts, only the song (then includeMix must be true)
+    std::vector<std::string> groupNames;        // names for merged groups (empty / missing = the part names joined with "+")
+    bool includeMix = true;                     // the original song (bigger file, exact original sound)
+    bool includeActs = true;                    // raw network output: lets another device change the metre mode
+    std::vector<PackLoop> loops;
+    int flacLevel = 5;
 };
 
 class Player {
@@ -90,6 +104,10 @@ public:
     // Runs in the background (does not disturb playback). State: 0 none, 1 running, 2 done, 3 error. The metronome is
     // included only if withMetronome is true.
     bool exportStart(const std::string& wavPath, bool withMetronome);   // false if no song is ready or an export is running
+    // ---- .beatpack: openFile() accepts such a file too (no analysis, no models needed) ----
+    bool isPack() const;                         // the current song was opened from a pack
+    std::string packInfoJson() const;            // {"isPack":..,"title","artist","owner","createdBy","model","hasMix","tracks":[..],"loops":[{name,start,end}]}
+    bool packSave(const PackRequest& r);         // runs in the background; progress and result come through exportState()/exportProgress()/exportError()
     bool exportStart(const ExportRequest& r);   // tempo is the current one; the song volume applies to the mix only
     int exportState() const; float exportProgress() const; std::string exportError() const;
     void exportCancel();

@@ -57,6 +57,17 @@ typedef struct {
     int accent, quiet, click_into_stem;
 } bc_export_opts;
 BC_API int         bc_export_start_ex(bc_player*, const bc_export_opts* opts);
+/* .beatpack (see PACK-FORMAT.md). bc_open_file() also opens a pack (no analysis, no models). bc_pack_info: JSON about the opened pack
+   ({"isPack":false} for an ordinary song). bc_pack_save runs in the background: use bc_export_state / progress / error to follow it.
+   groups: indices of the parts, ',' inside a group, ';' between groups ("" = no parts, only the song; then include_mix must be 1);
+   group_names: names for the groups, ';' between ("" = the part names joined with '+'); loops: lines "start|end|name\n". */
+typedef struct {
+    const char* path; const char* title; const char* artist; const char* owner; const char* created_by;
+    const char* groups; const char* group_names; const char* loops;
+    int include_mix, include_acts, flac_level;
+} bc_pack_opts;
+BC_API const char* bc_pack_info(bc_player*);
+BC_API int         bc_pack_save(bc_player*, const bc_pack_opts* opts);
 BC_API int         bc_export_state(bc_player*);
 BC_API float       bc_export_progress(bc_player*);
 BC_API const char* bc_export_error(bc_player*);

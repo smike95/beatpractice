@@ -77,6 +77,11 @@ target_link_libraries(package_test beatcore)
 set_target_properties(package_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 add_test(NAME package_test COMMAND package_test)
 
+add_executable(player_pack_test tests/player_pack_test.cpp)
+target_link_libraries(player_pack_test beatcore)
+set_target_properties(player_pack_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+add_test(NAME player_pack_test COMMAND player_pack_test)
+
 add_executable(sounds_test tests/sounds_test.cpp)
 target_link_libraries(sounds_test beatcore)
 set_target_properties(sounds_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
