@@ -22,7 +22,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * The bridge between the React interface and the C++ player on Android.
  *  - call(): hands a command (core_*) with JSON arguments to the C++ bridge (the same commands as the desktop app) and returns its JSON answer.
  *  - files: the system file picker (no storage permissions needed: the chosen files are COPIED into the app's own folder), sharing of saved files.
- *  - models: first-start download of the neural networks.
+ *  - models: first-start copy of the neural networks from the app's assets into its own folder.
  * The commands run on one background thread so that the interface never waits for the player.
  */
 @CapacitorPlugin(name = "BeatCore")
@@ -175,10 +175,10 @@ class BeatCorePlugin : Plugin() {
         cancelDownload.set(false)
         worker.execute {
             try {
-                Models.download(context, { cancelDownload.get() }) { p -> notifyListeners("modelsProgress", JSObject().put("progress", p.toDouble())) }
+                Models.installFromAssets(context, { cancelDownload.get() }) { p -> notifyListeners("modelsProgress", JSObject().put("progress", p.toDouble())) }
                 // nothing else to do: the player looks for the model files when it starts an analysis or a separation
                 call.resolve()
-            } catch (e: Throwable) { call.reject(e.message ?: "download failed") }
+            } catch (e: Throwable) { call.reject(e.message ?: "models could not be prepared") }
         }
     }
 

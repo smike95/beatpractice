@@ -1,0 +1,11 @@
+// android/models_pack/build.gradle : the asset pack with the neural network models (copy this folder next to android/app)
+plugins {
+    id 'com.android.asset-pack'
+}
+
+assetPack {
+    packName = "models"                       // referenced as ":models_pack" in app/build.gradle
+    dynamicDelivery {
+        deliveryType = "install-time"         // delivered together with the app, available at the first start, works offline
+    }
+}

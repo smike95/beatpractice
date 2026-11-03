@@ -30,7 +30,7 @@ export const isAndroid = kind === "android";
 // ---- the Android plugin (Kotlin: BeatCorePlugin) -----------------------------------------------------------------
 export interface ModelsStatus {
   installed: boolean;     // every model file is there
-  sizeMb: number;         // what has to be downloaded
+  sizeMb: number;         // what still has to be prepared
   error?: string;
 }
 interface BeatCorePlugin {
@@ -125,13 +125,13 @@ export async function appVersion(): Promise<string> {
   return "";
 }
 
-// ---- models (Android downloads them on first start; on the desktop they come with the app) ----------------------
+// ---- models (Android: inside the app bundle, copied into the app's folder once; on the desktop they come with the app) -----
 export const modelsDownloadable = isAndroid;
 export async function modelsStatus(): Promise<ModelsStatus> {
   if (kind !== "android") return { installed: true, sizeMb: 0 };
   return android().modelsStatus();
 }
-/** Downloads the models; onProgress gets 0..1. Resolves when they are installed (the player is then started again by the plugin). */
+/** Prepares the models (copies them out of the app); onProgress gets 0..1. Resolves when they are ready. */
 export async function modelsDownload(onProgress: (p: number) => void): Promise<void> {
   if (kind !== "android") return;
   const h = await android().addListener("modelsProgress", (e) => onProgress(e.progress));

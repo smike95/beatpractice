@@ -3,22 +3,20 @@ package app.beatpractice
 import android.content.Context
 import java.io.File
 import java.io.FileOutputStream
-import java.net.HttpURLConnection
-import java.net.URL
-import java.security.MessageDigest
 
 /**
- * The neural network models are not in the app (they are ~220 MB): they are downloaded once, into the app's own storage, and checked with SHA-256.
- * Fill in MODEL_FILES with the real addresses and checksums (see ANDROID.md). The files are DATA, not code, which Google Play allows to download.
+ * The neural network models (~220 MB) travel inside the app bundle, in an install-time asset pack (see ANDROID.md), so no server and no network are needed.
+ * The player (ONNX Runtime) needs real files, so on the first start they are copied from the app's assets into its own folder (a few seconds, once).
+ *
+ * When you change a model file, give it a new name (for example ...-v2.onnx) and update this list: a copy is taken as good when its size matches.
  */
 object Models {
-    data class ModelFile(val name: String, val url: String, val sha256: String, val sizeBytes: Long)
+    data class ModelFile(val name: String, val sizeBytes: Long)
 
-    // TODO: set the real https addresses (your own server or a public release) and the SHA-256 of every file.
     val MODEL_FILES = listOf(
-        ModelFile("beat_this.onnx", "https://example.com/models/beat_this.onnx", "", 83_162_650L),
-        ModelFile("mel_spectrogram.onnx", "https://example.com/models/mel_spectrogram.onnx", "", 270_742L),
-        ModelFile("htdemucs_6s_fp16weights.onnx", "https://example.com/models/htdemucs_6s_fp16weights.onnx", "", 136_428_532L),
+        ModelFile("beat_this.onnx", 83_162_650L),
+        ModelFile("mel_spectrogram.onnx", 270_742L),
+        ModelFile("htdemucs_6s_fp16weights.onnx", 136_428_532L),
     )
 
     fun dir(ctx: Context): File = File(ctx.filesDir, "models").also { it.mkdirs() }
@@ -27,31 +25,29 @@ object Models {
 
     fun missingMb(ctx: Context): Int = (missing(ctx).sumOf { it.sizeBytes } / 1_048_576L).toInt()
 
-    /** Downloads what is missing. progress: 0..1 over all files. Throws on a network error, a wrong checksum or a cancel (check [cancelled]). */
-    fun download(ctx: Context, cancelled: () -> Boolean, progress: (Float) -> Unit) {
+    /** Copies what is missing from assets/models/ . progress: 0..1 over all files. Throws on a cancel or when an asset is absent (debug build without the pack). */
+    fun installFromAssets(ctx: Context, cancelled: () -> Boolean, progress: (Float) -> Unit) {
         val todo = missing(ctx)
         val total = todo.sumOf { it.sizeBytes }.coerceAtLeast(1L)
         var done = 0L
         for (m in todo) {
             val target = File(dir(ctx), m.name)
             val tmp = File(dir(ctx), m.name + ".part")
-            val conn = URL(m.url).openConnection() as HttpURLConnection
-            conn.connectTimeout = 20_000; conn.readTimeout = 30_000
-            if (conn.responseCode != 200) throw RuntimeException("Download failed (${conn.responseCode}) for ${m.name}")
-            val md = MessageDigest.getInstance("SHA-256")
-            conn.inputStream.use { input ->
+            val input = try { ctx.assets.open("models/" + m.name) } catch (e: java.io.IOException) {
+                throw RuntimeException("The model ${m.name} is not in the app. Build the app bundle with the models_pack asset pack (see ANDROID.md).")
+            }
+            input.use { ins ->
                 FileOutputStream(tmp).use { out ->
-                    val buf = ByteArray(64 * 1024)
+                    val buf = ByteArray(256 * 1024)
                     while (true) {
                         if (cancelled()) { tmp.delete(); throw RuntimeException("Cancelled") }
-                        val n = input.read(buf); if (n < 0) break
-                        out.write(buf, 0, n); md.update(buf, 0, n); done += n
+                        val n = ins.read(buf); if (n < 0) break
+                        out.write(buf, 0, n); done += n
                         progress((done.toFloat() / total).coerceIn(0f, 1f))
                     }
                 }
             }
-            val hex = md.digest().joinToString("") { "%02x".format(it) }
-            if (m.sha256.isNotEmpty() && !hex.equals(m.sha256, ignoreCase = true)) { tmp.delete(); throw RuntimeException("The downloaded file ${m.name} is damaged (checksum)") }
+            if (tmp.length() != m.sizeBytes) { tmp.delete(); throw RuntimeException("The model ${m.name} has an unexpected size: update Models.kt") }
             if (!tmp.renameTo(target)) throw RuntimeException("Cannot save ${m.name}")
         }
         progress(1f)

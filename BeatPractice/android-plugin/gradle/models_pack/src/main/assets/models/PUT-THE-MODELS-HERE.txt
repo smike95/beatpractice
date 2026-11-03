@@ -1,0 +1,4 @@
+Put here (names must match Models.kt):
+  beat_this.onnx
+  mel_spectrogram.onnx
+  htdemucs_6s_fp16weights.onnx
