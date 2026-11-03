@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getVersion } from "@tauri-apps/api/app";
+import { appVersion } from "../platform";
 import { X } from "lucide-react";
 import { BeatPracticeLogo } from "./BeatPracticeLogo";
 import eulaRaw from "../../src-tauri/legal/EULA.txt?raw";
@@ -15,7 +15,7 @@ export function AboutDialog({ lang, onClose }: { lang: "uk" | "en"; onClose: () 
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [version, setVersion] = useState("");
   const [tab, setTab] = useState<"eula" | "notices">("eula");
-  useEffect(() => { getVersion().then(setVersion).catch(() => {}); }, []);
+  useEffect(() => { appVersion().then(setVersion).catch(() => {}); }, []);
 
   const tabBtn = (id: "eula" | "notices", label: string) => (
     <button

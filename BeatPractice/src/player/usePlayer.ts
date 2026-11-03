@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
-import { getCurrentWebview } from "@tauri-apps/api/webview";
+import { onFilesOpened, pickAudioFiles, pickFolder } from "../platform";
 import { BC, Caps, core, InitInfo, Snapshot, SongData, StemsInfo } from "../core";
 import { AudioTrackInfo, LoopRange, LoopSlot, MetronomeConfig, PlayMode, PlaylistItem, StemMix } from "../types";
 import { getOwnerId } from "../utils/license";
@@ -141,8 +140,8 @@ export function usePlayer() {
   }, []);
 
   const chooseCoreDir = useCallback(async () => {
-    const dir = await open({ directory: true, title: "Оберіть теку beat-core" });
-    if (typeof dir !== "string") return;
+    const dir = await pickFolder("Оберіть теку beat-core");
+    if (!dir) return;
     try {
       await core.load(dir);
       setInit({ loaded: true, dir, error: null });
@@ -603,35 +602,14 @@ export function usePlayer() {
   );
 
   const openFilesDialog = useCallback(async () => {
-    const res = await open({
-      multiple: true,
-      title: "Додати аудіо",
-      filters: [{ name: "Аудіо та пакети BeatPack", extensions: AUDIO_EXTS }],
-    });
-    if (Array.isArray(res)) addFiles(res);
-    else if (typeof res === "string") addFiles([res]);
+    const paths = await pickAudioFiles(AUDIO_EXTS, "Додати аудіо", "Аудіо та пакети BeatPack");
+    if (paths.length) addFiles(paths);
   }, [addFiles]);
 
-  // drag & drop of files onto the window
+  // files dropped onto the window (desktop) or sent to the app with "Open with" (Android)
   const addFilesRef = useRef(addFiles);
   addFilesRef.current = addFiles;
-  useEffect(() => {
-    let unlisten: (() => void) | undefined;
-    let cancelled = false;
-    getCurrentWebview()
-      .onDragDropEvent((event) => {
-        if (event.payload.type === "drop") addFilesRef.current(event.payload.paths);
-      })
-      .then((fn) => {
-        if (cancelled) fn();
-        else unlisten = fn;
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-      unlisten?.();
-    };
-  }, []);
+  useEffect(() => onFilesOpened((paths) => addFilesRef.current(paths)), []);
 
   // ---- stems ---------------------------------------------------------------------------------------------
   const stemsState = snap?.stems?.state ?? 0;

@@ -1,5 +1,7 @@
 // Typed wrappers around the Tauri commands that talk to the C++ core.
-import { invoke } from "@tauri-apps/api/core";
+import { call } from "./platform";
+
+const invoke = <T,>(command: string, args: Record<string, unknown> = {}) => call<T>(command, args);
 
 export const BC = { IDLE: 0, DECODING: 1, ANALYZING: 2, READY: 3, ERROR: 4 } as const;
 

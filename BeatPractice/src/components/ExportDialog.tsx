@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { save } from "@tauri-apps/plugin-dialog";
+import { canShareSaved, pickSavePath, shareSaved } from "../platform";
 import { Download, X } from "lucide-react";
 import { core, type ExportStatus } from "../core";
 import { LoopSlot, loopLabel } from "../types";
@@ -129,10 +129,11 @@ export function ExportDialog(props: {
   const begin = async () => {
     setErr("");
     try {
-      const path = await save({
+      const path = await pickSavePath({
         title: separate && hasStems ? L("Назва файлів (до неї додасться назва партії)", "File name (the part name is added to it)") : L("Зберегти змінений трек", "Save the modified track"),
-        defaultPath: suggested,
-        filters: [{ name: "WAV", extensions: ["wav"] }],
+        defaultName: suggested,
+        extension: "wav",
+        filterName: "WAV",
       });
       if (!path) return;
       const out = /\.wav$/i.test(path) ? path : path + ".wav";
@@ -171,6 +172,7 @@ export function ExportDialog(props: {
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
         <div role="dialog" aria-modal="true" id="export-dialog" className="track-edit-dialog w-full max-w-lg rounded-2xl border shadow-2xl p-5 space-y-4">
           <p className="text-base font-bold text-emerald-600">{L("Трек успішно експортовано", "The track was exported successfully")}</p>
+          {canShareSaved && <button id="btn-export-share" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white cursor-pointer" onClick={() => void shareSaved(outPath.replace(/\.wav$/i, ""))}>{L("Зберегти на пристрій / надіслати", "Save to the device / send")}</button>}
           <p className="text-sm break-all">{fileCount > 1 ? L(`Збережено файлів: ${fileCount}. Назва початку`, `Files saved: ${fileCount}. Name starts with`) : L("Файл збережено", "Saved to")}: {fileCount > 1 ? outPath.replace(/\.wav$/i, "") + " - …" : outPath}</p>
           <div className="flex justify-end">
             <button id="btn-export-close" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={onClose}>{L("Закрити", "Close")}</button>

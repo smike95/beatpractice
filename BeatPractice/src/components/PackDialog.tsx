@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { save } from "@tauri-apps/plugin-dialog";
+import { canShareSaved, pickSavePath, shareSaved } from "../platform";
 import { Package, X } from "lucide-react";
 import { core, type ExportStatus } from "../core";
 import { LoopSlot } from "../types";
@@ -73,10 +73,11 @@ export function PackDialog(props: {
     setErr("");
     try {
       const safe = (displayName || "track").replace(/[\\/:*?"<>|]+/g, " ").trim();
-      const path = await save({
+      const path = await pickSavePath({
         title: L("Зберегти пакет", "Save the pack"),
-        defaultPath: `${safe}.beatpack`,
-        filters: [{ name: "BeatPack", extensions: ["beatpack"] }],
+        defaultName: `${safe}.beatpack`,
+        extension: "beatpack",
+        filterName: "BeatPack",
       });
       if (!path) return;
       const out = /\.beatpack$/i.test(path) ? path : path + ".beatpack";
@@ -110,6 +111,7 @@ export function PackDialog(props: {
         <div role="dialog" aria-modal="true" id="pack-dialog" className="track-edit-dialog w-full max-w-lg rounded-2xl border shadow-2xl p-5 space-y-4">
           <p className="text-base font-bold text-emerald-600">{L("Пакет збережено", "The pack was saved")}</p>
           <p className="text-sm break-all">{outPath}</p>
+          {canShareSaved && <button id="btn-pack-share" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white cursor-pointer" onClick={() => void shareSaved(outPath.replace(/\.beatpack$/i, ""))}>{L("Зберегти на пристрій / надіслати", "Save to the device / send")}</button>}
           <p className="track-edit-label text-xs">{L("Скопіюйте цей файл на інший ваш пристрій і відкрийте його в програмі: аналіз і розділення там не потрібні.", "Copy this file to your other device and open it in the program: no analysis or separation is needed there.")}</p>
           <div className="flex justify-end"><button id="btn-pack-close" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={onClose}>{L("Закрити", "Close")}</button></div>
         </div>

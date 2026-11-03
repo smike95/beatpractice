@@ -13,9 +13,11 @@ import { RampPanel } from './components/RampPanel';
 import { TrackEditDialog } from './components/TrackEditDialog';
 import { ExportDialog } from './components/ExportDialog';
 import { PackDialog } from './components/PackDialog';
+import { ModelsBanner } from './components/ModelsBanner';
 import { Slider } from './components/Slider';
 import { Switch } from './components/Switch';
 import { WindowControls } from './components/WindowControls';
+import { isDesktop } from './platform';
 import { AboutDialog } from './components/AboutDialog';
 import { usePlayer } from './player/usePlayer';
 import { ThemeMode } from './types';
@@ -83,7 +85,7 @@ function BpmInput({ value, onCommit, disabled }: { value: number; onCommit: (bpm
   );
 }
 
-const isWindows = typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
+const isWindows = isDesktop && typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
 
 function formatPreviewTime(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
@@ -397,6 +399,8 @@ export default function App() {
           {isWindows && <div className="absolute top-0 right-0"><WindowControls lang={lang} /></div>}
         </div>
       </header>
+
+      <ModelsBanner lang={lang} />
 
       {/* Main Layout: Left Desktop Sidebar + Content */}
       <div className="flex-1 flex max-w-[1920px] w-full mx-auto">

@@ -1,0 +1,4 @@
+<!-- android/app/src/main/res/xml/file_paths.xml : lets the share sheet read the exported files -->
+<paths>
+    <external-files-path name="exports" path="exports/" />
+</paths>
