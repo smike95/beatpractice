@@ -650,3 +650,6 @@ input[type="range"].bp-range::-moz-range-thumb {
   border: 2px solid #ffffff;
   box-shadow: 0 0 0 1px rgba(15, 23, 42, 0.35), 0 1px 3px rgba(0, 0, 0, 0.4);
 }
+
+/* Android (and any phone with a notch): the app is drawn under the system bars; keep content clear of them. On the desktop the insets are 0. */
+#root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); box-sizing: border-box; }
