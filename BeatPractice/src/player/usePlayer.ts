@@ -671,6 +671,20 @@ export function usePlayer() {
     }
   }, [stemsState, activeId, stemMix, stemsInfo]);
 
+  // waveform overview of every part (fetched when the parts are ready) and the levels that are really heard
+  const [stemPeaks, setStemPeaks] = useState<number[][]>([]);
+  useEffect(() => {
+    if (stemsState !== 2 || !songReady) { setStemPeaks([]); return; }
+    let live = true;
+    core.stemPeaks().then((p) => { if (live) setStemPeaks(p); }).catch(() => { if (live) setStemPeaks([]); });
+    return () => { live = false; };
+  }, [stemsState, songReady, activeId]);
+  const stemsEnabledNow = snap?.stems?.enabled ?? false;
+  const stemEffectiveGains = useMemo(
+    () => (stemsState === 2 && stemsEnabledNow ? (stemsInfo?.names ?? []).map((_, i) => effectiveGain(stemMix, i)) : []),
+    [stemsState, stemsEnabledNow, stemsInfo, stemMix],
+  );
+
   const startStems = useCallback(() => {
     setStemsStartedAt(Date.now());
     setMessage("");
@@ -808,6 +822,8 @@ export function usePlayer() {
     message,
     setMessage,
     packNotice,
+    stemPeaks,
+    stemEffectiveGains,
     dismissPackNotice: () => setPackNotice(null),
     snap,
     song,

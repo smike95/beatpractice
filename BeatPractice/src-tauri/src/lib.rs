@@ -222,6 +222,12 @@ fn core_song_data(state: State<AppState>) -> Result<SongData, String> {
     })
 }
 
+/// Waveform overview of every separated part (for drawing which parts are heard).
+#[tauri::command]
+fn core_stem_peaks(state: State<AppState>) -> Result<Vec<Vec<f32>>, String> {
+    with_core(&state, |c| c.stem_peaks())
+}
+
 /// What the loaded library can do (older libraries lack metronome sounds and count-in progress).
 #[tauri::command]
 fn core_caps(state: State<AppState>) -> Result<Caps, String> {
@@ -414,6 +420,7 @@ pub fn run() {
             core_stems_enable,
             core_set_stem_gain,
             core_song_data,
+            core_stem_peaks,
             core_play,
             core_pause,
             core_seek,

@@ -49,6 +49,7 @@ struct Bridge::Impl {
         if (cmd == "core_open_file") return p.openFile(str("path"));
         if (cmd == "core_snapshot") return snapshot();
         if (cmd == "core_song_data") return songData();
+        if (cmd == "core_stem_peaks") return p.stemPeaks();
         if (cmd == "core_caps") {
             const int sounds = PlaybackEngine::clickSoundCount();
             return {{"clickSounds", sounds}, {"countInBeats", sounds > 0}, {"stems", true}, {"meterModes", true}, {"packs", true}};

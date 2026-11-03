@@ -547,6 +547,7 @@ void Player::clearLoop() { if (auto* e = impl_->engine.load()) e->clearLoop(); }
 bool Player::loopEnabled() const { WITH_ENGINE(e->loopEnabled(), false); }
 double Player::snapToBar(double s) const { WITH_ENGINE(e->snapToBar(s), s); }
 double Player::snapToBeat(double s) const { WITH_ENGINE(e->snapToBeat(s), s); }
+std::vector<std::vector<float>> Player::stemPeaks() const { auto* e = impl_->engine.load(); return e ? e->stemPeaks() : std::vector<std::vector<float>>(); }
 std::vector<float> Player::peaks() const { auto* e = impl_->engine.load(); return e ? e->peaks() : std::vector<float>(); }
 bool Player::stemsAvailable() const { return state() == PlayerState::Ready && !impl_->stemModelPath().empty(); }
 bool Player::stemsCached() const {

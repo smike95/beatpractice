@@ -43,6 +43,8 @@ int main() {
     expect(sd["times"].size() == 15 && sd["posInBar"].size() == 15 && sd["barLength"].size() == 15 && sd["peaks"].size() > 10, "core_song_data: beats and peaks");
     json si = call("core_stems_info")["ok"];
     expect(si["supported"] == true && si["names"] == json::array({"drums", "vocals"}), "core_stems_info: the parts of the pack");
+    json sp = call("core_stem_peaks")["ok"];
+    expect(sp.size() == 2 && sp[0].size() == sd["peaks"].size() && std::fabs(sp[0][5].get<double>() - 0.2) < 0.02 && std::fabs(sp[1][5].get<double>() - 0.2) < 0.02, "core_stem_peaks: one overview per part, same length as the song's");
     json pi = json::parse(call("core_pack_info")["ok"].get<std::string>());
     expect(pi["isPack"] == true && pi["title"] == "Song" && pi["loops"][0]["name"] == "Verse", "core_pack_info: JSON text with title and loops");
     call("core_stems_enable", {{"on", true}}); call("core_set_stem_gain", {{"index", 0}, {"gain", 0.5}});

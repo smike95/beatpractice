@@ -81,6 +81,7 @@ public:
     bool setLoop(double a, double b); void clearLoop(); bool loopEnabled() const;
     double snapToBar(double s) const; double snapToBeat(double s) const;
     BeatInfo currentBeat() const;
+    std::vector<std::vector<float>> stemPeaks() const;   // overview of every separated part (empty when not separated)
     std::vector<float> peaks() const;            // waveform overview, PlaybackEngine::kPeaksPerSecond per second
 
     // ---- stems: the song split into parts (4, or 6 with guitar and piano) by a Demucs ONNX model ----

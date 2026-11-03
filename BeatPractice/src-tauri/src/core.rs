@@ -118,6 +118,8 @@ pub struct Core {
     stems_progress: Option<unsafe extern "C" fn(P) -> c_float>,
     export_start: Option<unsafe extern "C" fn(P, *const c_char, c_int) -> c_int>,
     export_start_ex: Option<unsafe extern "C" fn(P, *const ExportOpts) -> c_int>,
+    stem_peak_count: Option<unsafe extern "C" fn(P) -> c_int>,
+    get_stem_peaks: Option<unsafe extern "C" fn(P, c_int, *mut c_float, c_int) -> c_int>,
     pack_info: Option<unsafe extern "C" fn(P) -> *const c_char>,
     pack_save: Option<unsafe extern "C" fn(P, *const PackOpts) -> c_int>,
     set_quiet_bars: Option<unsafe extern "C" fn(P, c_int, c_int, c_int)>,
@@ -274,6 +276,8 @@ impl Core {
                 stems_progress: opt_sym!(lib, "bc_stems_progress", unsafe extern "C" fn(P) -> c_float),
                 export_start: opt_sym!(lib, "bc_export_start", unsafe extern "C" fn(P, *const c_char, c_int) -> c_int),
                 export_start_ex: opt_sym!(lib, "bc_export_start_ex", unsafe extern "C" fn(P, *const ExportOpts) -> c_int),
+                stem_peak_count: opt_sym!(lib, "bc_stem_peak_count", unsafe extern "C" fn(P) -> c_int),
+                get_stem_peaks: opt_sym!(lib, "bc_get_stem_peaks", unsafe extern "C" fn(P, c_int, *mut c_float, c_int) -> c_int),
                 pack_info: opt_sym!(lib, "bc_pack_info", unsafe extern "C" fn(P) -> *const c_char),
                 pack_save: opt_sym!(lib, "bc_pack_save", unsafe extern "C" fn(P, *const PackOpts) -> c_int),
                 set_quiet_bars: opt_sym!(lib, "bc_set_quiet_bars", unsafe extern "C" fn(P, c_int, c_int, c_int)),
@@ -366,6 +370,17 @@ impl Core {
         if let Some(f) = self.set_quiet_bars { unsafe { f(self.p, enabled as c_int, click_bars, quiet_bars) } }
     }
     pub fn loop_wraps(&self) -> i64 { self.loop_wraps.map(|f| unsafe { f(self.p) } as i64).unwrap_or(0) }
+    /// Waveform overview of every separated part (empty when the song is not separated or the library is older).
+    pub fn stem_peaks(&self) -> Vec<Vec<f32>> {
+        let (Some(count), Some(get)) = (self.stem_peak_count, self.get_stem_peaks) else { return Vec::new() };
+        let k = unsafe { count(self.p) }.max(0) as usize;
+        let n = unsafe { (self.peak_count)(self.p) }.max(0) as usize;
+        (0..k).map(|i| {
+            let mut out = vec![0f32; n];
+            let got = if n > 0 { unsafe { get(self.p, i as c_int, out.as_mut_ptr(), n as c_int) }.max(0) as usize } else { 0 };
+            out.truncate(got); out
+        }).collect()
+    }
     pub fn has_packs(&self) -> bool { self.pack_info.is_some() && self.pack_save.is_some() }
     /// JSON about the opened pack ({"isPack":false} for an ordinary song).
     pub fn pack_info(&self) -> String {

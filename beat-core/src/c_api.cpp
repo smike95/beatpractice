@@ -98,6 +98,11 @@ int bc_get_beats(bc_player* h, double* t, int* pos, int* len, int cap) {
     for (int i = 0; i < n; ++i) { if (t) t[i] = m->beats[i]; if (pos) pos[i] = m->posInBar[i]; if (len) len[i] = m->barLength[i]; }
     return n;
 }
+int bc_stem_peak_count(bc_player* h) { return h ? (int)h->p.stemPeaks().size() : 0; }
+int bc_get_stem_peaks(bc_player* h, int k, float* out, int cap) {
+    if (!h || !out || k < 0) return 0; auto v = h->p.stemPeaks(); if ((size_t)k >= v.size()) return 0;
+    int n = std::min<int>(cap, (int)v[(size_t)k].size()); std::copy(v[(size_t)k].begin(), v[(size_t)k].begin() + n, out); return n;
+}
 int bc_peak_count(bc_player* h) { return h ? (int)h->p.peaks().size() : 0; }
 int bc_get_peaks(bc_player* h, float* out, int cap) {
     if (!h || !out) return 0; auto v = h->p.peaks(); int n = std::min<int>(cap, (int)v.size());

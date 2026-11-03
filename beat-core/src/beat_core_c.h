@@ -131,6 +131,9 @@ BC_API int bc_get_beats(bc_player*, double* times, int* pos_in_bar, int* bar_len
 
 /* waveform overview: 100 values per second of audio, each 0..1 (loudest sample in that 10 ms) */
 BC_API int bc_peak_count(bc_player*);
+/* waveform overview of every separated part: bc_stem_peak_count = number of parts (0 if not separated), bc_get_stem_peaks copies part k (same resolution as bc_get_peaks) */
+BC_API int bc_stem_peak_count(bc_player*);
+BC_API int bc_get_stem_peaks(bc_player*, int k, float* out, int capacity);
 BC_API int bc_get_peaks(bc_player*, float* out, int capacity);
 
 #ifdef __cplusplus

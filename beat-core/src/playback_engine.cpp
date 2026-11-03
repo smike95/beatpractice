@@ -117,6 +117,7 @@ struct PlaybackEngine::Impl {
     std::atomic<bool> metOn{true}, accent{true};
     std::atomic<bool> quietOnA{false}; std::atomic<int> clickBarsA{2}, quietBarsA{1};
     std::vector<int> beatOrd;                     // bar number (0-based) of each beat, counted over the whole song
+    std::vector<std::vector<float>> stemPeaksV; mutable std::mutex stemPeaksMu;   // overview of every part (not touched by the audio thread)
     std::atomic<long> wrapCount{0};               // A-B loop wraps so far
     // true when the click of beat `idx` must be silent (quiet bars); `base` = bar number where the pattern starts
     bool quietBeat(size_t idx, int base) const {
@@ -428,6 +429,19 @@ void PlaybackEngine::setStems(std::vector<std::vector<float>> tracks) {
 void PlaybackEngine::setStemsPcm16(std::vector<std::vector<int16_t>> tracks) {
     auto& m = *impl_;
     std::vector<std::unique_ptr<Track>> ns;
+    std::vector<std::vector<float>> sp;                              // overview of every part, made while the samples are at hand
+    const long hop = std::max(1, m.sr / kPeaksPerSecond);
+    for (auto& pc : tracks) {
+        if ((int)sp.size() >= kMaxStems) break;
+        const long fr = (long)(pc.size() / 2);
+        std::vector<float> pk((size_t)((m.totalFrames + hop - 1) / hop), 0.f);
+        for (long i = 0; i < std::min(fr, m.totalFrames); ++i) {
+            const float v = std::max(std::abs((int)pc[(size_t)i]), std::abs((int)pc[(size_t)fr + i])) * (1.f / 32768.f);
+            float& q = pk[(size_t)(i / hop)]; if (v > q) q = v;
+        }
+        sp.push_back(std::move(pk));
+    }
+    { std::lock_guard<std::mutex> g(m.stemPeaksMu); m.stemPeaksV = std::move(sp); }
     for (auto& pc : tracks) {
         if ((int)ns.size() >= kMaxStems) break;
         auto t = std::make_unique<Track>(m.sr);
@@ -445,6 +459,7 @@ void PlaybackEngine::setStemsPcm16(std::vector<std::vector<int16_t>> tracks) {
     for (auto& x : m.stemGainA) x = 1.0f;
     m.needReseek = true;
 }
+std::vector<std::vector<float>> PlaybackEngine::stemPeaks() const { std::lock_guard<std::mutex> g(impl_->stemPeaksMu); return impl_->stemPeaksV; }
 void PlaybackEngine::setStemsEnabled(bool on) { impl_->stemsOnA = on; }
 bool PlaybackEngine::stemsEnabled() const { return impl_->stemsOnA && impl_->stemCountA > 0; }
 int PlaybackEngine::stemCount() const { return impl_->stemCountA; }

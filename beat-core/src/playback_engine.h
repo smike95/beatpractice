@@ -66,6 +66,8 @@ public:
     // 16-bit variant of setStems(): every track planar (left, then right), moved in without a copy
     void setStemsPcm16(std::vector<std::vector<int16_t>> planarTracks);
     void setStemsEnabled(bool on);
+    // Waveform overview of every separated part (same resolution as peaks()); filled by setStemsPcm16(). Empty when there are no parts.
+    std::vector<std::vector<float>> stemPeaks() const;
     bool stemsEnabled() const;
     int stemCount() const;
     void setStemGain(int index, float gain);

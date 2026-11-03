@@ -696,6 +696,8 @@ export default function App() {
                 currentBeat={currentBeat}
                 beatsPerBar={currentBeatsPerBar}
                 lang={lang}
+                stemPeaks={player.stemPeaks}
+                stemGains={player.stemEffectiveGains}
                 onSeek={handleSeek}
                 onDragLoop={player.dragLoop}
                 onJumpBar={player.jumpBar}
@@ -725,7 +727,7 @@ export default function App() {
                 onClick={() => setActiveTab(id)}
                 className={`px-3.5 py-1.5 text-xs font-bold rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
                   activeTab === id
-                    ? 'bg-slate-900 text-white border border-slate-900 shadow-2xs dark:bg-slate-800 dark:text-white dark:border-slate-700'
+                    ? 'tab-active border shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900'
                 }`}
               >

@@ -21,6 +21,9 @@ interface Props {
   currentBeat: number; // 0-based
   beatsPerBar: number;
   lang: Lang;
+  /** overview of every separated part and the level each is heard at (0 = off); empty = parts are not used */
+  stemPeaks?: number[][];
+  stemGains?: number[];
   onSeek: (t: number) => void;
   onDragLoop: (start: number, end: number) => void;
   onJumpBar: (dir: -1 | 1) => void;
@@ -112,6 +115,7 @@ function drawPeaks(
 
 export function Waveform(props: Props) {
   const { song, duration, position, playing, barTimes, sections, loop, loops, activeLoop, speed, isDark, currentBeat, beatsPerBar, lang } = props;
+  const { stemPeaks, stemGains } = props;
   const { onSeek, onDragLoop, onJumpBar } = props;
   const sp = speed > 0 ? speed : 1;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
@@ -224,6 +228,9 @@ export function Waveform(props: Props) {
     () => ({
       wave: isDark ? "#475569" : "#b4c2d3",
       waveDone: isDark ? "#64748b" : "#94a3b8",
+      // when some parts are off: the whole song is drawn dim, the parts that are heard are drawn brighter over it
+      waveDim: isDark ? "#2f3b4d" : "#dfe6ee",
+      waveLive: isDark ? "#9fb0c8" : "#53677f",
       bar: isDark ? "rgba(167,139,250,0.60)" : "rgba(2,132,199,0.55)",
       beat: isDark ? "rgba(148,163,184,0.25)" : "rgba(100,116,139,0.22)",
       label: isDark ? "#94a3b8" : "#475569",
@@ -236,6 +243,29 @@ export function Waveform(props: Props) {
     }),
     [isDark],
   );
+  // The part of the song that is really heard. Peaks of a mix cannot be added exactly, so the loudness of the parts that are on is compared
+  // with the loudness of all parts (as the square root of the sum of squares, a good estimate for unrelated sounds) and the real overview of the song is
+  // scaled by that ratio: with every part on it is exactly the real overview.
+  const livePeaks = useMemo(() => {
+    if (!song || !stemPeaks || !stemGains || stemPeaks.length === 0 || stemGains.length === 0) return null;
+    const n = Math.min(stemPeaks.length, stemGains.length);
+    const anyOff = stemGains.slice(0, n).some((g) => g <= 0);
+    if (!anyOff) return null;
+    const len = song.peaks.length;
+    const out = new Array<number>(len).fill(0);
+    for (let i = 0; i < len; i++) {
+      let all = 0, act = 0;
+      for (let k = 0; k < n; k++) {
+        const p = stemPeaks[k][i] ?? 0;
+        all += p * p;
+        const a = p * Math.max(0, stemGains[k]);
+        act += a * a;
+      }
+      out[i] = all > 1e-10 ? Math.min(1, song.peaks[i] * Math.min(1.5, Math.sqrt(act / all))) : 0;
+    }
+    return out;
+  }, [stemPeaks, stemGains, song]);
+
 
   // ---- main waveform ------------------------------------------------------------------------
   useEffect(() => {
@@ -278,7 +308,10 @@ export function Waveform(props: Props) {
       ctx.fillRect(xOf(a), RULER_H, Math.max(1, xOf(b) - xOf(a)), MAIN_H - RULER_H);
     }
 
-    drawPeaks(ctx, song.peaks, w, RULER_H, MAIN_H - RULER_H, t0, t1, colors.wave);
+    if (livePeaks) {
+      drawPeaks(ctx, song.peaks, w, RULER_H, MAIN_H - RULER_H, t0, t1, colors.waveDim);
+      drawPeaks(ctx, livePeaks, w, RULER_H, MAIN_H - RULER_H, t0, t1, colors.waveLive);
+    } else drawPeaks(ctx, song.peaks, w, RULER_H, MAIN_H - RULER_H, t0, t1, colors.wave);
 
     // beats (thin) – only when there is enough room
     const times = song.times;
@@ -336,7 +369,7 @@ export function Waveform(props: Props) {
       ctx.arc(Math.round(px), 5, 4, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [song, duration, position, viewStart, viewDur, mainW, loops, activeLoop, dragSel, barTimes, colors, lang]);
+  }, [song, duration, position, viewStart, viewDur, mainW, loops, activeLoop, dragSel, barTimes, colors, lang, livePeaks]);
 
   // ---- minimap --------------------------------------------------------------------------------
   useEffect(() => {
@@ -353,7 +386,10 @@ export function Waveform(props: Props) {
       ctx.fillRect(xOf(loop.start), 0, 2, MINI_H);
       ctx.fillRect(xOf(loop.end) - 2, 0, 2, MINI_H);
     }
-    drawPeaks(ctx, song.peaks, w, 0, MINI_H, 0, duration, colors.waveDone);
+    if (livePeaks) {
+      drawPeaks(ctx, song.peaks, w, 0, MINI_H, 0, duration, colors.waveDim);
+      drawPeaks(ctx, livePeaks, w, 0, MINI_H, 0, duration, colors.waveLive);
+    } else drawPeaks(ctx, song.peaks, w, 0, MINI_H, 0, duration, colors.waveDone);
     if (zoom > 1) {
       ctx.strokeStyle = colors.loopEdge;
       ctx.lineWidth = 1.5;
@@ -361,7 +397,7 @@ export function Waveform(props: Props) {
     }
     ctx.fillStyle = colors.play;
     ctx.fillRect(Math.round(xOf(position)) - 1, 0, 2, MINI_H);
-  }, [song, duration, position, viewStart, viewDur, zoom, miniW, loop, colors]);
+  }, [song, duration, position, viewStart, viewDur, zoom, miniW, loop, colors, livePeaks]);
 
   // ---- mouse on the main waveform --------------------------------------------------------------
   const dragRef = useRef<{ x0: number; t0: number; moved: boolean } | null>(null);

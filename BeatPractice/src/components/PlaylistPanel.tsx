@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PlaylistItem } from '../types';
-import { ListMusic, Plus, Trash2, Play, Music, GripVertical } from 'lucide-react';
+import { ListMusic, Plus, Trash2, Music, Music2, GripVertical } from 'lucide-react';
 import { Language, translations } from '../i18n';
 import { displayName } from '../player/usePlayer';
 
@@ -171,7 +171,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                   <div
                     className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${
                       isActive
-                        ? 'bg-slate-900 dark:bg-slate-700 text-white shadow-xs'
+                        ? 'cover-ph-active shadow-xs'
                         : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                     }`}
                   >
@@ -182,7 +182,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                         <span className="w-0.5 bg-current rounded-full animate-bounce h-4 [animation-delay:0.3s]" />
                       </div>
                     ) : (
-                      <Play className="w-6 h-6 fill-current" />
+                      <Music2 className="w-6 h-6" />
                     )}
                   </div>
                   )}
