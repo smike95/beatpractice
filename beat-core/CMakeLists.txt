@@ -24,7 +24,7 @@ if(MSVC)
   add_compile_options(/utf-8 /EHsc)
 endif()
 add_library(beatcore STATIC src/beat_decode.cpp src/audio_file.cpp src/playback_engine.cpp
-            src/miniaudio_impl.cpp src/stem_set.cpp src/player.cpp src/package.cpp src/c_api.cpp)
+            src/miniaudio_impl.cpp src/stem_set.cpp src/player.cpp src/package.cpp src/bridge.cpp src/c_api.cpp)
 set_target_properties(beatcore PROPERTIES POSITION_INDEPENDENT_CODE ON CXX_VISIBILITY_PRESET hidden)
 target_include_directories(beatcore PUBLIC src third_party)
 target_link_libraries(beatcore PUBLIC Threads::Threads ${CMAKE_DL_LIBS})
@@ -63,6 +63,24 @@ if(BEATCORE_PACK_WRITER)
   target_compile_definitions(beatcore PUBLIC BEATCORE_PACK_WRITER=1)
 endif()
 
+# shared library loaded by the BeatPractice application: libbeatcore_c.dylib / .so / beatcore_c.dll
+add_library(beatcore_c SHARED src/c_api.cpp)
+target_link_libraries(beatcore_c PRIVATE beatcore)
+set_target_properties(beatcore_c PROPERTIES CXX_VISIBILITY_PRESET hidden BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "@loader_path;${ORT_DIR}/lib")
+
+# Android: the library that the app loads through JNI (the Capacitor plugin calls it). Build with the NDK, e.g. from Gradle's externalNativeBuild:
+#   -DBEATCORE_BUILD_TOOLS=OFF -DORT_DIR=<folder with include/ and lib/ of onnxruntime-android>
+if(ANDROID)
+  add_library(beatcore_jni SHARED android/beatcore_jni.cpp)
+  target_link_libraries(beatcore_jni PRIVATE beatcore log)
+  # Google Play requires 16 KB page alignment for native libraries of apps that target Android 15 or newer
+  target_link_options(beatcore_jni PRIVATE -Wl,-z,max-page-size=16384)
+endif()
+
+# command line tools and tests (not needed in an app build)
+option(BEATCORE_BUILD_TOOLS "Build the command line tools and the tests" ON)
+if(BEATCORE_BUILD_TOOLS)
+
 if(BEATCORE_WITH_ANALYSIS)
 add_executable(analyze_cli tools/analyze_cli.cpp)
 target_link_libraries(analyze_cli beatcore)
@@ -93,6 +111,11 @@ add_executable(player_pack_test tests/player_pack_test.cpp)
 target_link_libraries(player_pack_test beatcore)
 set_target_properties(player_pack_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 add_test(NAME player_pack_test COMMAND player_pack_test)
+
+add_executable(bridge_test tests/bridge_test.cpp)
+target_link_libraries(bridge_test beatcore)
+set_target_properties(bridge_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+add_test(NAME bridge_test COMMAND bridge_test)
 
 add_executable(sounds_test tests/sounds_test.cpp)
 target_link_libraries(sounds_test beatcore)
@@ -125,11 +148,6 @@ target_link_libraries(player_test beatcore)
 set_target_properties(player_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 endif()
 
-# shared library loaded by the BeatPractice application: libbeatcore_c.dylib / .so / beatcore_c.dll
-add_library(beatcore_c SHARED src/c_api.cpp)
-target_link_libraries(beatcore_c PRIVATE beatcore)
-set_target_properties(beatcore_c PROPERTIES CXX_VISIBILITY_PRESET hidden BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "@loader_path;${ORT_DIR}/lib")
-
 # splits a song into parts (needs a Demucs ONNX model); also prints what a model looks like (--probe)
 if(BEATCORE_WITH_ANALYSIS)
 add_executable(stems_cli tools/stems_cli.cpp)
@@ -148,3 +166,5 @@ add_executable(meter_test tests/meter_test.cpp)
 target_link_libraries(meter_test beatcore)
 set_target_properties(meter_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 add_test(NAME meter_test COMMAND meter_test ${CMAKE_SOURCE_DIR}/tests/data/meter)
+
+endif()
