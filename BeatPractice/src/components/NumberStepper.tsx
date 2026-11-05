@@ -30,7 +30,7 @@ export function NumberStepper(props: {
     }
     setDraft(null);
   };
-  const btn = "w-9 h-9 rounded-lg border border-slate-700 hover:bg-slate-800 flex items-center justify-center cursor-pointer text-slate-200 disabled:opacity-40 disabled:cursor-default";
+  const btn = "w-11 h-11 sm:w-9 sm:h-9 shrink-0 rounded-lg border border-slate-700 hover:bg-slate-800 flex items-center justify-center cursor-pointer text-slate-200 transition-colors duration-150 disabled:opacity-40 disabled:cursor-default";
   return (
     <div className="inline-flex items-center gap-1.5">
       <button type="button" className={btn} disabled={disabled || value <= min} aria-label={`${label} −`} onClick={() => onChange(clamp(round(value - step)))}><Minus className="w-4 h-4" /></button>
@@ -48,7 +48,7 @@ export function NumberStepper(props: {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
         }}
-        className="w-16 h-9 text-center font-mono text-sm font-bold rounded-lg bg-slate-950 border border-slate-700 text-slate-100 focus:outline-none focus:border-sky-500 disabled:opacity-40"
+        className="w-16 h-11 sm:h-9 text-center font-mono text-sm font-bold rounded-lg bg-slate-950 border border-slate-700 text-slate-100 transition-colors duration-150 focus:border-sky-500 disabled:opacity-40"
       />
       <button type="button" className={btn} disabled={disabled || value >= max} aria-label={`${label} +`} onClick={() => onChange(clamp(round(value + step)))}><Plus className="w-4 h-4" /></button>
       {suffix && <span className="text-xs font-semibold text-slate-400">{suffix}</span>}

@@ -681,3 +681,25 @@ html.light .mixer-channel-box {
 /* Speed-up fields: one column in a narrow card, two when there is room (the card shares its row with the quiet bars). */
 .ramp-grid { display: grid; grid-template-columns: 1fr; }
 @media (min-width: 1500px) { .ramp-grid { grid-template-columns: 1fr 1fr; } }
+
+
+/* ==========================================================================
+   INTERACTION STATES (global, additive)
+   One keyboard-focus ring, one pressed feedback, no 300 ms tap delay,
+   and respect for "reduce motion". Nothing above this block is changed.
+   ========================================================================== */
+button, [role="switch"], [role="button"], a, input[type="range"], summary { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+
+:where(button, [role="switch"], a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid rgb(var(--sky-500));
+  outline-offset: 2px;
+}
+/* text fields already show their state with the border, so the ring hugs them */
+:where(input[type="text"], input[type="number"], textarea):focus-visible { outline-offset: 0; }
+
+:where(button, [role="switch"]):active:not(:disabled) { transform: scale(0.97); }
+:where(button, [role="switch"]) { transition-property: color, background-color, border-color, box-shadow, transform, opacity; transition-duration: 150ms; transition-timing-function: ease; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+}
