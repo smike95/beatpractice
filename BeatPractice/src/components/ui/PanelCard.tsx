@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 /** The card every Training panel is built on: icon + title (+ optional controls on the right), then the content. */
-export function PanelCard(props: { id: string; icon: ReactNode; title: string; actions?: ReactNode; children: ReactNode }) {
+export function PanelCard(props: { id?: string; icon: ReactNode; title: string; actions?: ReactNode; children: ReactNode }) {
   const { id, icon, title, actions, children } = props;
   return (
     <section id={id} className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3 shadow-sm">

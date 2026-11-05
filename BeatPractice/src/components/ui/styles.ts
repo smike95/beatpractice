@@ -15,6 +15,10 @@ export const btn = {
   danger: `${base} ${regular} bg-rose-600 hover:bg-rose-500 text-white`,
   neutral: `${base} ${regular} border track-edit-btn`,
   compact: `${base} ${compact} border track-edit-btn shrink-0`,
+  /** the quiet dark button used inside panels (loops, stems); its colours follow the slate classes the light theme already maps */
+  secondary: `${base} ${compact} border bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700`,
+  /** the one big action of a panel */
+  cta: `${base} min-h-11 px-5 text-sm bg-sky-600 hover:bg-sky-500 text-white`,
   /** a small toggle / choice button */
   chip: (active: boolean) => `${base} ${compact} border ${active ? "bg-sky-700 text-white border-sky-700" : "track-edit-btn"}`,
   /** the round × button in a dialog header */

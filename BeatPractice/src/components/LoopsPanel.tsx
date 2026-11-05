@@ -3,6 +3,8 @@ import { Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { LoopSlot, barsText, loopColor, loopLabel } from "../types";
 import { Switch } from "./Switch";
 import { StableLabel } from "./ui/StableLabel";
+import { PanelCard } from "./ui/PanelCard";
+import { btn as btnStyle } from "./ui/styles";
 
 interface Props {
   loops: LoopSlot[];
@@ -56,7 +58,7 @@ function BarInput(props: { value: number; min: number; max: number; disabled?: b
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
       }}
-      className="w-16 px-1.5 py-1 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 font-mono text-center text-sm focus:outline-none focus:border-sky-500"
+      className="w-16 h-11 sm:h-9 px-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 font-mono text-center text-sm transition-colors duration-150 focus:border-sky-500 disabled:opacity-40"
     />
   );
 }
@@ -73,7 +75,7 @@ function NameEditor(props: { value: string; shown: string; label: string; onComm
         <span className="truncate text-sm font-bold text-slate-100" title={shown}>{shown}</span>
         <button type="button" aria-label={label} title={label}
           onClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}
-          className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0">
+          className="p-3.5 -m-3.5 sm:p-1 sm:m-0 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0 transition-colors duration-150">
           <Pencil className="w-4 h-4" />
         </button>
       </span>
@@ -91,7 +93,7 @@ function NameEditor(props: { value: string; shown: string; label: string; onComm
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         if (e.key === "Escape") { setDraft(value); setEditing(false); }
       }}
-      className="min-w-0 w-40 sm:w-56 px-2 py-0.5 rounded-lg bg-slate-950 border border-sky-500 text-sm font-bold text-slate-100 focus:outline-none"
+      className="min-w-0 w-40 sm:w-56 h-11 sm:h-8 px-2 rounded-lg bg-slate-950 border border-sky-500 text-sm font-bold text-slate-100"
     />
   );
 }
@@ -111,21 +113,19 @@ export function LoopsPanel(props: Props) {
 
   const keepName = (old: LoopSlot, next: LoopSlot): LoopSlot => (old.name ? { ...next, name: old.name } : next);
 
-  const btn =
-    "px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+  const btn = btnStyle.secondary;
 
   return (
-    <section className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-sm font-bold text-slate-100 uppercase tracking-wide">
-          <Repeat className="w-6 h-6" />
-          {L("Цикли по тактах", "Bar loops")}
-        </div>
+    <PanelCard
+      icon={<Repeat className="w-6 h-6" />}
+      title={L("Цикли по тактах", "Bar loops")}
+      actions={
         <button className={btn} disabled={!ready || loops.length === 0 || loops.length >= maxLoops} onClick={props.onAdd}
           title={loops.length >= maxLoops ? L("Максимум 3 цикли", "Up to 3 loops") : ""}>
           <span className="inline-flex items-center gap-1"><Plus className="w-6 h-6" />{L("Цикл", "Loop")}</span>
         </button>
-      </div>
+      }
+    >
       <p className="text-xs text-slate-400">
         {L(
           "Грає один цикл за раз. Протягніть по хвилі, щоб задати межі виділеного циклу. Межі завжди притискаються до початку такту.",
@@ -149,8 +149,11 @@ export function LoopsPanel(props: Props) {
           <div
             key={i}
             onClick={() => props.onSelect(i)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); props.onSelect(i); } }}
             style={{ borderColor: sel ? col.solid : undefined, background: sel ? col.fill : undefined }}
-            className={`rounded-xl border-2 p-3 space-y-2.5 cursor-pointer transition-colors ${sel ? "" : "border-slate-800"}`}
+            className={`rounded-xl border-2 p-3 space-y-3 cursor-pointer transition-colors duration-150 ${sel ? "" : "border-slate-800"}`}
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
@@ -177,7 +180,7 @@ export function LoopsPanel(props: Props) {
                 </button>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-xs text-slate-300" onClick={(e) => e.stopPropagation()}>
               <label className="flex items-center gap-1.5">
                 {L("З такту", "From bar")}
                 <BarInput value={fb} min={1} max={Math.max(1, total)} disabled={!ready || total === 0}
@@ -199,6 +202,6 @@ export function LoopsPanel(props: Props) {
           </div>
         );
       })}
-    </section>
+    </PanelCard>
   );
 }

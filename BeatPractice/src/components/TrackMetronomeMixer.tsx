@@ -50,7 +50,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
         aria-expanded={expanded}
         aria-controls="mixer-details"
         title={expanded ? (lang === 'en' ? 'Fold the mixer' : 'Згорнути мікшер') : (lang === 'en' ? 'Unfold the mixer: stem separation' : 'Розгорнути мікшер: розділення на партії')}
-        className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider shrink-0 cursor-pointer rounded-lg px-1.5 py-1 -mx-1.5 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+        className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider shrink-0 cursor-pointer rounded-lg px-2.5 min-h-11 sm:min-h-9 -mx-2.5 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
       >
         <Sliders className="w-6 h-6 text-slate-700 dark:text-slate-300" />
         <span className="text-xs text-slate-700 dark:text-slate-300 font-bold">{lang === 'en' ? 'Mixer' : 'Мікшер'}</span>
@@ -59,11 +59,11 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
 
       <div className="flex-1 min-w-[260px] sm:min-w-[500px] grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 items-center">
         {/* Track Volume Channel */}
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-1.5 sm:py-2 rounded-lg border border-slate-200 dark:border-slate-800/80 mixer-channel-box shadow-2xs">
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-0.5 sm:py-2 rounded-lg border border-slate-200 dark:border-slate-800/80 mixer-channel-box shadow-2xs">
           <button
             type="button"
             onClick={onTrackMuteToggle}
-            className={`flex items-center gap-1 font-semibold shrink-0 cursor-pointer transition-colors ${
+            className={`flex items-center gap-1 min-h-11 sm:min-h-0 font-semibold shrink-0 cursor-pointer transition-colors ${
               isTrackMuted ? 'text-rose-500 font-bold' : 'text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white'
             }`}
             title={isTrackMuted ? 'Увімкнути звук треку' : 'Заглушити трек'}
@@ -89,11 +89,11 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
         </div>
 
         {/* Metronome Volume Channel */}
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-1.5 sm:py-2 rounded-lg border border-slate-200 dark:border-slate-800/80 mixer-channel-box shadow-2xs">
+        <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-0.5 sm:py-2 rounded-lg border border-slate-200 dark:border-slate-800/80 mixer-channel-box shadow-2xs">
           <button
             type="button"
             onClick={onMetronomeToggle}
-            className={`flex items-center gap-1 font-semibold shrink-0 cursor-pointer transition-colors ${
+            className={`flex items-center gap-1 min-h-11 sm:min-h-0 font-semibold shrink-0 cursor-pointer transition-colors ${
               isMetronomeEnabled ? 'text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white' : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400'
             }`}
             title={isMetronomeEnabled ? 'Вимкнути метроном' : 'Увімкнути метроном'}

@@ -717,3 +717,18 @@ button, [role="switch"], [role="button"], a, input[type="range"], summary { touc
   max-height: calc(100dvh - 2rem);
   animation: bp-pop 180ms ease-out;
 }
+
+/* ==========================================================================
+   SLIDERS: touch zone and focus
+   ========================================================================== */
+.bp-range { transition: none; }
+.bp-range:focus-visible { outline: none; }
+.bp-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgb(var(--sky-500) / 0.45), 0 1px 3px rgba(0, 0, 0, 0.4); }
+.bp-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px rgb(var(--sky-500) / 0.45), 0 1px 3px rgba(0, 0, 0, 0.4); }
+.bp-range::-webkit-slider-thumb { transition: transform 120ms ease; }
+.bp-range:active::-webkit-slider-thumb { transform: scale(1.15); }
+@media (pointer: coarse) {
+  .bp-range { height: 44px; }
+  .bp-range::-webkit-slider-thumb { height: 26px; width: 26px; margin-top: -9px; }
+  .bp-range::-moz-range-thumb { height: 22px; width: 22px; }
+}

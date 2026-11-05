@@ -3,6 +3,7 @@ import { Slider } from "./Slider";
 import { Switch } from "./Switch";
 import { Loader2, RotateCcw } from "lucide-react";
 import type { usePlayer } from "../player/usePlayer";
+import { btn as btnStyle } from "./ui/styles";
 
 type Player = ReturnType<typeof usePlayer>;
 type Lang = "uk" | "en";
@@ -41,10 +42,8 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   const eta = progress > 0.04 ? (elapsed * (1 - progress)) / progress : NaN;
 
   const card = "border-t border-slate-200 dark:border-slate-800 pt-3 space-y-4";
-  const btn =
-    "px-3 py-1.5 text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
-  const primary =
-    "px-4 py-2 text-sm font-bold rounded-lg bg-sky-600 hover:bg-sky-500 text-white cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
+  const btn = btnStyle.secondary;
+  const primary = btnStyle.cta;
 
   const neuralNote = (
     <p className="text-xs text-slate-400">
@@ -112,7 +111,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
     return (
       <section className={card}>
         <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm text-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm text-slate-200">
             <span className="inline-flex items-center gap-2"><Loader2 className="w-6 h-6 animate-spin" />{L("Розділення…", "Separating…")} {Math.round(progress * 100)}%</span>
             <button className={btn} onClick={player.cancelStems}>{L("Скасувати", "Cancel")}</button>
           </div>
@@ -148,8 +147,8 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
           const g = stemMix.gain[i] ?? 1;
           const muted = !!stemMix.mute[i];
           return (
-            <div key={n + i} className="flex items-center gap-3 rounded-xl border border-slate-800 px-3 py-2">
-              <div className="w-44 text-sm font-semibold text-slate-100 truncate">{(NAMES[n] ?? [n, n])[lang === "en" ? 1 : 0]}</div>
+            <div key={n + i} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-slate-800 px-3 py-2">
+              <div className="w-full sm:w-44 min-w-0 text-sm font-semibold text-slate-100 truncate">{(NAMES[n] ?? [n, n])[lang === "en" ? 1 : 0]}</div>
               <Slider
                 min={0}
                 max={150}
