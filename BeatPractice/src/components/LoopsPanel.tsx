@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { LoopSlot, barsText, loopColor, loopLabel } from "../types";
 import { Switch } from "./Switch";
+import { StableLabel } from "./ui/StableLabel";
 
 interface Props {
   loops: LoopSlot[];
@@ -160,7 +161,7 @@ export function LoopsPanel(props: Props) {
                 <span className="text-xs font-normal text-slate-400 whitespace-nowrap">{barsText(tb - fb + 1, lang)}</span>
               </div>
               <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <span className="text-xs font-semibold text-slate-400">{on ? L("Грає", "Playing") : L("Вимкнено", "Off")}</span>
+                <span className="text-xs font-semibold text-slate-400"><StableLabel align="text-right" active={on ? 1 : 0} labels={[L("Вимкнено", "Off"), L("Грає", "Playing")]} /></span>
                 <Switch
                   checked={on}
                   disabled={!ready}
@@ -168,7 +169,7 @@ export function LoopsPanel(props: Props) {
                   label={on ? L("Вимкнути цикл", "Turn the loop off") : L("Увімкнути цикл", "Turn the loop on")}
                 />
                 <button
-                  className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
+                  className="p-2.5 sm:p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer transition-colors duration-150"
                   title={L("Видалити цикл", "Delete loop")} aria-label={L("Видалити цикл", "Delete loop")}
                   onClick={() => props.onRemove(i)}
                 >

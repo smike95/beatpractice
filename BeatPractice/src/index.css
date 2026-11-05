@@ -679,8 +679,7 @@ html.light .mixer-channel-box {
 }
 
 /* Speed-up fields: one column in a narrow card, two when there is room (the card shares its row with the quiet bars). */
-.ramp-grid { display: grid; grid-template-columns: 1fr; }
-@media (min-width: 1500px) { .ramp-grid { grid-template-columns: 1fr 1fr; } }
+.ramp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); }
 
 
 /* ==========================================================================

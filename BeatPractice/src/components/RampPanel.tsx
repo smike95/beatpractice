@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Square, TrendingUp } from "lucide-react";
 import { NumberStepper } from "./NumberStepper";
+import { PanelCard } from "./ui/PanelCard";
+import { Field } from "./ui/Field";
+import { MiniButton } from "./ui/MiniButton";
+import { StableLabel } from "./ui/StableLabel";
 
 type Lang = "uk" | "en";
 
@@ -91,23 +95,24 @@ export function RampPanel(props: {
     : "";
 
   return (
-    <section id="ramp-panel" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2 text-sm font-bold text-slate-100 uppercase tracking-wide">
-          <TrendingUp className="w-6 h-6" />
-          {L("Розгін", "Speed-up")}
-        </div>
+    <PanelCard
+      id="ramp-panel"
+      icon={<TrendingUp className="w-6 h-6" />}
+      title={L("Розгін", "Speed-up")}
+      actions={
         <button
           id="btn-ramp"
           type="button"
           disabled={!ready}
           onClick={() => (running ? stop() : start())}
           aria-pressed={running}
-          className={`px-4 py-2 rounded-lg font-bold inline-flex items-center gap-2 cursor-pointer text-white disabled:opacity-40 disabled:cursor-default ${running ? "bg-rose-700 hover:bg-rose-600" : "bg-sky-700 hover:bg-sky-600"}`}
+          className={`min-h-11 px-4 rounded-lg font-bold inline-flex items-center justify-center gap-2 cursor-pointer text-white shadow-sm transition-colors duration-150 disabled:opacity-40 disabled:cursor-default ${running ? "bg-rose-700 hover:bg-rose-600" : "bg-sky-700 hover:bg-sky-600"}`}
         >
-          {running ? <><Square className="w-5 h-5 fill-current" />{L("Зупинити", "Stop")}</> : <><Play className="w-5 h-5 fill-current" />{L("Почати розгін", "Start")}</>}
+          {running ? <Square className="w-5 h-5 shrink-0 fill-current" /> : <Play className="w-5 h-5 shrink-0 fill-current" />}
+          <StableLabel active={running ? 1 : 0} labels={[L("Почати розгін", "Start"), L("Зупинити", "Stop")]} />
         </button>
-      </div>
+      }
+    >
       <p className="text-xs text-slate-400">
         {L(
           "Темп росте сходинками: кожні кілька проходів на заданий крок, від стартового до цільового. Прохід — один раз через активний цикл (без циклу — весь трек, увімкніть повтор треку).",
@@ -115,31 +120,27 @@ export function RampPanel(props: {
         )}
       </p>
 
-      <div className="ramp-grid gap-x-6 gap-y-3">
-        <div className="space-y-1">
-          <div className="track-edit-label text-xs">{L("Старт, BPM", "Start, BPM")} {startOv === null && <span className="text-slate-500">({L("поточний темп", "current tempo")})</span>}</div>
+      <div className="ramp-grid gap-x-6 gap-y-4">
+        <Field label={<>{L("Старт, BPM", "Start, BPM")} {startOv === null && <span className="text-slate-500">({L("поточний темп", "current tempo")})</span>}</>}>
           <div className="flex items-center gap-2 flex-wrap">
             <NumberStepper id="ramp-start" value={startShown} min={lo} max={hi} step={1} decimals={1} label={L("Стартовий темп", "Start tempo")} disabled={!ready || running} onChange={(v) => setStartOv(v)} />
-            {startOv !== null && <button type="button" className="text-xs px-2 py-1 rounded-lg border border-slate-700 hover:bg-slate-800 cursor-pointer" disabled={running} onClick={() => setStartOv(null)}>{L("поточний", "current")}</button>}
+            {startOv !== null && <MiniButton disabled={running} onClick={() => setStartOv(null)}>{L("поточний", "current")}</MiniButton>}
           </div>
-        </div>
-        <div className="space-y-1">
-          <div className="track-edit-label text-xs">{L("Ціль, BPM", "Target, BPM")} {targetOv === null && <span className="text-slate-500">({L("оригінал", "original")})</span>}</div>
+        </Field>
+        <Field label={<>{L("Ціль, BPM", "Target, BPM")} {targetOv === null && <span className="text-slate-500">({L("оригінал", "original")})</span>}</>}>
           <div className="flex items-center gap-2 flex-wrap">
             <NumberStepper id="ramp-target" value={targetShown} min={lo} max={hi} step={1} decimals={1} label={L("Цільовий темп", "Target tempo")} disabled={!ready || running} onChange={(v) => setTargetOv(v)} />
-            {targetOv !== null && <button type="button" className="text-xs px-2 py-1 rounded-lg border border-slate-700 hover:bg-slate-800 cursor-pointer" disabled={running} onClick={() => setTargetOv(null)}>{L("оригінал", "original")}</button>}
+            {targetOv !== null && <MiniButton disabled={running} onClick={() => setTargetOv(null)}>{L("оригінал", "original")}</MiniButton>}
           </div>
-        </div>
-        <div className="space-y-1">
-          <div className="track-edit-label text-xs">{L("Крок, BPM", "Step, BPM")}</div>
+        </Field>
+        <Field label={L("Крок, BPM", "Step, BPM")}>
           <NumberStepper id="ramp-step" value={step} min={1} max={50} label={L("Крок прискорення", "Step")} disabled={running} onChange={setStep} />
-        </div>
-        <div className="space-y-1">
-          <div className="track-edit-label text-xs">{L(`Змінювати темп кожні N ${unit}`, `Change the tempo every N ${unit}`)}</div>
+        </Field>
+        <Field label={L(`Змінювати темп кожні N ${unit}`, `Change the tempo every N ${unit}`)}>
           <NumberStepper id="ramp-every" value={every} min={1} max={32} label={L("Проходів на крок", "Passes per step")} disabled={running} onChange={setEvery} />
-        </div>
+        </Field>
       </div>
       {status && <p className="text-sm text-slate-200" role="status">{status}</p>}
-    </section>
+    </PanelCard>
   );
 }
