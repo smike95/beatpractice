@@ -246,7 +246,7 @@ export default function App() {
         onClick={() => setAboutOpen(true)}
         title={lang === 'en' ? 'About BeatPractice' : 'Про програму'}
         aria-label={lang === 'en' ? 'About BeatPractice' : 'Про програму'}
-        className="p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
+        className="p-2.5 lg:p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
       >
         <Info className="w-6 h-6" />
       </button>
@@ -255,7 +255,7 @@ export default function App() {
               id={`header-theme-toggle${sfx}`}
               type="button"
               onClick={() => setThemeMode(prev => prev === 'dark' ? 'light' : prev === 'light' ? 'system' : 'dark')}
-              className="flex items-center gap-1.5 p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none"
+              className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none"
               title={`${t('theme')}: ${themeMode === 'light' ? t('themeLight') : themeMode === 'dark' ? t('themeDark') : t('themeSystem')}`}
             >
               {themeMode === 'light' && <Sun className="w-6 h-6 text-amber-500" />}
@@ -276,11 +276,11 @@ export default function App() {
               id={`header-lang-toggle${sfx}`}
               type="button"
               onClick={() => handleSetLang(lang === 'uk' ? 'en' : 'uk')}
-              className="flex items-center gap-1 px-2 py-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none"
+              className="flex items-center gap-1 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none"
               title={lang === 'uk' ? 'Switch to English' : 'Перемкнути на українську'}
             >
               <Languages className="w-6 h-6 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-              <span className="font-bold text-xs sm:text-xs">{lang === 'uk' ? 'УКР' : 'ENG'}</span>
+              <span className="hidden sm:inline font-bold text-xs">{lang === 'uk' ? 'УКР' : 'ENG'}</span>
             </button>
 
     </>
@@ -292,18 +292,18 @@ export default function App() {
       <header ref={headerRef} className="relative border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 select-none" data-tauri-drag-region>
         <div className="flex items-stretch" data-tauri-drag-region>
           <div className="flex-1 min-w-0" data-tauri-drag-region>
-            <div className="max-w-[1920px] mx-auto flex items-stretch" data-tauri-drag-region>
-              <div className="lg:w-[25rem] shrink-0 flex items-center gap-3 px-3 sm:px-4 py-2 pointer-events-none">
+            <div className="max-w-[1920px] mx-auto flex flex-wrap lg:flex-nowrap items-center lg:items-stretch gap-x-2 gap-y-1 px-3 py-2 sm:px-4 lg:p-0 lg:gap-0" data-tauri-drag-region>
+              <div className="order-1 flex-1 min-w-0 lg:flex-none lg:w-[25rem] lg:shrink-0 flex items-center gap-3 lg:px-4 lg:py-2 pointer-events-none">
                 <BeatPracticeLogo className="w-10 h-10 shrink-0" />
-                <span className="text-2xl font-black text-slate-100 tracking-tight">BeatPractice</span>
+                <span className="hidden sm:inline text-2xl font-black text-slate-100 tracking-tight">BeatPractice</span>
               </div>
-              <div className={`flex-1 min-w-0 flex items-center gap-3 px-3 sm:px-6 py-2 justify-end ${isWindows ? 'lg:pr-[9rem]' : ''}`} data-tauri-drag-region>
+              <div className={`contents lg:flex lg:flex-1 lg:min-w-0 lg:items-center lg:gap-3 lg:px-6 lg:py-2 lg:justify-end ${isWindows ? 'lg:pr-[9rem]' : ''}`} data-tauri-drag-region>
                 <button
                   id="btn-export-track"
                   onClick={() => setExporting(true)}
                   disabled={!(track && player.ready)}
                   title={lang === 'en' ? 'Export the track with the current tempo and parts' : 'Експортувати трек із поточним темпом і партіями'}
-                  className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
+                  className="order-2 lg:order-none w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
                 >
                   <Download className="w-6 h-6" />
                 </button>
@@ -312,17 +312,17 @@ export default function App() {
                   onClick={() => setPacking(true)}
                   disabled={!(track && player.ready) || player.caps?.packs === false}
                   title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
-                  className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
+                  className="order-3 lg:order-none w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
                 >
                   <Package className="w-6 h-6" />
                 </button>
               {/* Transport: back / play / next / what happens at the end (as in common players) */}
-              <div id="transport-cluster" className="flex items-center gap-2 shrink-0 lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
+              <div id="transport-cluster" className="order-5 basis-full justify-center lg:order-none lg:basis-auto lg:justify-start flex items-center gap-2 shrink-0 lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
                 <button
                   id="btn-restart-playback"
                   onClick={player.skipBack}
                   disabled={!track}
-                  className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40"
+                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40"
                   title={lang === 'en' ? 'To the start / previous track' : 'На початок / попередній трек'}
                 >
                   <SkipBack className="w-6 h-6 fill-current" />
@@ -344,7 +344,7 @@ export default function App() {
                   id="btn-next-track"
                   onClick={player.playNext}
                   disabled={!player.hasNext}
-                  className="w-10 h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
+                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
                   title={lang === 'en' ? 'Next track' : 'Наступний трек'}
                 >
                   <SkipForward className="w-6 h-6 fill-current" />
@@ -360,7 +360,7 @@ export default function App() {
                         ? (lang === 'en' ? 'At the end: play this song again, with count-in (click to change)' : 'Після кінця: знову цей трек з початку, з відліком (натисніть, щоб змінити)')
                         : (lang === 'en' ? 'At the end: play the next track (click to change)' : 'Після кінця: наступний трек із плейліста (натисніть, щоб змінити)')
                   }
-                  className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${
+                  className={`w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${
                     player.playMode === 'stop'
                       ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
                       : 'bg-sky-600 text-white border-sky-500 hover:bg-sky-500'
@@ -369,7 +369,7 @@ export default function App() {
                   {player.playMode === 'repeat' ? <Repeat1 className="w-6 h-6" /> : player.playMode === 'next' ? <ListEnd className="w-6 h-6" /> : <Repeat className="w-6 h-6" />}
                 </button>
               </div>
-                <div className="lg:hidden flex items-center gap-1.5 shrink-0">{themeLangButtons('-small')}</div>
+                <div className="order-4 lg:hidden flex items-center gap-1 shrink-0">{themeLangButtons('-small')}</div>
               </div>
             </div>
           </div>
@@ -613,7 +613,7 @@ export default function App() {
                 key={id}
                 id={`tab-${id}`}
                 onClick={() => setActiveTab(id)}
-                className={`px-3.5 py-1.5 text-xs font-bold rounded-lg flex items-center gap-2 transition-all cursor-pointer ${
+                className={`min-h-11 sm:min-h-9 px-3.5 text-xs font-bold rounded-lg flex items-center gap-2 transition-colors duration-150 cursor-pointer ${
                   activeTab === id
                     ? 'tab-active border shadow-2xs'
                     : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900'
@@ -644,9 +644,7 @@ export default function App() {
                       <button
                         key={n}
                         onClick={() => setMetronomeConfig((prev) => ({ ...prev, countInBars: n }))}
-                        className={`px-3 py-1 rounded-lg border font-bold cursor-pointer transition-colors ${
-                          metronomeConfig.countInBars === n ? 'bg-slate-700 text-white border-slate-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                        }`}
+                        className={btn.option(metronomeConfig.countInBars === n)}
                       >
                         {n === 0 ? 'OFF' : `${n} ${lang === 'en' ? (n === 1 ? 'bar' : 'bars') : n === 1 ? 'такт' : 'такти'}`}
                       </button>
@@ -672,11 +670,7 @@ export default function App() {
                         key={id}
                         disabled={player.caps.clickSounds <= id}
                         onClick={() => player.setClickSound(id)}
-                        className={`px-3 py-1.5 rounded-lg border text-xs font-bold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                          player.clickSound === id && player.caps.clickSounds > 0
-                            ? 'bg-slate-700 text-white border-sky-500 border-2'
-                            : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                        }`}
+                        className={btn.option(player.clickSound === id && player.caps.clickSounds > 0)}
                       >
                         {lang === 'en' ? en : uk}
                       </button>
@@ -712,9 +706,7 @@ export default function App() {
                         title={tip}
                         disabled={!player.ready || !player.caps.meterModes}
                         onClick={() => player.setMeterMode(m)}
-                        className={`px-3 py-1 rounded-lg border text-xs font-bold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${
-                          player.meterMode === m ? 'bg-slate-700 text-white border-sky-500 border-2' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
-                        }`}
+                        className={btn.option(player.meterMode === m)}
                       >
                         {label}
                       </button>

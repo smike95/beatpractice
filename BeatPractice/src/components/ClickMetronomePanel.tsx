@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Play, Square, Zap } from "lucide-react";
 import { core } from "../core";
 import { CLICK_SOUND_NAMES } from "../types";
+import { btn as btnStyle } from "./ui/styles";
 import { Slider } from "./Slider";
 import { Switch } from "./Switch";
 import { MetronomeIcon } from "./MetronomeIcon";
@@ -21,11 +22,7 @@ const ui = {
   stepBtn:
     "h-11 sm:h-10 sm:min-w-[2.75rem] px-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 " +
     "text-sm font-bold tabular-nums text-slate-200 cursor-pointer select-none transition-colors duration-150",
-  chip: (active: boolean) =>
-    `h-11 sm:h-9 rounded-lg border text-xs font-bold cursor-pointer select-none transition-colors duration-150 ` +
-    `disabled:opacity-40 disabled:cursor-not-allowed ${
-      active ? "bg-slate-700 text-white border-sky-500 border-2" : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
-    }`,
+  chip: (active: boolean) => btnStyle.option(active),
 };
 
 /** Start / stop. The size is fixed (48 × 48) and the icons are the same size, so nothing jumps when the state changes. */

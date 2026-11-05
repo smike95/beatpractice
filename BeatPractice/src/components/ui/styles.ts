@@ -19,6 +19,11 @@ export const btn = {
   secondary: `${base} ${compact} border bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700`,
   /** the one big action of a panel */
   cta: `${base} min-h-11 px-5 text-sm bg-sky-600 hover:bg-sky-500 text-white`,
+  /** one of several choices; the chosen one has a sky border (count-in, sound, meter mode, beats per bar) */
+  option: (active: boolean) =>
+    `${base} h-11 sm:h-9 px-3 border font-bold disabled:cursor-not-allowed ${
+      active ? "bg-slate-700 text-white border-sky-500 border-2" : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+    }`,
   /** a small toggle / choice button */
   chip: (active: boolean) => `${base} ${compact} border ${active ? "bg-sky-700 text-white border-sky-700" : "track-edit-btn"}`,
   /** the round × button in a dialog header */
