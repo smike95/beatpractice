@@ -8,7 +8,7 @@ import { barStartTimes, computeSections, TempoSection, tempoVaries } from "../ut
 const AUDIO_EXTS = ["mp3", "wav", "flac", "ogg", "beatpack"];
 const STORE_KEY = "rt_playlist_v1";
 const NO_LOOP: LoopRange = { active: false, start: 0, end: 0 };
-const MAX_LOOPS = 3;
+export const MAX_LOOPS = 3;
 const MAX_STEMS = 8;
 const defaultMix = (): StemMix => ({
   gain: Array(MAX_STEMS).fill(1),
@@ -490,18 +490,19 @@ export function usePlayer() {
     [loops, activeLoop, selectedLoop, persistLoops],
   );
 
-  /** A loop dragged on the waveform replaces the selected loop (or creates the first one) and switches it on. */
+  /** A loop dragged on the waveform becomes a NEW loop while there is room for one (up to MAX_LOOPS); when they are all taken it replaces the selected one. */
   const dragLoop = useCallback(
     async (start: number, end: number) => {
       if (!ready || !activeId) return;
-      const idx = loops.length === 0 ? 0 : Math.min(selectedLoop, loops.length - 1);
-      const slot: LoopSlot = { start, end, ...(loops[idx]?.name ? { name: loops[idx].name } : {}) };   // the name stays
+      const makeNew = loops.length < MAX_LOOPS;
+      const idx = makeNew ? loops.length : Math.min(selectedLoop, loops.length - 1);
+      const slot: LoopSlot = makeNew ? { start, end } : { start, end, ...(loops[idx]?.name ? { name: loops[idx].name } : {}) };   // a replaced loop keeps its name
       const ok = await core.setLoop(start, end);
       if (!ok) {
         setMessage("Ядро не прийняло цикл (завеликий або замалий).");
         return;
       }
-      const next = loops.length === 0 ? [slot] : loops.map((l, i) => (i === idx ? slot : l));
+      const next = makeNew ? [...loops, slot] : loops.map((l, i) => (i === idx ? slot : l));
       setLoops(next);
       setSelectedLoop(idx);
       setActiveLoop(idx);
@@ -715,15 +716,14 @@ export function usePlayer() {
   const toggleStemSolo = useCallback((i: number) => updateMix((m) => { m.solo[i] = !m.solo[i]; return m; }), [updateMix]);
   /** quick mixes; they also switch the parts on */
   const stemPreset = useCallback(
-    (kind: "reset" | "no-drums" | "only-drums" | "no-bass" | "no-vocals") => {
+    (kind: "reset" | { only: string }) => {
       const names = stemsInfo?.names ?? [];
-      const idx = (n: string) => names.indexOf(n);
       updateMix((m) => {
         m.gain.fill(1); m.mute.fill(false); m.solo.fill(false);
-        if (kind === "no-drums" && idx("drums") >= 0) m.mute[idx("drums")] = true;
-        if (kind === "only-drums" && idx("drums") >= 0) { m.mute.fill(true); m.mute[idx("drums")] = false; }
-        if (kind === "no-bass" && idx("bass") >= 0) m.mute[idx("bass")] = true;
-        if (kind === "no-vocals" && idx("vocals") >= 0) m.mute[idx("vocals")] = true;
+        if (kind !== "reset") {
+          const k = names.indexOf(kind.only);
+          if (k >= 0) { m.mute.fill(true); m.mute[k] = false; }      // only this part is heard
+        }
         return m;
       }, true);
     },

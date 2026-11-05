@@ -27,6 +27,7 @@ struct Bridge::Impl {
         j["beat"] = b.beatIndex >= 0 ? json{{"index", b.beatIndex}, {"posInBar", b.posInBar}, {"barLength", b.barLength}} : json(nullptr);
         int cb = 0, ct = 0;
         j["countIn"] = p.countInBeat(&cb, &ct) ? json{{"beat", cb}, {"total", ct}} : json(nullptr);
+        j["clickBeat"] = p.standaloneClickBeat();
         j["stems"] = {{"state", (int)p.stemsState()}, {"progress", p.stemsProgress()}, {"enabled", p.stemsEnabled()}};
         return j;
     }
@@ -49,6 +50,7 @@ struct Bridge::Impl {
         if (cmd == "core_open_file") return p.openFile(str("path"));
         if (cmd == "core_snapshot") return snapshot();
         if (cmd == "core_song_data") return songData();
+        if (cmd == "core_click_set") { p.setStandaloneClick(boo("on"), num("bpm", 100), (int)num("beats", 4), boo("accent"), (float)num("volume", 1), (int)num("sound")); return nullptr; }
         if (cmd == "core_stem_peaks") return p.stemPeaks();
         if (cmd == "core_caps") {
             const int sounds = PlaybackEngine::clickSoundCount();

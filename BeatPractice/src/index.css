@@ -660,3 +660,24 @@ input[type="range"].bp-range::-moz-range-thumb {
 .cover-ph-active { background: #334155; color: #ffffff; }
 html.light .tab-active { background: #0369a1; color: #ffffff; border-color: #075985; box-shadow: 0 1px 3px rgba(3, 105, 161, 0.45); }
 html.light .cover-ph-active { background: #0369a1; color: #ffffff; }
+
+/* A button that has something to do right now (for example "reset to the original tempo" when the tempo was changed): clearly lit. */
+.btn-attn { background: #0369a1; color: #ffffff; border-color: #38bdf8; }
+.btn-attn:hover { background: #0284c7; }
+html.light .btn-attn { background: #0369a1; color: #ffffff; border-color: #075985; }
+
+/* Light theme: the outlines of buttons and fields are clearly visible (the general hairlines stay light). */
+html.light button.border-slate-700,
+html.light button.border-slate-800,
+html.light button.border-slate-700\/80,
+html.light input.border-slate-700,
+html.light select.border-slate-700,
+html.light input.border-slate-600,
+html.light button.border-slate-600,
+html.light .mixer-channel-box {
+  border-color: #94a3b8 !important;
+}
+
+/* Speed-up fields: one column in a narrow card, two when there is room (the card shares its row with the quiet bars). */
+.ramp-grid { display: grid; grid-template-columns: 1fr; }
+@media (min-width: 1500px) { .ramp-grid { grid-template-columns: 1fr 1fr; } }

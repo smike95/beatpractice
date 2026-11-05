@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Slider } from "./Slider";
 import { Switch } from "./Switch";
-import { Layers, Loader2, RotateCcw } from "lucide-react";
+import { Loader2, RotateCcw } from "lucide-react";
 import type { usePlayer } from "../player/usePlayer";
 
 type Player = ReturnType<typeof usePlayer>;
@@ -13,7 +13,7 @@ export const NAMES: Record<string, [string, string]> = {
   other: ["Інше", "Other"],
   vocals: ["Вокал", "Vocals"],
   guitar: ["Гітара", "Guitar"],
-  piano: ["Піаніно", "Piano"],
+  piano: ["Клавішні", "Keys"],
   rest: ["Решта", "Rest"],
 };
 
@@ -46,26 +46,16 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   const primary =
     "px-4 py-2 text-sm font-bold rounded-lg bg-sky-600 hover:bg-sky-500 text-white cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed";
 
-  const header = (
-    <div className="flex items-start gap-3">
-      <Layers className="w-6 h-6 text-slate-200 shrink-0" />
-      <div>
-        <div className="text-sm font-bold text-slate-100 uppercase tracking-wide">{L("Розділення партій", "Stem separation")}</div>
-        <div className="text-xs text-slate-400">
-          {L(
-            "Нейромережа розділяє пісню на ударні, бас, вокал та інше.",
-            "A neural network splits the song into drums, bass, vocals and the rest.",
-          )}
-        </div>
-      </div>
-    </div>
+  const neuralNote = (
+    <p className="text-xs text-slate-400">
+      {L("Нейромережа розділяє пісню на ударні, бас, вокал та інше.", "A neural network splits the song into drums, bass, vocals and the rest.")}
+    </p>
   );
 
   // ---- the core cannot do it / the model is missing ------------------------------------------------
   if (!caps.stems) {
     return (
       <section className={card}>
-        {header}
         <p className="text-sm text-amber-500">
           {L(
             "У вашій збірці ядра ще немає розділення на партії: перезберіть beat-core з оновленими файлами (див. README).",
@@ -78,7 +68,6 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   if (!ready) {
     return (
       <section className={card}>
-        {header}
         <p className="text-sm text-slate-400">{L("Відкрийте трек, щоб розділити його на партії.", "Open a track to split it into stems.")}</p>
       </section>
     );
@@ -86,7 +75,6 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   if (info && !info.available) {
     return (
       <section className={card}>
-        {header}
         <p className="text-sm text-amber-500">
           {L("Модель розділення ще не встановлена. Завантажте її (один раз, близько 170 МБ):", "The separation model is not installed yet. Download it (once, about 170 MB):")}
         </p>
@@ -100,21 +88,21 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   if (state === 0 || state === 3) {
     return (
       <section className={card}>
-        {header}
         {state === 3 && <p className="text-sm text-rose-400">{info?.error || L("Не вдалося розділити пісню.", "Separation failed.")}</p>}
-        <div className="flex items-center gap-4 flex-wrap">
-          <button className={primary} onClick={player.startStems}>
+        <div>
+          <button id="btn-split-song" className={primary} onClick={player.startStems}>
             {info?.cached ? L("Завантажити готові партії", "Load the finished stems") : L("Розділити пісню на партії", "Split the song into stems")}
           </button>
-          <span className="text-xs text-slate-400">
-            {info?.cached
-              ? L("Для цієї пісні партії вже пораховані, це займе кілька секунд.", "The stems of this song are already computed, this takes a few seconds.")
-              : L(
-                  "Це робиться один раз для пісні й може тривати кілька хвилин (залежить від комп'ютера). Результат зберігається. Поки йде розділення, пісню можна слухати як зазвичай.",
-                  "This is done once per song and can take a few minutes (depends on the computer). The result is saved. You can keep listening to the song while it runs.",
-                )}
-          </span>
         </div>
+        {neuralNote}
+        <p className="text-xs text-slate-400">
+          {info?.cached
+            ? L("Для цієї пісні партії вже пораховані, це займе кілька секунд.", "The stems of this song are already computed, this takes a few seconds.")
+            : L(
+                "Це робиться один раз для пісні й може тривати кілька хвилин (залежить від комп'ютера). Результат зберігається. Поки йде розділення, пісню можна слухати як зазвичай.",
+                "This is done once per song and can take a few minutes (depends on the computer). The result is saved. You can keep listening to the song while it runs.",
+              )}
+        </p>
       </section>
     );
   }
@@ -123,7 +111,6 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   if (state === 1) {
     return (
       <section className={card}>
-        {header}
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm text-slate-200">
             <span className="inline-flex items-center gap-2"><Loader2 className="w-6 h-6 animate-spin" />{L("Розділення…", "Separating…")} {Math.round(progress * 100)}%</span>
@@ -135,20 +122,22 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
           </div>
           <p className="text-xs text-slate-400">{L("Пісню можна слухати як зазвичай, поки йде розділення.", "You can keep listening to the song while it runs.")}</p>
         </div>
+        {neuralNote}
       </section>
     );
   }
 
   // ---- ready: the mixer of parts ----------------------------------------------------------------------
-  const has = (n: string) => names.includes(n);
+  // quick mixes: only one part is heard. In this order; parts with other names (merged groups of a pack) follow.
+  const ORDER = ["drums", "guitar", "piano", "vocals", "bass", "other"];
+  const label = (n: string) => (NAMES[n] ?? [n, n])[lang === "en" ? 1 : 0];
+  const onlyList = [...ORDER.filter((n) => names.includes(n)), ...names.filter((n) => !ORDER.includes(n) && n !== "rest")];
   return (
     <section className={card}>
-      {header}
       <div className="flex flex-wrap gap-2">
-        {has("drums") && <button className={btn} onClick={() => player.stemPreset("no-drums")}>{L("Без ударних", "No drums")}</button>}
-        {has("drums") && <button className={btn} onClick={() => player.stemPreset("only-drums")}>{L("Тільки ударні", "Drums only")}</button>}
-        {has("bass") && <button className={btn} onClick={() => player.stemPreset("no-bass")}>{L("Без баса", "No bass")}</button>}
-        {has("vocals") && <button className={btn} onClick={() => player.stemPreset("no-vocals")}>{L("Без вокалу", "No vocals")}</button>}
+        {onlyList.map((n) => (
+          <button key={n} className={btn} onClick={() => player.stemPreset({ only: n })}>{L(`Тільки ${label(n).toLowerCase()}`, `${label(n)} only`)}</button>
+        ))}
         <button className={btn} onClick={() => player.stemPreset("reset")}>
           <span className="inline-flex items-center gap-1"><RotateCcw className="w-6 h-6" />{L("Скинути", "Reset")}</span>
         </button>

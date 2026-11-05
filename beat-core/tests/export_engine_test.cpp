@@ -112,6 +112,24 @@ int main() {
             expect(ef->peaks().size() == ei->peaks().size(), "  waveform overview has the same size");
         }
     }
+    // a click-only metronome (no song): even clicks, accent on the first beat of each bar, own volume and sound
+    {
+        PlaybackEngine e(SR);                                    // no song at all
+        e.setStandaloneClick(true, 120.0, 3, true, 0.8f, 0);
+        std::vector<float> all, blk(2 * 4410);
+        for (int i = 0; i < 100; ++i) { e.render(blk.data(), 4410); all.insert(all.end(), blk.begin(), blk.end()); }   // 10 s
+        std::vector<long> on; for (long i = 0; i + 200 < (long)all.size() / 2; ++i) if (std::fabs(all[2*i]) > 0.02f && (on.empty() || i - on.back() > SR / 4)) on.push_back(i);
+        expect(on.size() == 20, "click-only metronome: 120 BPM for 10 s gives 20 clicks", (double)on.size());
+        bool even = on.size() > 2; for (size_t k = 1; k < on.size(); ++k) if (std::labs((on[k] - on[k-1]) - SR / 2) > 2) even = false;
+        expect(even, "  the clicks are evenly spaced (to 2 samples)");
+        auto peak = [&](long from) { float m = 0; for (long i = from; i < from + 2000; ++i) m = std::max(m, std::fabs(all[2*i])); return m; };
+        expect(peak(on[0]) > peak(on[1]) * 1.01f && std::fabs(peak(on[0]) - peak(on[3])) < 1e-4, "  the first beat of a bar (3 beats) has the accent");
+        expect(e.standaloneBeat() >= 0, "  the beat position is reported");
+        e.setStandaloneClick(false, 120.0, 3, true, 0.8f, 0);
+        e.render(blk.data(), 4410); e.render(blk.data(), 4410);
+        double sum = 0; for (float v : blk) sum += std::fabs(v);
+        expect(sum < 1e-6 && e.standaloneBeat() == -1, "  switched off: silence");
+    }
     printf(failures ? "\nFAILURES: %d\n" : "\nALL PASSED\n", failures);
     return failures ? 1 : 0;
 }

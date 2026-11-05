@@ -106,6 +106,9 @@ public:
     // included only if withMetronome is true.
     bool exportStart(const std::string& wavPath, bool withMetronome);   // false if no song is ready or an export is running
     // ---- .beatpack: openFile() accepts such a file too (no analysis, no models needed) ----
+    // metronome with no song (see PlaybackEngine::setStandaloneClick). Works also when no song is open.
+    void setStandaloneClick(bool on, double bpm, int beatsPerBar, bool accent, float volume, int sound);
+    int standaloneClickBeat() const;             // position in the bar of the last click, -1 when it is off
     void setLowMemory(bool on);                  // before openFile(): keep the song as 16-bit samples (half the memory; for phones)
     bool isPack() const;                         // the current song was opened from a pack
     std::string packInfoJson() const;            // {"isPack":..,"title","artist","owner","createdBy","model","hasMix","tracks":[..],"loops":[{name,start,end}]}

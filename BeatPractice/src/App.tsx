@@ -320,7 +320,7 @@ export default function App() {
                 <BeatPracticeLogo className="w-10 h-10 shrink-0" />
                 <span className="text-2xl font-black text-slate-100 tracking-tight">BeatPractice</span>
               </div>
-              <div className={`flex-1 min-w-0 flex items-center gap-3 px-3 sm:px-6 py-2 ${isWindows ? 'justify-center lg:px-[9rem]' : 'justify-end'}`} data-tauri-drag-region>
+              <div className={`flex-1 min-w-0 flex items-center gap-3 px-3 sm:px-6 py-2 justify-end ${isWindows ? 'lg:pr-[9rem]' : ''}`} data-tauri-drag-region>
                 <button
                   id="btn-export-track"
                   onClick={() => setExporting(true)}
@@ -340,7 +340,7 @@ export default function App() {
                   <Package className="w-6 h-6" />
                 </button>
               {/* Transport: back / play / next / what happens at the end (as in common players) */}
-              <div id="transport-cluster" className="flex items-center gap-2 shrink-0">
+              <div id="transport-cluster" className="flex items-center gap-2 shrink-0 lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
                 <button
                   id="btn-restart-playback"
                   onClick={player.skipBack}
@@ -564,7 +564,7 @@ export default function App() {
                     disabled={!track || track.currentBpm === track.originalBpm}
                     className={`h-8 w-10 flex items-center justify-center rounded-lg border transition-all active:scale-95 cursor-pointer font-bold ${
                       track && track.currentBpm !== track.originalBpm
-                        ? 'bg-slate-800 hover:bg-slate-700 text-white border-slate-600 shadow-sm'
+                        ? 'btn-attn shadow-sm'
                         : 'bg-slate-800 border-slate-700 text-slate-400 opacity-60 cursor-not-allowed'
                     }`}
                     title={t('resetOriginalTempo')}
@@ -696,6 +696,9 @@ export default function App() {
                 currentBeat={currentBeat}
                 beatsPerBar={currentBeatsPerBar}
                 lang={lang}
+                selectedLoop={player.selectedLoop}
+                maxLoops={3}
+                onRemoveLoop={(i) => void player.removeLoop(i)}
                 stemPeaks={player.stemPeaks}
                 stemGains={player.stemEffectiveGains}
                 onSeek={handleSeek}
@@ -877,14 +880,25 @@ export default function App() {
           {/* TAB 2: Training (more tools will be added here) */}
           {activeTab === 'training' && (
             <div className="space-y-4">
-              <ClickMetronomePanel
+              <LoopsPanel
+                loops={player.loops}
+                activeLoop={player.activeLoop}
+                selectedLoop={player.selectedLoop}
+                barTimes={player.barTimes}
+                duration={track?.duration ?? 0}
+                ready={player.ready}
                 lang={lang}
-                volume={metronomeConfig.volume}
-                accent={metronomeConfig.accentFirstBeat}
-                quiet={{ enabled: metronomeConfig.quietEnabled, clickBars: metronomeConfig.quietClickBars, quietBars: metronomeConfig.quietBars }}
-                trackPlaying={isPlaying}
-                onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}
+                maxLoops={3}
+                isDark={isDark}
+                currentBar={currentBarNumber}
+                onSelect={player.setSelectedLoop}
+                onActivate={player.activateLoop}
+                onUpdate={player.updateLoop}
+                onAdd={player.addLoop}
+                onRemove={player.removeLoop}
               />
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
               <QuietBarsPanel
                 lang={lang}
                 config={metronomeConfig}
@@ -904,21 +918,21 @@ export default function App() {
                 onSetBpm={(bpm) => player.changeBpm(bpm)}
                 onPlay={() => { if (!isPlaying) player.togglePlay(); }}
               />
-              <LoopsPanel
-                loops={player.loops}
-                activeLoop={player.activeLoop}
-                selectedLoop={player.selectedLoop}
-                barTimes={player.barTimes}
-                duration={track?.duration ?? 0}
-                ready={player.ready}
+              </div>
+              <ClickMetronomePanel
                 lang={lang}
-                maxLoops={3}
-                currentBar={currentBarNumber}
-                onSelect={player.setSelectedLoop}
-                onActivate={player.activateLoop}
-                onUpdate={player.updateLoop}
-                onAdd={player.addLoop}
-                onRemove={player.removeLoop}
+                trackKey={activeTrackId ?? ''}
+                defaults={{
+                  bpm: track ? Math.round(track.currentBpm) : 100,
+                  beats: currentBeatsPerBar,
+                  accent: metronomeConfig.accentFirstBeat,
+                  volume: metronomeConfig.volume,
+                  sound: player.clickSound,
+                }}
+                soundCount={player.caps.clickSounds}
+                clickBeat={player.snap?.clickBeat ?? -1}
+                trackPlaying={isPlaying}
+                onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}
               />
               <div className="flex items-center gap-3 rounded-xl border border-slate-800 px-3 py-2 text-sm">
                 <Switch

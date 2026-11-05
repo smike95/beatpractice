@@ -42,6 +42,7 @@ struct Snapshot {
     counting_in: bool,
     loop_enabled: bool,
     loop_wraps: i64,
+    click_beat: i32,
     beat: Option<BeatNow>,
     count_in: Option<CountInNow>,
     stems: StemsNow,
@@ -197,6 +198,7 @@ fn core_snapshot(state: State<AppState>) -> Result<Snapshot, String> {
             counting_in: c.is_counting_in(),
             loop_enabled: c.loop_enabled(),
             loop_wraps: c.loop_wraps(),
+            click_beat: c.click_beat(),
             count_in: c.count_in_beat().map(|(beat, total)| CountInNow { beat, total }),
             stems: StemsNow { state: c.stems_state(), progress: c.stems_progress(), enabled: c.stems_enabled() },
             beat: c.current_beat().map(|b| BeatNow {
@@ -316,6 +318,10 @@ fn core_pack_save(state: State<AppState>, options: PackOptionsIn) -> Result<bool
     })?
 }
 #[tauri::command]
+fn core_click_set(state: State<AppState>, on: bool, bpm: f64, beats: i32, accent: bool, volume: f32, sound: i32) -> Result<(), String> {
+    with_core(&state, |c| c.click_set(on, bpm, beats, accent, volume, sound))
+}
+#[tauri::command]
 fn core_set_quiet_bars(state: State<AppState>, enabled: bool, click_bars: i32, quiet_bars: i32) -> Result<(), String> {
     with_core(&state, |c| c.set_quiet_bars(enabled, click_bars, quiet_bars))
 }
@@ -412,6 +418,7 @@ pub fn run() {
             core_export_start,
             core_export_start_ex,
             core_set_quiet_bars,
+            core_click_set,
             core_pack_info,
             core_pack_save,
             core_export_status,

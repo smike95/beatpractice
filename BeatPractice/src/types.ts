@@ -68,3 +68,33 @@ export interface MetronomeConfig {
   quietClickBars: number; // bars with clicks (1..16)
   quietBars: number; // silent bars (1..16)
 }
+
+/** "1 такт", "2 такти", "5 тактів" (Ukrainian plural rules), "1 bar" / "8 bars". Always spelled out. */
+export function barsText(n: number, lang: "uk" | "en"): string {
+  if (lang === "en") return `${n} ${n === 1 ? "bar" : "bars"}`;
+  const m10 = n % 10, m100 = n % 100;
+  const word = m10 === 1 && m100 !== 11 ? "такт" : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? "такти" : "тактів";
+  return `${n} ${word}`;
+}
+
+/** Every loop has its own colour everywhere in the interface (list, waveform). */
+const LOOP_PALETTE = [
+  { light: "#0284c7", dark: "#38bdf8" },   // blue
+  { light: "#7c3aed", dark: "#a78bfa" },   // violet
+  { light: "#d97706", dark: "#fbbf24" },   // amber
+  { light: "#059669", dark: "#34d399" },   // green
+  { light: "#db2777", dark: "#f472b6" },   // pink
+  { light: "#0d9488", dark: "#2dd4bf" },   // teal
+];
+export function loopColor(index: number, isDark: boolean): { solid: string; fill: string; fillStrong: string; text: string } {
+  const p = LOOP_PALETTE[((index % LOOP_PALETTE.length) + LOOP_PALETTE.length) % LOOP_PALETTE.length];
+  const solid = isDark ? p.dark : p.light;
+  const r = parseInt(solid.slice(1, 3), 16), g = parseInt(solid.slice(3, 5), 16), b = parseInt(solid.slice(5, 7), 16);
+  return { solid, fill: `rgba(${r},${g},${b},0.14)`, fillStrong: `rgba(${r},${g},${b},0.30)`, text: isDark ? "#0f172a" : "#ffffff" };
+}
+
+/** Names of the metronome sounds, in the order of the core: [Ukrainian, English]. */
+export const CLICK_SOUND_NAMES: Array<[string, string]> = [
+  ["Класичний", "Classic"], ["Дерев'яний блок", "Wood block"], ["Хай-хет", "Hi-hat"],
+  ["Рім-клік", "Rim click"], ["Ковбел", "Cowbell"], ["Електронний біп", "Electronic beep"],
+];

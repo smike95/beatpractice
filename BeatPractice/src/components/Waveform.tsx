@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Bookmark, LocateFixed } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Bookmark, LocateFixed, Trash2 } from "lucide-react";
 import { SongData } from "../core";
-import { LoopRange, LoopSlot, loopLabel } from "../types";
+import { LoopRange, LoopSlot, barsText, loopColor, loopLabel } from "../types";
 import { TempoSection } from "../utils/sections";
 
 type Lang = "uk" | "en";
@@ -16,6 +16,7 @@ interface Props {
   loop: LoopRange;
   loops: LoopSlot[];
   activeLoop: number | null;
+  selectedLoop: number;                   // the loop that a drag replaces when there is no room for a new one
   speed: number; // playback ratio: clock times are shown as they are heard at this speed
   isDark: boolean;
   currentBeat: number; // 0-based
@@ -26,6 +27,8 @@ interface Props {
   stemGains?: number[];
   onSeek: (t: number) => void;
   onDragLoop: (start: number, end: number) => void;
+  maxLoops: number;                       // dragging makes a new loop while there is room for one
+  onRemoveLoop: (index: number) => void;
   onJumpBar: (dir: -1 | 1) => void;
 }
 
@@ -114,9 +117,9 @@ function drawPeaks(
 }
 
 export function Waveform(props: Props) {
-  const { song, duration, position, playing, barTimes, sections, loop, loops, activeLoop, speed, isDark, currentBeat, beatsPerBar, lang } = props;
+  const { song, duration, position, playing, barTimes, sections, loop, loops, activeLoop, selectedLoop, speed, isDark, currentBeat, beatsPerBar, lang } = props;
   const { stemPeaks, stemGains } = props;
-  const { onSeek, onDragLoop, onJumpBar } = props;
+  const { onSeek, onDragLoop, onJumpBar, maxLoops, onRemoveLoop } = props;
   const sp = speed > 0 ? speed : 1;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
 
@@ -286,7 +289,7 @@ export function Waveform(props: Props) {
       ctx.fillStyle = colors.dim;
       if (x0 > 0) ctx.fillRect(0, RULER_H, x0, MAIN_H - RULER_H);
       if (x1 < w) ctx.fillRect(x1, RULER_H, w - x1, MAIN_H - RULER_H);
-      ctx.fillStyle = colors.loop;
+      ctx.fillStyle = loopColor(activeLoop ?? 0, isDark).fillStrong;
       ctx.fillRect(xOf(act.start), RULER_H, Math.max(1, xOf(act.end) - xOf(act.start)), MAIN_H - RULER_H);
     }
     // the other (switched off) loops: a dashed outline
@@ -294,18 +297,36 @@ export function Waveform(props: Props) {
       if (i === activeLoop) return;
       ctx.save();
       ctx.setLineDash([6, 4]);
-      ctx.strokeStyle = colors.label;
+      const lc = loopColor(i, isDark);
+      ctx.fillStyle = lc.fill;
+      ctx.fillRect(xOf(l.start), RULER_H, Math.max(2, xOf(l.end) - xOf(l.start)), MAIN_H - RULER_H);
+      ctx.strokeStyle = lc.solid;
       ctx.lineWidth = 1.5;
       ctx.strokeRect(xOf(l.start) + 0.5, RULER_H + 1.5, Math.max(2, xOf(l.end) - xOf(l.start)) - 1, MAIN_H - RULER_H - 3);
       ctx.restore();
-      ctx.fillStyle = colors.label;
+      ctx.fillStyle = lc.solid;
       ctx.font = "bold 15px Menlo, monospace";
       ctx.fillText(`${i + 1}`, xOf(l.start) + 6, MAIN_H - 9);
     });
     if (dragSel) {
       const a = Math.min(dragSel.a, dragSel.b), b = Math.max(dragSel.a, dragSel.b);
-      ctx.fillStyle = colors.loop;
+      const target = loops.length < maxLoops ? loops.length : Math.max(0, Math.min(loops.length - 1, selectedLoop));   // the loop that this drag makes / replaces
+      const dc = loopColor(target, isDark);
+      ctx.fillStyle = dc.fillStrong;
       ctx.fillRect(xOf(a), RULER_H, Math.max(1, xOf(b) - xOf(a)), MAIN_H - RULER_H);
+      ctx.fillStyle = dc.solid;
+      ctx.fillRect(xOf(a), RULER_H, 2, MAIN_H - RULER_H);
+      ctx.fillRect(xOf(b) - 2, RULER_H, 2, MAIN_H - RULER_H);
+      // how many bars are selected now
+      const nBars = Math.max(1, lastLE(barTimes, b - 0.001) - lastLE(barTimes, a + 0.001) + 1);
+      const txt = barsText(nBars, lang);
+      ctx.font = "bold 15px Menlo, monospace";
+      const tw = ctx.measureText(txt).width + 16;
+      const cx = Math.min(w - tw / 2 - 2, Math.max(tw / 2 + 2, (xOf(a) + xOf(b)) / 2));
+      ctx.fillStyle = dc.solid;
+      ctx.beginPath(); ctx.roundRect(cx - tw / 2, RULER_H + 8, tw, 24, 8); ctx.fill();
+      ctx.fillStyle = dc.text; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+      ctx.fillText(txt, cx, RULER_H + 20); ctx.textAlign = "start";
     }
 
     if (livePeaks) {
@@ -349,12 +370,13 @@ export function Waveform(props: Props) {
     // active loop: coloured band in the ruler with its number, thick edges and a bottom bar
     if (act) {
       const x0 = xOf(act.start), x1 = xOf(act.end);
-      ctx.fillStyle = colors.loopEdge;
+      const ac = loopColor(activeLoop ?? 0, isDark);
+      ctx.fillStyle = ac.solid;
       ctx.fillRect(x0, 0, Math.max(2, x1 - x0), RULER_H);
       ctx.fillRect(x0 - 1, RULER_H, 4, MAIN_H - RULER_H);
       ctx.fillRect(x1 - 3, RULER_H, 4, MAIN_H - RULER_H);
       ctx.fillRect(x0, MAIN_H - 4, Math.max(2, x1 - x0), 4);
-      ctx.fillStyle = colors.loopText;
+      ctx.fillStyle = ac.text;
       ctx.font = "bold 15px Menlo, monospace";
       ctx.textBaseline = "middle";
       ctx.fillText(loopLabel(loops[activeLoop ?? 0], activeLoop ?? 0, lang), Math.max(x0, 0) + 8, RULER_H / 2 + 1);
@@ -369,7 +391,7 @@ export function Waveform(props: Props) {
       ctx.arc(Math.round(px), 5, 4, 0, Math.PI * 2);
       ctx.fill();
     }
-  }, [song, duration, position, viewStart, viewDur, mainW, loops, activeLoop, dragSel, barTimes, colors, lang, livePeaks]);
+  }, [song, duration, position, viewStart, viewDur, mainW, loops, activeLoop, dragSel, barTimes, colors, lang, livePeaks, isDark, maxLoops, selectedLoop]);
 
   // ---- minimap --------------------------------------------------------------------------------
   useEffect(() => {
@@ -565,6 +587,20 @@ export function Waveform(props: Props) {
           onPointerUp={onPointerUp}
           onWheel={onWheelMain}
         />
+        {/* a trash can at the left edge of every loop */}
+        {song && duration > 0 && loops.map((l, i) => {
+          const x = ((l.start - viewStart) / viewDur) * mainW, x1 = ((l.end - viewStart) / viewDur) * mainW;
+          if (x1 < 40 || x > mainW - 30 || x1 - x < 36) return null;
+          const lc = loopColor(i, isDark);
+          return (
+            <button key={i} type="button" aria-label={`${L("Видалити цикл", "Delete loop")} ${loopLabel(l, i, lang)}`} title={`${L("Видалити цикл", "Delete loop")}: ${loopLabel(l, i, lang)}`}
+              onClick={() => onRemoveLoop(i)}
+              style={{ left: Math.max(4, x + 8), top: RULER_H + 6, background: lc.solid, color: lc.text }}
+              className="absolute w-7 h-7 rounded-lg flex items-center justify-center shadow cursor-pointer opacity-90 hover:opacity-100">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          );
+        })}
         {song && zoom > 1 && !follow && (
           <button
             onClick={() => setFollow(true)}

@@ -185,6 +185,33 @@ struct PlaybackEngine::Impl {
         needReseek = false;
     }
 
+    // ---- a click-only metronome (no song) -----------------------------------------------------------
+    std::atomic<bool> scOn{false}, scAccent{true}; std::atomic<double> scBpm{100.0}; std::atomic<int> scBeats{4}, scSound{0}, scLastBeat{-1}; std::atomic<float> scVol{1.f};
+    double scCountdown = 0; long scBeatIdx = 0; bool scWasOn = false; std::vector<ActiveClick> scActive;
+    void mixStandalone(float* out, int frames) {
+        const bool on = scOn.load();
+        if (on && !scWasOn) { scWasOn = true; scCountdown = 0; scBeatIdx = 0; scActive.clear(); }
+        if (!on) { if (scWasOn) { scWasOn = false; scActive.clear(); scLastBeat = -1; } return; }
+        while (scCountdown < frames) {                                   // every click that starts inside this block
+            const int beats = std::max(1, scBeats.load());
+            const int pos = (int)(scBeatIdx % beats), sid = std::max(0, std::min(kClickSounds - 1, scSound.load()));
+            scActive.push_back({(scAccent.load() && pos == 0) ? &bankHigh[sid] : &bankLow[sid], -(int)std::max(0.0, scCountdown), scVol.load()});
+            scLastBeat = pos; ++scBeatIdx;
+            scCountdown += (double)sr * 60.0 / std::max(20.0, std::min(400.0, scBpm.load()));   // the tempo is read again for every click
+        }
+        scCountdown -= frames;
+        for (auto& c : scActive) {
+            for (int i = 0; i < frames; ++i) {
+                const int p = c.pos + i;
+                if (p < 0) continue;
+                if (p >= (int)c.wave->size()) break;
+                const float v = (*c.wave)[(size_t)p] * c.gain; out[2*i] += v; out[2*i+1] += v;
+            }
+            c.pos += frames;
+        }
+        scActive.erase(std::remove_if(scActive.begin(), scActive.end(), [](const ActiveClick& c) { return c.pos >= (int)c.wave->size(); }), scActive.end());
+    }
+
     void mixClicks(float* out, int n) {
         for (auto& c : active) {
             for (int i = 0; i < n; ++i) {
@@ -488,6 +515,11 @@ bool PlaybackEngine::countInBeat(int* beat, int* total) const {
     if (total) *total = impl_->ciTotalA;
     return true;
 }
+void PlaybackEngine::setStandaloneClick(bool on, double bpm, int beats, bool accent, float volume, int sound) {
+    auto& m = *impl_;
+    m.scBpm = bpm; m.scBeats = std::max(1, std::min(16, beats)); m.scAccent = accent; m.scVol = volume; m.scSound = sound; m.scOn = on;
+}
+int PlaybackEngine::standaloneBeat() const { return impl_->scOn.load() ? impl_->scLastBeat.load() : -1; }
 void PlaybackEngine::setCountInSilent(bool silent) { impl_->ciSilentA = silent; }
 void PlaybackEngine::setStopAt(double s) { impl_->stopFrame = s < 0 ? -1L : (long)std::llround(s * impl_->sr); }
 int PlaybackEngine::lastRenderFrames() const { return impl_->lastFrames; }
@@ -529,7 +561,8 @@ void PlaybackEngine::render(float* out, int frames) {
     }
     std::memset(out, 0, sizeof(float) * 2 * frames);
     if (!m.playing || m.totalFrames == 0) {
-        m.ciActive = false; m.ciActiveA = false; m.active.clear(); m.posOut = m.srcPos; m.lastFrames = 0; return;
+        m.ciActive = false; m.ciActiveA = false; m.active.clear(); m.posOut = m.srcPos; m.lastFrames = 0;
+        m.mixStandalone(out, frames); return;
     }
     int done = 0;
     while (done < frames) {
@@ -545,6 +578,7 @@ void PlaybackEngine::render(float* out, int frames) {
     }
     m.posOut = m.srcPos;
     m.lastFrames = done;
+    m.mixStandalone(out, frames);
 }
 
 } // namespace beatcore

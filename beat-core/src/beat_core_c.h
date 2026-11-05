@@ -67,6 +67,9 @@ typedef struct {
     int include_mix, include_acts, flac_level;
 } bc_pack_opts;
 /* Call before bc_open_file on devices with little memory: the song is kept as 16-bit samples (half the memory). Separated parts always are. */
+/* metronome with no song: endless clicks at bpm, beats per bar, own accent / volume / sound (0..); works also with no song open. bc_click_beat: position in the bar of the last click, -1 = off */
+BC_API void        bc_click_set(bc_player*, int on, double bpm, int beats, int accent, float volume, int sound);
+BC_API int         bc_click_beat(bc_player*);
 BC_API void        bc_set_low_memory(bc_player*, int on);
 BC_API const char* bc_pack_info(bc_player*);
 BC_API int         bc_pack_save(bc_player*, const bc_pack_opts* opts);

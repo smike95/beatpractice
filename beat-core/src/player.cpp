@@ -615,6 +615,21 @@ bool Player::exportStart(const ExportRequest& r) {
     m.expWorker = std::thread([im, j] { im->runExport(j); });
     return true;
 }
+void Player::setStandaloneClick(bool on, double bpm, int beats, bool accent, float volume, int sound) {
+    auto& m = *impl_;
+    PlaybackEngine* e = m.engine.load();
+    if (!e) {                                    // no song yet: an empty engine only to make the clicks
+        if (!on) return;
+        auto* ne = new PlaybackEngine(kEngineRate);
+        ne->setClickSound(sound);
+        if (!m.startDevice()) { delete ne; return; }
+        PlaybackEngine* none = nullptr;
+        if (!m.engine.compare_exchange_strong(none, ne)) delete ne;
+        e = m.engine.load();
+    } else if (on) m.startDevice();
+    if (e) e->setStandaloneClick(on, bpm, beats, accent, volume, sound);
+}
+int Player::standaloneClickBeat() const { auto* e = impl_->engine.load(); return e ? e->standaloneBeat() : -1; }
 void Player::setLowMemory(bool on) { impl_->lowMemory = on; }
 bool Player::isPack() const { return impl_->isPack; }
 std::string Player::packInfoJson() const {

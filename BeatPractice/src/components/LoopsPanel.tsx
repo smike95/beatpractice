@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Plus, Repeat, X } from "lucide-react";
-import { LoopSlot, loopLabel } from "../types";
+import { Pencil, Plus, Repeat, Trash2 } from "lucide-react";
+import { LoopSlot, barsText, loopColor, loopLabel } from "../types";
 import { Switch } from "./Switch";
 
 interface Props {
@@ -12,6 +12,7 @@ interface Props {
   ready: boolean;
   lang: "uk" | "en";
   maxLoops: number;
+  isDark: boolean;
   onSelect: (i: number) => void;
   onActivate: (i: number | null) => void;
   onUpdate: (i: number, slot: LoopSlot) => void;
@@ -59,20 +60,27 @@ function BarInput(props: { value: number; min: number; max: number; disabled?: b
   );
 }
 
-/** The loop's name: type freely, applied on Enter / leaving the field; empty = the default "Loop N". */
-function NameInput(props: { value: string; placeholder: string; label: string; onCommit: (v: string) => void }) {
-  const { value, placeholder, label, onCommit } = props;
-  const [draft, setDraft] = useState<string | null>(null);
-  useEffect(() => setDraft(null), [value]);
-  const commit = () => { if (draft !== null && draft.trim() !== value) onCommit(draft.trim()); setDraft(null); };
+/** The loop's name with a pencil (as for the track title): the pencil turns the name into a field; Enter / leaving applies, Esc cancels; empty = "Loop N". */
+function NameEditor(props: { value: string; shown: string; label: string; onCommit: (v: string) => void }) {
+  const { value, shown, label, onCommit } = props;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value);
+  const commit = () => { setEditing(false); if (draft.trim() !== value) onCommit(draft.trim()); };
+  if (!editing) {
+    return (
+      <span className="inline-flex items-center gap-1.5 min-w-0">
+        <span className="truncate text-sm font-bold text-slate-100" title={shown}>{shown}</span>
+        <button type="button" aria-label={label} title={label}
+          onClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}
+          className="p-1 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0">
+          <Pencil className="w-4 h-4" />
+        </button>
+      </span>
+    );
+  }
   return (
     <input
-      type="text"
-      value={draft ?? value}
-      placeholder={placeholder}
-      maxLength={40}
-      aria-label={label}
-      title={label}
+      type="text" autoFocus value={draft} maxLength={40} placeholder={shown} aria-label={label}
       onClick={(e) => e.stopPropagation()}
       onFocus={(e) => e.currentTarget.select()}
       onChange={(e) => setDraft(e.target.value)}
@@ -80,15 +88,15 @@ function NameInput(props: { value: string; placeholder: string; label: string; o
       onKeyDown={(e) => {
         e.stopPropagation();
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
+        if (e.key === "Escape") { setDraft(value); setEditing(false); }
       }}
-      className="min-w-0 w-40 sm:w-56 px-2 py-0.5 rounded-lg bg-transparent border border-transparent hover:border-slate-700 focus:border-sky-500 focus:bg-slate-950 text-sm font-bold text-slate-100 focus:outline-none"
+      className="min-w-0 w-40 sm:w-56 px-2 py-0.5 rounded-lg bg-slate-950 border border-sky-500 text-sm font-bold text-slate-100 focus:outline-none"
     />
   );
 }
 
 export function LoopsPanel(props: Props) {
-  const { loops, activeLoop, selectedLoop, barTimes, duration, ready, lang, maxLoops, currentBar } = props;
+  const { loops, activeLoop, selectedLoop, barTimes, duration, ready, lang, maxLoops, currentBar, isDark } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const total = barTimes.length;
 
@@ -135,23 +143,23 @@ export function LoopsPanel(props: Props) {
         const on = activeLoop === i;
         const sel = selectedLoop === i;
         const fb = fromBar(s), tb = toBar(s);
+        const col = loopColor(i, isDark);
         return (
           <div
             key={i}
             onClick={() => props.onSelect(i)}
-            className={`rounded-xl border-2 p-3 space-y-2.5 cursor-pointer transition-colors ${sel ? "border-sky-500" : "border-slate-800"}`}
+            style={{ borderColor: sel ? col.solid : undefined, background: sel ? col.fill : undefined }}
+            className={`rounded-xl border-2 p-3 space-y-2.5 cursor-pointer transition-colors ${sel ? "" : "border-slate-800"}`}
           >
             <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-slate-100">
-                <span className={`w-5 h-5 rounded-md text-xs flex items-center justify-center font-mono ${on ? "bg-sky-600 text-white" : "bg-slate-800 text-slate-300"}`}>{i + 1}</span>
-                <NameInput value={s.name ?? ""} placeholder={loopLabel(undefined, i, lang)} label={L("Назва циклу (можна перейменувати)", "Loop name (you can rename it)")}
+              <div className="flex items-center gap-2 min-w-0">
+                <span style={{ background: on ? col.solid : undefined, color: on ? col.text : undefined, borderColor: col.solid }}
+                  className={`w-5 h-5 shrink-0 rounded-md border text-xs flex items-center justify-center font-mono ${on ? "" : "bg-slate-800 text-slate-300"}`}>{i + 1}</span>
+                <NameEditor value={s.name ?? ""} shown={loopLabel(s, i, lang)} label={L("Змінити назву циклу", "Rename the loop")}
                   onCommit={(v) => props.onUpdate(i, { start: s.start, end: s.end, ...(v ? { name: v } : {}) })} />
-                <span className="text-xs font-normal text-slate-400 font-mono">
-                  {tb - fb + 1} {L("такт.", "bars")}
-                </span>
-                {sel && <span className="text-xs font-normal text-sky-500">{L("виділено для хвилі", "target of the waveform")}</span>}
+                <span className="text-xs font-normal text-slate-400 whitespace-nowrap">{barsText(tb - fb + 1, lang)}</span>
               </div>
-              <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
                 <span className="text-xs font-semibold text-slate-400">{on ? L("Грає", "Playing") : L("Вимкнено", "Off")}</span>
                 <Switch
                   checked={on}
@@ -161,10 +169,10 @@ export function LoopsPanel(props: Props) {
                 />
                 <button
                   className="p-1 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer"
-                  title={L("Видалити цикл", "Delete loop")}
+                  title={L("Видалити цикл", "Delete loop")} aria-label={L("Видалити цикл", "Delete loop")}
                   onClick={() => props.onRemove(i)}
                 >
-                  <X className="w-6 h-6" />
+                  <Trash2 className="w-6 h-6" />
                 </button>
               </div>
             </div>

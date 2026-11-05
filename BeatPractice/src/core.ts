@@ -56,6 +56,7 @@ export interface Snapshot {
   speed: number;
   countingIn: boolean;
   loopEnabled: boolean;
+  clickBeat?: number; // position in the bar of the last click of the metronome with no song; -1 = it is off
   loopWraps?: number; // how many times the A-B loop has wrapped (counts passes)
   beat: BeatNow | null;
   countIn: CountInNow | null;
@@ -125,6 +126,8 @@ export const core = {
   stemsInfo: () => invoke<StemsInfo>("core_stems_info"),
   exportStart: (path: string, metronome: boolean) => invoke<boolean>("core_export_start", { path, metronome }),
   exportStartEx: (o: ExportOptions) => invoke<boolean>("core_export_start_ex", { options: o }),
+  clickSet: (on: boolean, bpm: number, beats: number, accent: boolean, volume: number, sound: number) =>
+    invoke<void>("core_click_set", { on, bpm, beats, accent, volume, sound }),
   stemPeaks: () => invoke<number[][]>("core_stem_peaks"),
   packInfo: async (): Promise<PackInfo> => {
     try { return JSON.parse(await invoke<string>("core_pack_info")) as PackInfo; } catch { return { isPack: false }; }

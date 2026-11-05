@@ -118,6 +118,8 @@ pub struct Core {
     stems_progress: Option<unsafe extern "C" fn(P) -> c_float>,
     export_start: Option<unsafe extern "C" fn(P, *const c_char, c_int) -> c_int>,
     export_start_ex: Option<unsafe extern "C" fn(P, *const ExportOpts) -> c_int>,
+    click_set: Option<unsafe extern "C" fn(P, c_int, c_double, c_int, c_int, c_float, c_int)>,
+    click_beat: Option<unsafe extern "C" fn(P) -> c_int>,
     stem_peak_count: Option<unsafe extern "C" fn(P) -> c_int>,
     get_stem_peaks: Option<unsafe extern "C" fn(P, c_int, *mut c_float, c_int) -> c_int>,
     pack_info: Option<unsafe extern "C" fn(P) -> *const c_char>,
@@ -276,6 +278,8 @@ impl Core {
                 stems_progress: opt_sym!(lib, "bc_stems_progress", unsafe extern "C" fn(P) -> c_float),
                 export_start: opt_sym!(lib, "bc_export_start", unsafe extern "C" fn(P, *const c_char, c_int) -> c_int),
                 export_start_ex: opt_sym!(lib, "bc_export_start_ex", unsafe extern "C" fn(P, *const ExportOpts) -> c_int),
+                click_set: opt_sym!(lib, "bc_click_set", unsafe extern "C" fn(P, c_int, c_double, c_int, c_int, c_float, c_int)),
+                click_beat: opt_sym!(lib, "bc_click_beat", unsafe extern "C" fn(P) -> c_int),
                 stem_peak_count: opt_sym!(lib, "bc_stem_peak_count", unsafe extern "C" fn(P) -> c_int),
                 get_stem_peaks: opt_sym!(lib, "bc_get_stem_peaks", unsafe extern "C" fn(P, c_int, *mut c_float, c_int) -> c_int),
                 pack_info: opt_sym!(lib, "bc_pack_info", unsafe extern "C" fn(P) -> *const c_char),
@@ -381,6 +385,12 @@ impl Core {
             out.truncate(got); out
         }).collect()
     }
+    /// Metronome with no song (own tempo, beats per bar, accent, volume and sound).
+    pub fn click_set(&self, on: bool, bpm: f64, beats: i32, accent: bool, volume: f32, sound: i32) {
+        if let Some(f) = self.click_set { unsafe { f(self.p, on as c_int, bpm, beats, accent as c_int, volume, sound) } }
+    }
+    /// Position in the bar of the last click of that metronome, -1 when it is off.
+    pub fn click_beat(&self) -> i32 { self.click_beat.map(|f| unsafe { f(self.p) }).unwrap_or(-1) }
     pub fn has_packs(&self) -> bool { self.pack_info.is_some() && self.pack_save.is_some() }
     /// JSON about the opened pack ({"isPack":false} for an ordinary song).
     pub fn pack_info(&self) -> String {

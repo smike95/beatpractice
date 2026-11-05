@@ -115,7 +115,7 @@ export function RampPanel(props: {
         )}
       </p>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+      <div className="ramp-grid gap-x-6 gap-y-3">
         <div className="space-y-1">
           <div className="track-edit-label text-xs">{L("Старт, BPM", "Start, BPM")} {startOv === null && <span className="text-slate-500">({L("поточний темп", "current tempo")})</span>}</div>
           <div className="flex items-center gap-2 flex-wrap">

@@ -57,7 +57,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
         <ChevronDown className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
       </button>
 
-      <div className="flex-1 min-w-[260px] grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 items-center">
+      <div className="flex-1 min-w-[260px] sm:min-w-[500px] grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 items-center">
         {/* Track Volume Channel */}
         <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-1.5 sm:py-2 rounded-lg border border-slate-200 dark:border-slate-800/80 mixer-channel-box shadow-2xs">
           <button
@@ -83,7 +83,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
             className="flex-1 min-w-[70px]"
           />
 
-          <span className="font-mono font-bold text-slate-800 dark:text-slate-200 w-10 text-right text-xs mixer-value">
+          <span className="font-mono font-bold text-slate-800 dark:text-slate-200 w-11 shrink-0 text-right text-xs mixer-value">
             {isTrackMuted ? 'Mute' : `${trackPercent}%`}
           </span>
         </div>
@@ -113,7 +113,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
             className="flex-1 min-w-[70px]"
           />
 
-          <span className="font-mono font-bold text-slate-800 dark:text-slate-200 w-10 text-right text-xs mixer-value">
+          <span className="font-mono font-bold text-slate-800 dark:text-slate-200 w-11 shrink-0 text-right text-xs mixer-value">
             {metronomePercent}%
           </span>
         </div>

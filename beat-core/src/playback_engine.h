@@ -83,6 +83,11 @@ public:
     // every file has the same lead-in and the files stay aligned.
     void setCountInSilent(bool silent);
 
+    // A metronome with no song at all (practice with clicks only): an endless click at `bpm`, `beatsPerBar` beats per bar, with its own volume,
+    // accent and sound. It does not depend on the song, the song's metronome settings or the quiet bars. Needs the audio device to run.
+    void setStandaloneClick(bool on, double bpm, int beatsPerBar, bool accent, float volume, int sound);
+    int standaloneBeat() const;          // position in the bar (0-based) of the click that was started last; -1 when it is off
+
     // Offline use (export): playback stops by itself when the sound reaches `sourceSeconds` of the ORIGINAL song
     // (sample-exact, with a ~1 ms fade-out). A negative value removes the limit. Not meant to be combined with an A-B loop.
     void setStopAt(double sourceSeconds);
