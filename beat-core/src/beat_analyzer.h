@@ -33,6 +33,10 @@ struct AnalyzerConfig {
     double localHopSec = 2.0;            // distance between measurements
     double localSteadyTolerance = 0.06;  // if every window is within this share of the global period, the tempo is treated as steady
 
+    // ---- tempo correction ----
+    // 2 = the network followed the half-beats (twice the real tempo, e.g. 210 instead of 105): keep every second beat.
+    int tempoDivide = 1;
+
     // ---- bar structure ----
     std::vector<int> barLengths = {3, 4, 5, 6, 7};   // allowed bar lengths in beats
     double meterChangePenalty = 5.0;     // cost of switching to a NEW bar length
@@ -47,8 +51,11 @@ struct AnalyzerConfig {
 
     // Meter recognition presets: 0 = automatic (the defaults above), 1 = sensitive (follows the network more closely, accepts
     // changes of meter and 5/7-beat bars more readily), 2 = strict (only 3 and 4 beats, changes of meter need strong evidence).
+    // `mode` = preset + 10 * halve: 0..2 are the presets above, 10..12 are the same presets with the tempo divided by two (tempoDivide = 2).
     static AnalyzerConfig forMeterMode(int mode) {
         AnalyzerConfig c;
+        if (mode >= 10) c.tempoDivide = 2;
+        mode = ((mode % 10) + 10) % 10;
         if (mode == 1) { c.meterChangePenalty = 2.5; c.alternationPenalty = 0.5; c.costLengthOther = 1.0; }
         else if (mode == 2) { c.barLengths = {3, 4}; c.meterChangePenalty = 8.0; c.costLengthOther = 1.0; }
         return c;

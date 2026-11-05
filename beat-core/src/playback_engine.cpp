@@ -115,7 +115,7 @@ struct PlaybackEngine::Impl {
     std::atomic<double> seekReq{-1.0};
     std::atomic<float> songVol{1.0f}, metVol{0.8f};
     std::atomic<bool> metOn{true}, accent{true};
-    std::atomic<bool> quietOnA{false}; std::atomic<int> clickBarsA{2}, quietBarsA{1};
+    std::atomic<bool> quietOnA{false}, quietContinueA{false}; std::atomic<int> clickBarsA{2}, quietBarsA{1};
     std::vector<int> beatOrd;                     // bar number (0-based) of each beat, counted over the whole song
     std::vector<std::vector<float>> stemPeaksV; mutable std::mutex stemPeaksMu;   // overview of every part (not touched by the audio thread)
     std::atomic<long> wrapCount{0};               // A-B loop wraps so far
@@ -365,6 +365,12 @@ struct PlaybackEngine::Impl {
             if (quietOnA.load() && !beatOrd.empty()) {
                 size_t b0 = loopOn ? (size_t)(std::lower_bound(beatSample.begin(), beatSample.end(), lo - 1e-6) - beatSample.begin()) : (size_t)std::max(0L, playFirst);
                 qBase = beatOrd[std::min(b0, beatOrd.size() - 1)];
+                if (loopOn && quietContinueA.load()) {      // the pattern goes on over the loop repeats: move the start back by the bars already played
+                    size_t b1 = (size_t)(std::lower_bound(beatSample.begin(), beatSample.end(), hi - 1e-6) - beatSample.begin());
+                    const long loopBars = std::max(1, beatOrd[std::min(b1, beatOrd.size() - 1)] - qBase);
+                    const long cyc = std::max(1, clickBarsA.load()) + std::max(1, quietBarsA.load());
+                    qBase -= (int)(((wrapCount.load() % cyc) * (loopBars % cyc)) % cyc);
+                }
             }
             while (nextBeat < beatSample.size() && beatSample[nextBeat] < effEnd) {
                 long idx = (long)nextBeat;
@@ -503,7 +509,7 @@ void PlaybackEngine::setSpeed(double r) { impl_->speedA = std::max(0.25, std::mi
 double PlaybackEngine::speed() const { return impl_->speedA; }
 void PlaybackEngine::setMetronome(const MetronomeSettings& s) {
     impl_->metOn = s.enabled; impl_->metVol = s.volume; impl_->accent = s.accentFirstBeat;
-    impl_->quietOnA = s.quietEnabled; impl_->clickBarsA = std::max(1, std::min(16, s.clickBars)); impl_->quietBarsA = std::max(1, std::min(16, s.quietBars));
+    impl_->quietOnA = s.quietEnabled; impl_->clickBarsA = std::max(1, std::min(16, s.clickBars)); impl_->quietBarsA = std::max(1, std::min(16, s.quietBars % 100)); impl_->quietContinueA = s.quietBars >= 100;
 }
 long PlaybackEngine::loopWraps() const { return impl_->wrapCount.load(); }
 void PlaybackEngine::setSongVolume(float v) { impl_->songVol = std::max(0.f, std::min(1.5f, v)); }

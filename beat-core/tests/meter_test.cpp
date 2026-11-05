@@ -56,6 +56,33 @@ int main(int argc, char** argv) {
     }
     // steady tempo is untouched by local tempo tracking
     { BeatMap m = decode(dir, "A_44_110", 0); ok(std::fabs(m.bpm - 110.0) < 0.5, "steady song keeps its tempo (" + std::to_string(m.bpm) + ")"); }
+    // The network found TWICE the real tempo (a 105 BPM 4/4 song reported as 210): mode +10 keeps every second beat
+    {
+        const double realBpm = 105.0, eighth = 60.0 / realBpm / 2.0;                 // peaks of the network every half beat
+        const int n = 3600;                                                          // 72 s
+        Activations a; a.durationSec = n / kFrameRate; a.beat.assign(n, -6.f); a.downbeat.assign(n, -6.f);
+        for (int k = 0;; ++k) {
+            int f = (int)std::lround((1.0 + k * eighth) * kFrameRate); if (f >= n - 2) break;
+            for (int d = -1; d <= 1; ++d) a.beat[f + d] = (d == 0 ? 6.f : 2.f);       // every half beat
+            if (k % 8 == 0) for (int d = -1; d <= 1; ++d) a.downbeat[f + d] = (d == 0 ? 6.f : 2.f);   // a real bar = 8 half beats
+        }
+        BeatMap plain = decodeBeatMap(a, AnalyzerConfig::forMeterMode(0));
+        BeatMap half = decodeBeatMap(a, AnalyzerConfig::forMeterMode(10));
+        auto c = barLengths(half);
+        ok(plain.bpm > 190, "double-tempo song without correction: ~210 BPM  (" + std::to_string((int)plain.bpm) + ")");
+        ok(std::fabs(half.bpm - realBpm) < 1.5, "double-tempo song with mode 10: ~105 BPM  (" + std::to_string(half.bpm) + ")");
+        ok(of(c, 4) >= total(c) * 9 / 10 && total(c) > 25, "double-tempo song with mode 10: bars of 4 beats  (" + show(c) + ")");
+        ok(half.beats.size() * 2 + 4 >= plain.beats.size() && half.beats.size() * 2 <= plain.beats.size() + 4, "mode 10 keeps half of the beats");
+        ok(AnalyzerConfig::forMeterMode(12).barLengths.size() == 2 && AnalyzerConfig::forMeterMode(12).tempoDivide == 2, "mode 12 = strict presets + divide by two");
+        // every kept beat is a bar start of the original grid (the phase is chosen by the downbeats)
+        int onDown = 0, starts = 0;
+        for (size_t i = 0; i < half.beats.size(); ++i) if (half.posInBar[i] == 1) {
+            ++starts; int f = (int)std::lround(half.beats[i] * kFrameRate);
+            float mx = -9; for (int d = -2; d <= 2; ++d) mx = std::max(mx, a.downbeat[std::min(n - 1, std::max(0, f + d))]);
+            if (mx > 3) ++onDown;
+        }
+        ok(starts > 20 && onDown * 10 >= starts * 9, "bar starts of mode 10 sit on the network's downbeats  (" + std::to_string(onDown) + "/" + std::to_string(starts) + ")");
+    }
     printf(failures ? "\n%d FAILED\n" : "\nALL PASSED\n", failures);
     return failures ? 1 : 0;
 }

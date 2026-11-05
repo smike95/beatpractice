@@ -95,6 +95,7 @@ BC_API int  bc_count_in_beat(bc_player*, int* beat, int* total);
 /* meter recognition: 0 automatic, 1 sensitive (follows the network more closely), 2 strict (only 3 and 4 beats).
    Applies instantly to the loaded song (re-reads the saved network output); returns 1 if the song's beat map was rebuilt.
    The chosen mode is also used for songs opened afterwards. After a change, read the beats again (bc_get_beats). */
+/* mode: 0 auto, 1 sensitive, 2 strict; add 10 to also divide the tempo by two (10, 11, 12). */
 BC_API int  bc_set_meter_mode(bc_player*, int mode);
 BC_API int  bc_meter_mode(bc_player*);
 

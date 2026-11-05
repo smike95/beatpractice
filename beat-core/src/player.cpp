@@ -509,7 +509,7 @@ std::string Player::error() const { std::lock_guard<std::mutex> l(impl_->mu); re
 bool Player::fromCache() const { return impl_->cached; }
 bool Player::setMeterMode(int mode) {
     auto& m = *impl_;
-    m.meterMode = std::max(0, std::min(2, mode));
+    m.meterMode = std::max(0, std::min(2, mode % 10)) + (mode >= 10 ? 10 : 0);   // preset 0..2, +10 = tempo divided by two
     if (state() != PlayerState::Ready) return false;
     Activations a;
     { std::lock_guard<std::mutex> l(m.mu); if (!m.haveActs) return false; a = m.lastActs; }

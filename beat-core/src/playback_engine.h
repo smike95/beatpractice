@@ -22,7 +22,7 @@ struct MetronomeSettings {
     // loop start while an A-B loop is on (so every pass sounds the same), otherwise from the first bar of the song.
     bool  quietEnabled = false;
     int   clickBars = 2;          // 1..16
-    int   quietBars = 1;          // 1..16
+    int   quietBars = 1;          // 1..16; add 100 to keep counting across A-B loop repeats (the pattern goes on) instead of restarting at every pass
 };
 
 struct CountInSettings {

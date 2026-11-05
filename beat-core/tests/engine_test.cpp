@@ -142,6 +142,19 @@ int main() {
             if (!ok) ++failures;
         }
     }
+    // ---------------- quiet bars over loop repeats ----------------
+    // loop of 3 bars (9.0 s .. 15.0 s, bar starts at 1 + 2k), pattern 1 bar of clicks + 1 silent: a pass has an odd number of bars.
+    for (int cont = 0; cont < 2; ++cont) {
+        PlaybackEngine e(SR); e.setSong(silent); e.setBeatMap(map);
+        MetronomeSettings ms; ms.enabled = true; ms.quietEnabled = true; ms.clickBars = 1; ms.quietBars = 1 + (cont ? 100 : 0); e.setMetronome(ms);
+        e.setLoop(9.0, 15.0); e.seekSeconds(9.0); e.play();
+        std::vector<float> out; run(e, out, 12);
+        std::vector<double> want;
+        auto bar = [&](double t0) { for (int k = 0; k < 4; ++k) want.push_back(t0 + 0.5 * k); };
+        if (!cont) { bar(0); bar(4); bar(6); bar(10); }            // every pass starts with a clicking bar
+        else       { bar(0); bar(4); bar(8); }                      // the 2nd pass goes on: quiet, clicks, quiet
+        check(cont ? "quiet bars, loop, continue" : "quiet bars, loop, restart", detectClicks(out), want);
+    }
     printf(failures ? "ENGINE TEST FAILED\n" : "ENGINE TEST PASSED\n");
     return failures ? 1 : 0;
 }

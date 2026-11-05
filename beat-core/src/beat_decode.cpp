@@ -153,6 +153,22 @@ std::vector<int> beatChain(const std::vector<float>& beatLogit, const std::vecto
     return path;
 }
 
+// The network sometimes follows the half-beats, so the tempo comes out twice too fast. Keep every second beat.
+// Which half to keep (even or odd beats) is decided by the downbeat evidence: the bar starts must stay among the kept beats.
+std::vector<int> thinBeats(const std::vector<int>& frames, const std::vector<float>& downLogit) {
+    const int nF = (int)downLogit.size();
+    double score[2] = {0.0, 0.0};
+    for (size_t i = 0; i < frames.size(); ++i) {
+        int f0 = std::max(0, frames[i] - 2), f1 = std::min(nF, frames[i] + 3);
+        float m = -1e30f; for (int f = f0; f < f1; ++f) m = std::max(m, downLogit[f]);
+        score[i & 1] += sigmoid(m);
+    }
+    const size_t phase = score[1] > score[0] ? 1 : 0;
+    std::vector<int> out;
+    for (size_t i = phase; i < frames.size(); i += 2) out.push_back(frames[i]);
+    return out;
+}
+
 struct BarState { int a, b, p; };   // a = previous bar length, b = current bar length, p = position in current bar
 
 // most likely bar structure: alternating bar lengths (4,3,4,3) are cheap, isolated changes are expensive
@@ -215,6 +231,7 @@ BeatMap decodeBeatMap(const Activations& a, const AnalyzerConfig& cfg) {
     m.periodSec = globalPeriod(a.beat, cfg);
     std::vector<int> fr = beatChain(a.beat, localPeriods(a.beat, m.periodSec, cfg), cfg);
     if (fr.size() < 8) return m;
+    if (cfg.tempoDivide == 2) { fr = thinBeats(fr, a.downbeat); m.periodSec *= 2.0; if (fr.size() < 8) return m; }
     auto st = barStructure(fr, a.downbeat, cfg);
     for (size_t i = 0; i < fr.size(); ++i) {
         m.beats.push_back(fr[i] / kFrameRate);

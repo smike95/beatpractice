@@ -61,6 +61,7 @@ public:
 
     std::shared_ptr<const BeatMap> beatMap() const;
     // How eagerly the bar structure follows the network: see AnalyzerConfig::forMeterMode (0 auto, 1 sensitive, 2 strict).
+    // Add 10 to also divide the tempo by two (the network found twice the real tempo): 10, 11, 12.
     // Re-reads the saved network output of the current song, so it is instant. Returns true if applied to a loaded song.
     bool setMeterMode(int mode);
     int meterMode() const;
