@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Trash2, X } from "lucide-react";
+import { ImagePlus, Trash2 } from "lucide-react";
+import { Modal, ModalHeader } from "./ui/Modal";
+import { btn as btnStyle } from "./ui/styles";
 
 type Lang = "uk" | "en";
 
@@ -67,15 +69,11 @@ export function TrackEditDialog(props: {
   };
 
   const field = "track-edit-field w-full px-3 py-2 rounded-lg border text-base focus:outline-none focus:ring-2";
-  const btn = "track-edit-btn w-full px-3 py-1.5 text-xs font-bold rounded-lg border cursor-pointer transition-colors inline-flex items-center justify-center gap-2 whitespace-nowrap";
+  const btn = "track-edit-btn w-full min-h-11 sm:min-h-9 px-3 text-xs font-bold rounded-lg border cursor-pointer transition-colors duration-150 inline-flex items-center justify-center gap-2 whitespace-nowrap";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" id="track-edit-dialog" className="track-edit-dialog w-full max-w-xl rounded-2xl border shadow-2xl p-5 space-y-4 max-h-full overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold">{L("Дані треку", "Track details")}</h3>
-          <button className="track-edit-close p-1 rounded-lg cursor-pointer" onClick={onClose} title={L("Закрити", "Close")}><X className="w-6 h-6" /></button>
-        </div>
+    <Modal id="track-edit-dialog" width="xl" onClose={onClose} closeOnEscape={false}>
+        <ModalHeader title={L("Дані треку", "Track details")} onClose={onClose} closeLabel={L("Закрити", "Close")} />
 
         <div className="grid gap-4 sm:grid-cols-[11rem_minmax(0,1fr)]">
           <div className="space-y-2">
@@ -102,9 +100,8 @@ export function TrackEditDialog(props: {
 
         <div className="flex justify-end gap-2 pt-1">
           <button className={`${btn} !w-auto`} onClick={onClose}>{L("Скасувати", "Cancel")}</button>
-          <button id="btn-save-track-meta" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={save}>{L("Зберегти", "Save")}</button>
+          <button id="btn-save-track-meta" className={btnStyle.primary} onClick={save}>{L("Зберегти", "Save")}</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

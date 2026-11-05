@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { canShareSaved, pickSavePath, shareSaved } from "../platform";
-import { Package, X } from "lucide-react";
+import { Package } from "lucide-react";
 import { core, type ExportStatus } from "../core";
 import { LoopSlot } from "../types";
 import { NAMES } from "./StemsPanel";
 import { getOwnerId } from "../utils/license";
+import { Modal, ModalHeader } from "./ui/Modal";
+import { btn } from "./ui/styles";
 
 type Lang = "uk" | "en";
 type Mode = "separate" | "together" | "merge";
@@ -107,25 +109,19 @@ export function PackDialog(props: {
 
   if (done) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-        <div role="dialog" aria-modal="true" id="pack-dialog" className="track-edit-dialog w-full max-w-lg rounded-2xl border shadow-2xl p-5 space-y-4">
+      <Modal id="pack-dialog" width="lg" onClose={onClose}>
           <p className="text-base font-bold text-emerald-600">{L("Пакет збережено", "The pack was saved")}</p>
           <p className="text-sm break-all">{outPath}</p>
-          {canShareSaved && <button id="btn-pack-share" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white cursor-pointer" onClick={() => void shareSaved(outPath.replace(/\.beatpack$/i, ""))}>{L("Зберегти на пристрій / надіслати", "Save to the device / send")}</button>}
+          {canShareSaved && <button id="btn-pack-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.beatpack$/i, ""))}>{L("Зберегти на пристрій / надіслати", "Save to the device / send")}</button>}
           <p className="track-edit-label text-xs">{L("Скопіюйте цей файл на інший ваш пристрій і відкрийте його в програмі: аналіз і розділення там не потрібні.", "Copy this file to your other device and open it in the program: no analysis or separation is needed there.")}</p>
-          <div className="flex justify-end"><button id="btn-pack-close" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={onClose}>{L("Закрити", "Close")}</button></div>
-        </div>
-      </div>
+          <div className="flex justify-end"><button id="btn-pack-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button></div>
+      </Modal>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <div role="dialog" aria-modal="true" id="pack-dialog" className="track-edit-dialog w-full max-w-lg rounded-2xl border shadow-2xl p-5 space-y-4 max-h-full overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Зберегти пакет", "Save as a pack")}</h3>
-          <button className="track-edit-close p-1 rounded-lg cursor-pointer" onClick={close} title={L("Закрити", "Close")}><X className="w-6 h-6" /></button>
-        </div>
+    <Modal id="pack-dialog" width="lg" onClose={close} closeOnEscape={false}>
+        <ModalHeader title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Зберегти пакет", "Save as a pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} />
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
         <p className="track-edit-label text-xs">{L(
           "Пакет містить трек, його ритм і партії. Його можна відкрити на слабкому пристрої, де трек не доведеться аналізувати й розділяти. Призначений для ваших власних пристроїв.",
@@ -189,15 +185,14 @@ export function PackDialog(props: {
 
         <div className="flex justify-end gap-2">
           {running
-            ? <button className="px-4 py-1.5 text-xs font-bold rounded-lg border track-edit-btn cursor-pointer" onClick={cancel}>{L("Скасувати", "Cancel")}</button>
+            ? <button className={btn.neutral} onClick={cancel}>{L("Скасувати", "Cancel")}</button>
             : (<>
-                <button className="px-4 py-1.5 text-xs font-bold rounded-lg border track-edit-btn cursor-pointer" onClick={close}>{L("Закрити", "Close")}</button>
-                <button id="btn-pack-start" disabled={bad} className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-default" onClick={begin}>
+                <button className={btn.neutral} onClick={close}>{L("Закрити", "Close")}</button>
+                <button id="btn-pack-start" disabled={bad} className={btn.primary} onClick={begin}>
                   <Package className="w-4 h-4" />{L("Зберегти пакет…", "Save the pack…")}
                 </button>
               </>)}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

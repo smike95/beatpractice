@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { canShareSaved, pickSavePath, shareSaved } from "../platform";
-import { Download, X } from "lucide-react";
+import { Download } from "lucide-react";
 import { core, type ExportStatus } from "../core";
 import { LoopSlot, loopLabel } from "../types";
 import { NAMES } from "./StemsPanel";
 import { NumberStepper } from "./NumberStepper";
+import { Modal, ModalHeader } from "./ui/Modal";
+import { btn } from "./ui/styles";
 
 type Lang = "uk" | "en";
 
@@ -19,7 +21,7 @@ function Section(props: { title: string; summary: string; open: boolean; disable
           <div className="text-sm break-words">{summary}</div>
         </div>
         <button type="button" disabled={disabled} aria-expanded={open} onClick={onToggle}
-          className="track-edit-btn !w-auto shrink-0 px-3 py-1 text-xs font-bold rounded-lg border cursor-pointer disabled:opacity-40">
+          className={btn.compact}>
           {open ? (lang === "en" ? "Done" : "Готово") : (lang === "en" ? "Change" : "Змінити")}
         </button>
       </div>
@@ -169,26 +171,20 @@ export function ExportDialog(props: {
 
   if (done) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-        <div role="dialog" aria-modal="true" id="export-dialog" className="track-edit-dialog w-full max-w-lg rounded-2xl border shadow-2xl p-5 space-y-4">
+      <Modal id="export-dialog" width="lg" onClose={onClose}>
           <p className="text-base font-bold text-emerald-600">{L("Трек успішно експортовано", "The track was exported successfully")}</p>
-          {canShareSaved && <button id="btn-export-share" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white cursor-pointer" onClick={() => void shareSaved(outPath.replace(/\.wav$/i, ""))}>{L("Зберегти на пристрій / надіслати", "Save to the device / send")}</button>}
+          {canShareSaved && <button id="btn-export-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.wav$/i, ""))}>{L("Зберегти на пристрій / надіслати", "Save to the device / send")}</button>}
           <p className="text-sm break-all">{fileCount > 1 ? L(`Збережено файлів: ${fileCount}. Назва початку`, `Files saved: ${fileCount}. Name starts with`) : L("Файл збережено", "Saved to")}: {fileCount > 1 ? outPath.replace(/\.wav$/i, "") + " - …" : outPath}</p>
           <div className="flex justify-end">
-            <button id="btn-export-close" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={onClose}>{L("Закрити", "Close")}</button>
+            <button id="btn-export-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>
           </div>
-        </div>
-      </div>
+      </Modal>
     );
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) close(); }}>
-      <div role="dialog" aria-modal="true" id="export-dialog" className="track-edit-dialog w-full max-w-lg rounded-2xl border shadow-2xl p-5 space-y-4 max-h-full overflow-y-auto">
-        <div className="flex items-center justify-between">
-          <h3 className="text-base font-bold">{L("Експорт треку", "Export track")}</h3>
-          <button className="track-edit-close p-1 rounded-lg cursor-pointer" onClick={close} title={L("Закрити", "Close")}><X className="w-6 h-6" /></button>
-        </div>
+    <Modal id="export-dialog" width="lg" onClose={close} closeOnEscape={false}>
+        <ModalHeader title={L("Експорт треку", "Export track")} onClose={close} closeLabel={L("Закрити", "Close")} />
 
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
         <p className="track-edit-label text-xs">{L("Трек експортується так, як налаштовано зараз. Біля кожного пункту його можна змінити.", "The track is exported as it is set up now. Each item can be changed.")}</p>
@@ -198,8 +194,8 @@ export function ExportDialog(props: {
           <div className="flex flex-wrap items-center gap-2">
             <NumberStepper id="export-bpm" value={bpm} min={originalBpm > 0 ? Math.max(20, Math.round(originalBpm * 25) / 100) : 20} max={originalBpm > 0 ? Math.round(originalBpm * 200) / 100 : 400} step={1} decimals={1} suffix="BPM"
               label={L("Темп експорту", "Export tempo")} disabled={running} onChange={setBpm} />
-            <button type="button" className="track-edit-btn !w-auto px-2.5 py-1 text-xs font-bold rounded-lg border cursor-pointer" disabled={running} onClick={() => setBpm(Math.round(currentBpm * 10) / 10)}>{L("Поточний", "Current")} {currentBpm.toFixed(1)}</button>
-            {originalBpm > 0 && <button type="button" className="track-edit-btn !w-auto px-2.5 py-1 text-xs font-bold rounded-lg border cursor-pointer" disabled={running} onClick={() => setBpm(Math.round(originalBpm * 10) / 10)}>{L("Оригінал", "Original")} {originalBpm.toFixed(1)}</button>}
+            <button type="button" className={btn.compact} disabled={running} onClick={() => setBpm(Math.round(currentBpm * 10) / 10)}>{L("Поточний", "Current")} {currentBpm.toFixed(1)}</button>
+            {originalBpm > 0 && <button type="button" className={btn.compact} disabled={running} onClick={() => setBpm(Math.round(originalBpm * 10) / 10)}>{L("Оригінал", "Original")} {originalBpm.toFixed(1)}</button>}
           </div>
         </Section>
 
@@ -216,7 +212,7 @@ export function ExportDialog(props: {
                 <label className={row}><input id="export-countin" type="checkbox" className={chk} checked={withCountIn} disabled={running} onChange={(e) => setWithCountIn(e.target.checked)} /><span className="text-sm">{L("Відлік перед початком", "Count-in before the start")}</span></label>
                 {withCountIn && [1, 2].map((n) => (
                   <button key={n} type="button" disabled={running} onClick={() => setCiBars(n)}
-                    className={`px-2.5 py-1 text-xs font-bold rounded-lg border cursor-pointer ${ciBars === n ? "bg-sky-700 text-white border-sky-700" : "track-edit-btn !w-auto"}`}>
+                    className={btn.chip(ciBars === n)}>
                     {n} {L(n === 1 ? "такт" : "такти", n === 1 ? "bar" : "bars")}
                   </button>
                 ))}
@@ -287,17 +283,16 @@ export function ExportDialog(props: {
 
         <div className="flex justify-end gap-2 pt-1">
           {running ? (
-            <button className="track-edit-btn !w-auto px-4 py-1.5 text-xs font-bold rounded-lg border cursor-pointer" onClick={cancel}>{L("Скасувати експорт", "Cancel export")}</button>
+            <button className={btn.neutral} onClick={cancel}>{L("Скасувати експорт", "Cancel export")}</button>
           ) : (
             <>
-              <button className="track-edit-btn !w-auto px-4 py-1.5 text-xs font-bold rounded-lg border cursor-pointer" onClick={close}>{L("Закрити", "Close")}</button>
-              <button id="btn-export-start" disabled={noParts || running} className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer inline-flex items-center gap-2 disabled:opacity-40 disabled:cursor-default" onClick={begin}>
+              <button className={btn.neutral} onClick={close}>{L("Закрити", "Close")}</button>
+              <button id="btn-export-start" disabled={noParts || running} className={btn.primary} onClick={begin}>
                 <Download className="w-6 h-6" />{separate && hasStems ? L("Зберегти файли WAV…", "Save WAV files…") : L("Зберегти як WAV…", "Save as WAV…")}
               </button>
             </>
           )}
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }

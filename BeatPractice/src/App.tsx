@@ -22,6 +22,8 @@ import { AboutDialog } from './components/AboutDialog';
 import { usePlayer } from './player/usePlayer';
 import { ThemeMode } from './types';
 import { Language, TranslationKey, translations } from './i18n';
+import { Modal } from './components/ui/Modal';
+import { btn } from './components/ui/styles';
 import {
   Play,
   Pause,
@@ -986,17 +988,15 @@ export default function App() {
       )}
 
       {player.packNotice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
-          <div role="alertdialog" aria-modal="true" id="pack-owner-notice" className="track-edit-dialog w-full max-w-md rounded-2xl border shadow-2xl p-5 space-y-4">
+        <Modal id="pack-owner-notice" role="alertdialog" width="md">
             <h3 className="text-base font-bold">{lang === 'en' ? 'This pack was made for another owner' : 'Цей пакет створено для іншого власника'}</h3>
             <p className="text-sm">{lang === 'en'
               ? 'Packs are meant for the devices of the person who made them. Passing a pack to someone else is your own responsibility.'
               : 'Пакети призначені для пристроїв того, хто їх створив. Передача пакета іншим людям відбувається на вашу відповідальність.'}</p>
             <div className="flex justify-end">
-              <button id="btn-pack-notice-ok" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={player.dismissPackNotice}>{lang === 'en' ? 'I understand' : 'Розумію'}</button>
+              <button id="btn-pack-notice-ok" className={btn.primary} onClick={player.dismissPackNotice}>{lang === 'en' ? 'I understand' : 'Розумію'}</button>
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
       {editing && track && activeTrackId && (

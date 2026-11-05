@@ -4,6 +4,8 @@ import { X } from "lucide-react";
 import { BeatPracticeLogo } from "./BeatPracticeLogo";
 import eulaRaw from "../../src-tauri/legal/EULA.txt?raw";
 import noticesRaw from "../../src-tauri/legal/THIRD_PARTY_NOTICES.txt?raw";
+import { Modal } from "./ui/Modal";
+import { btn } from "./ui/styles";
 
 // Copyright holder: Ukrainian and English spelling. The same name is in src-tauri/legal/*.txt and in the
 // "publisher" and "copyright" fields of src-tauri/tauri.windows.conf.json and tauri.macos.conf.json.
@@ -21,13 +23,12 @@ export function AboutDialog({ lang, onClose }: { lang: "uk" | "en"; onClose: () 
     <button
       type="button"
       onClick={() => setTab(id)}
-      className={`px-3 py-1.5 text-xs font-bold rounded-lg border cursor-pointer ${tab === id ? "bg-sky-700 border-sky-700 text-white" : "track-edit-btn"}`}
+      className={btn.chip(tab === id)}
     >{label}</button>
   );
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      <div role="dialog" aria-modal="true" id="about-dialog" className="track-edit-dialog w-full max-w-2xl rounded-2xl border shadow-2xl p-5 space-y-4 max-h-full flex flex-col">
+    <Modal id="about-dialog" width="2xl" layer="z-[100]" scroll={false} className="flex flex-col" onClose={onClose}>
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <BeatPracticeLogo className="w-10 h-10 shrink-0" />
@@ -36,7 +37,7 @@ export function AboutDialog({ lang, onClose }: { lang: "uk" | "en"; onClose: () 
               <div className="track-edit-label text-xs">{L("Версія", "Version")} {version || "…"} · {COPYRIGHT[lang]}</div>
             </div>
           </div>
-          <button className="track-edit-close p-1 rounded-lg cursor-pointer" onClick={onClose} title={L("Закрити", "Close")}><X className="w-6 h-6" /></button>
+          <button className={btn.icon} onClick={onClose} title={L("Закрити", "Close")}><X className="w-6 h-6" /></button>
         </div>
         <div className="flex gap-2">
           {tabBtn("eula", L("Ліцензійна угода", "License agreement"))}
@@ -46,9 +47,8 @@ export function AboutDialog({ lang, onClose }: { lang: "uk" | "en"; onClose: () 
           {strip(tab === "eula" ? eulaRaw : noticesRaw)}
         </pre>
         <div className="flex justify-end">
-          <button className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={onClose}>{L("Закрити", "Close")}</button>
+          <button className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>
         </div>
-      </div>
-    </div>
+    </Modal>
   );
 }
