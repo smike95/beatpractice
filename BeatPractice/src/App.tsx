@@ -22,6 +22,8 @@ import { AboutDialog } from './components/AboutDialog';
 import { usePlayer } from './player/usePlayer';
 import { ThemeMode } from './types';
 import { Language, TranslationKey, translations } from './i18n';
+import { QuickTempoBar } from './components/QuickTempoBar';
+import { QuickMetronomeBar } from './components/QuickMetronomeBar';
 import { Modal } from './components/ui/Modal';
 import { btn } from './components/ui/styles';
 import {
@@ -59,33 +61,6 @@ const formatTime = (seconds: number): string => {
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
-
-/** BPM field that lets you type freely and applies the value on Enter / blur. */
-function BpmInput({ value, onCommit, disabled }: { value: number; onCommit: (bpm: number) => void; disabled?: boolean }) {
-  const [draft, setDraft] = useState<string | null>(null);
-  const commit = () => {
-    if (draft !== null) {
-      const v = parseInt(draft, 10);
-      if (!isNaN(v) && v >= 20 && v <= 400) onCommit(v);
-    }
-    setDraft(null);
-  };
-  return (
-    <input
-      id="input-quick-bpm"
-      type="text"
-      inputMode="numeric"
-      disabled={disabled}
-      value={draft ?? (value > 0 ? String(value) : '—')}
-      onFocus={(e) => { setDraft(value > 0 ? String(value) : ''); e.currentTarget.select(); }}
-      onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
-      onBlur={commit}
-      onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); } }}
-      className="w-9 text-center text-xs font-mono font-bold text-slate-100 bg-transparent focus:outline-none"
-      title="Поточний темп (введіть число і натисніть Enter)"
-    />
-  );
-}
 
 const isWindows = isDesktop && typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
 
@@ -509,124 +484,32 @@ export default function App() {
 
             {/* Row 2: tempo, metronome switches, visual beats (they wrap instead of overflowing) */}
             <div className="mt-3 flex flex-wrap items-center gap-2 max-w-full">
-                {/* 1. Quick Tempo Control Row */}
-                <div
-                  id="quick-tempo-control-bar"
-                  className="w-full sm:w-auto h-10 flex items-center justify-between sm:justify-center gap-1 bg-slate-950 px-1 rounded-xl border border-slate-800 select-none shrink-0"
-                >
-                  <button
-                    type="button"
-                    id="btn-quick-tempo-minus-5"
-                    onClick={() => handleBpmChange((track?.currentBpm || 120) - 5)}
-                    className="h-8 min-w-10 px-2 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
-                    title={t('decreaseTempo5')}
-                  >
-                    -5
-                  </button>
-                  <button
-                    type="button"
-                    id="btn-quick-tempo-minus-1"
-                    onClick={() => handleBpmChange((track?.currentBpm || 120) - 1)}
-                    className="h-8 min-w-10 px-2 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
-                    title={t('decreaseTempo1')}
-                  >
-                    -1
-                  </button>
+                <QuickTempoBar
+                  hasTrack={!!track}
+                  currentBpm={track?.currentBpm}
+                  canReset={!!track && track.currentBpm !== track.originalBpm}
+                  onChange={handleBpmChange}
+                  onReset={() => track && handleResetBpm()}
+                  labels={{ minus5: t('decreaseTempo5'), minus1: t('decreaseTempo1'), plus1: t('increaseTempo1'), plus5: t('increaseTempo5'), reset: t('resetOriginalTempo') }}
+                />
 
-                  {/* Current BPM input with direct keyboard typing support */}
-                  <div className="h-8 flex items-center px-2 bg-slate-900 rounded-lg border border-slate-800 focus-within:border-slate-500 focus-within:ring-1 focus-within:ring-slate-500/50">
-                    <BpmInput value={track ? track.currentBpm : 0} onCommit={handleBpmChange} disabled={!track} />
-                    <span className="text-xs font-mono text-slate-400 select-none pr-0.5">BPM</span>
-                  </div>
-
-                  <button
-                    type="button"
-                    id="btn-quick-tempo-plus-1"
-                    onClick={() => handleBpmChange((track?.currentBpm || 120) + 1)}
-                    className="h-8 min-w-10 px-2 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
-                    title={t('increaseTempo1')}
-                  >
-                    +1
-                  </button>
-                  <button
-                    type="button"
-                    id="btn-quick-tempo-plus-5"
-                    onClick={() => handleBpmChange((track?.currentBpm || 120) + 5)}
-                    className="h-8 min-w-10 px-2 flex items-center justify-center bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white text-xs font-mono font-bold rounded-lg border border-slate-800 transition-all active:scale-95 cursor-pointer"
-                    title={t('increaseTempo5')}
-                  >
-                    +5
-                  </button>
-
-                  {/* Reset to Original Tempo */}
-                  <button
-                    type="button"
-                    id="btn-quick-tempo-reset"
-                    onClick={() => track && handleResetBpm()}
-                    disabled={!track || track.currentBpm === track.originalBpm}
-                    className={`h-8 w-10 flex items-center justify-center rounded-lg border transition-all active:scale-95 cursor-pointer font-bold ${
-                      track && track.currentBpm !== track.originalBpm
-                        ? 'btn-attn shadow-sm'
-                        : 'bg-slate-800 border-slate-700 text-slate-400 opacity-60 cursor-not-allowed'
-                    }`}
-                    title={t('resetOriginalTempo')}
-                  >
-                    <RotateCcw className="w-6 h-6" />
-                  </button>
-                </div>
-
-                {/* 2. Quick Metronome Controls */}
-                <div
-                  id="quick-metronome-control-bar"
-                  className="w-full sm:w-auto h-10 flex items-center justify-center bg-slate-950 px-2 sm:px-2.5 py-1 rounded-xl border border-slate-800 select-none shrink-0 box-border overflow-hidden"
-                >
-                  <div className="flex items-center justify-between sm:justify-center divide-x divide-slate-800/80 h-full w-full whitespace-nowrap">
-                    {/* Switch 1: Клік (звужений) */}
-                    <div className="flex items-center justify-center gap-1 pl-1 pr-2 sm:pr-2.5 text-center h-full shrink-0">
-                      <div className="flex items-center gap-1 shrink-0">
-                        <MetronomeIcon className={`w-6 h-6 shrink-0 ${metronomeConfig.enabled ? 'text-slate-200' : 'text-slate-500'}`} />
-                        <span className="text-xs sm:text-xs font-semibold text-slate-300">{t('click')}</span>
-                      </div>
-                      <Switch
-                        id="quick-switch-metronome"
-                        checked={metronomeConfig.enabled}
-                        onChange={() => setMetronomeConfig(prev => ({ ...prev, enabled: !prev.enabled }))}
-                        title={metronomeConfig.enabled ? t('metronomeOn') : t('metronomeOff')}
-                        label={t('click')}
-                      />
-                    </div>
-
-                    {/* Switch 2: Акцент (звужений) */}
-                    <div className="flex items-center justify-center gap-1 px-1.5 sm:px-2 text-center h-full shrink-0">
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Zap className={`w-6 h-6 shrink-0 ${metronomeConfig.accentFirstBeat ? 'text-slate-200' : 'text-slate-500'}`} />
-                        <span className="text-xs sm:text-xs font-semibold text-slate-300">{t('accent')}</span>
-                      </div>
-                      <Switch
-                        id="quick-switch-accent"
-                        checked={metronomeConfig.accentFirstBeat}
-                        onChange={() => setMetronomeConfig(prev => ({ ...prev, accentFirstBeat: !prev.accentFirstBeat }))}
-                        title={metronomeConfig.accentFirstBeat ? t('accentOn') : t('accentOff')}
-                        label={t('accent')}
-                      />
-                    </div>
-
-                    {/* Switch 3: Відлік */}
-                    <div className="flex items-center justify-center gap-1 pl-1.5 sm:pl-2 pr-1 text-center h-full shrink-0">
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Timer className={`w-6 h-6 shrink-0 ${isCountInOn ? 'text-slate-200' : 'text-slate-500'}`} />
-                        <span className="text-xs sm:text-xs font-semibold text-slate-300">{t('countIn')}</span>
-                      </div>
-                      <Switch
-                        id="quick-switch-countin"
-                        checked={isCountInOn}
-                        onChange={() => setMetronomeConfig(prev => ({ ...prev, countInBars: isCountInOn ? 0 : 1, countInOnLoop: !isCountInOn }))}
-                        title={isCountInOn ? t('countInOn') : t('countInOff')}
-                        label={t('countIn')}
-                      />
-                    </div>
-                  </div>
-                </div>
+                <QuickMetronomeBar
+                  clickIcon={<MetronomeIcon className={`w-6 h-6 shrink-0 ${metronomeConfig.enabled ? 'text-slate-200' : 'text-slate-500'}`} />}
+                  accentIcon={<Zap className={`w-6 h-6 shrink-0 ${metronomeConfig.accentFirstBeat ? 'text-slate-200' : 'text-slate-500'}`} />}
+                  countInIcon={<Timer className={`w-6 h-6 shrink-0 ${isCountInOn ? 'text-slate-200' : 'text-slate-500'}`} />}
+                  labels={{ click: t('click'), accent: t('accent'), countIn: t('countIn') }}
+                  titles={{
+                    click: metronomeConfig.enabled ? t('metronomeOn') : t('metronomeOff'),
+                    accent: metronomeConfig.accentFirstBeat ? t('accentOn') : t('accentOff'),
+                    countIn: isCountInOn ? t('countInOn') : t('countInOff'),
+                  }}
+                  clickOn={metronomeConfig.enabled}
+                  accentOn={metronomeConfig.accentFirstBeat}
+                  countInOn={isCountInOn}
+                  onToggleClick={() => setMetronomeConfig(prev => ({ ...prev, enabled: !prev.enabled }))}
+                  onToggleAccent={() => setMetronomeConfig(prev => ({ ...prev, accentFirstBeat: !prev.accentFirstBeat }))}
+                  onToggleCountIn={() => setMetronomeConfig(prev => ({ ...prev, countInBars: isCountInOn ? 0 : 1, countInOnLoop: !isCountInOn }))}
+                />
 
                 {/* 3. Quick Metronome Visual Beat Clicks Widget (Shown on desktop & tablet, hidden on mobile) */}
                 <div
