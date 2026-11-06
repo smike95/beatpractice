@@ -67,6 +67,8 @@ export interface MetronomeConfig {
   quietEnabled: boolean; // quiet bars: some bars with clicks, then some bars without
   quietClickBars: number; // bars with clicks (1..16)
   quietBars: number; // silent bars (1..16)
+  countInOnlyAtStart?: boolean; // count-in only when playing from the start (not when resuming after a pause); default: before every play
+  quietContinue?: boolean;      // quiet bars keep counting over loop repeats (default: every pass starts the pattern again)
 }
 
 /** "1 такт", "2 такти", "5 тактів" (Ukrainian plural rules), "1 bar" / "8 bars". Always spelled out. */

@@ -317,16 +317,6 @@ export function Waveform(props: Props) {
       ctx.fillStyle = dc.solid;
       ctx.fillRect(xOf(a), RULER_H, 2, MAIN_H - RULER_H);
       ctx.fillRect(xOf(b) - 2, RULER_H, 2, MAIN_H - RULER_H);
-      // how many bars are selected now
-      const nBars = Math.max(1, lastLE(barTimes, b - 0.001) - lastLE(barTimes, a + 0.001) + 1);
-      const txt = barsText(nBars, lang);
-      ctx.font = "bold 15px Menlo, monospace";
-      const tw = ctx.measureText(txt).width + 16;
-      const cx = Math.min(w - tw / 2 - 2, Math.max(tw / 2 + 2, (xOf(a) + xOf(b)) / 2));
-      ctx.fillStyle = dc.solid;
-      ctx.beginPath(); ctx.roundRect(cx - tw / 2, RULER_H + 8, tw, 24, 8); ctx.fill();
-      ctx.fillStyle = dc.text; ctx.textBaseline = "middle"; ctx.textAlign = "center";
-      ctx.fillText(txt, cx, RULER_H + 20); ctx.textAlign = "start";
     }
 
     if (livePeaks) {
@@ -390,6 +380,23 @@ export function Waveform(props: Props) {
       ctx.beginPath();
       ctx.arc(Math.round(px), 5, 4, 0, Math.PI * 2);
       ctx.fill();
+    }
+
+    // the live "N bars" label of a loop being dragged: drawn LAST, above the waveform, the ruler and the playhead
+    if (dragSel) {
+      const a = Math.min(dragSel.a, dragSel.b), b = Math.max(dragSel.a, dragSel.b);
+      const target = loops.length < maxLoops ? loops.length : Math.max(0, Math.min(loops.length - 1, selectedLoop));
+      const dc = loopColor(target, isDark);
+      // how many bars are selected now
+      const nBars = Math.max(1, lastLE(barTimes, b - 0.001) - lastLE(barTimes, a + 0.001) + 1);
+      const txt = barsText(nBars, lang);
+      ctx.font = "bold 15px Menlo, monospace";
+      const tw = ctx.measureText(txt).width + 16;
+      const cx = Math.min(w - tw / 2 - 2, Math.max(tw / 2 + 2, (xOf(a) + xOf(b)) / 2));
+      ctx.fillStyle = dc.solid;
+      ctx.beginPath(); ctx.roundRect(cx - tw / 2, RULER_H + 8, tw, 24, 8); ctx.fill();
+      ctx.fillStyle = dc.text; ctx.textBaseline = "middle"; ctx.textAlign = "center";
+      ctx.fillText(txt, cx, RULER_H + 20); ctx.textAlign = "start";
     }
   }, [song, duration, position, viewStart, viewDur, mainW, loops, activeLoop, dragSel, barTimes, colors, lang, livePeaks, isDark, maxLoops, selectedLoop]);
 
@@ -587,15 +594,19 @@ export function Waveform(props: Props) {
           onPointerUp={onPointerUp}
           onWheel={onWheelMain}
         />
-        {/* a trash can at the left edge of every loop */}
+        {/* a trash can at the right edge of every loop; when the loop is too narrow for it, it sits just outside the loop */}
         {song && duration > 0 && loops.map((l, i) => {
           const x = ((l.start - viewStart) / viewDur) * mainW, x1 = ((l.end - viewStart) / viewDur) * mainW;
-          if (x1 < 40 || x > mainW - 30 || x1 - x < 36) return null;
+          if (x1 < 0 || x > mainW) return null;                                   // the loop is out of the view
+          const BTN = 28, GAP = 6;
+          const fitsInside = x1 - x >= BTN + 2 * GAP + 8;
+          const rawLeft = fitsInside ? Math.min(x1, mainW) - BTN - GAP : (x1 + GAP + BTN <= mainW - 2 ? x1 + GAP : x - BTN - GAP);
+          const left = Math.max(4, Math.min(mainW - BTN - 4, rawLeft));
           const lc = loopColor(i, isDark);
           return (
             <button key={i} type="button" aria-label={`${L("Видалити цикл", "Delete loop")} ${loopLabel(l, i, lang)}`} title={`${L("Видалити цикл", "Delete loop")}: ${loopLabel(l, i, lang)}`}
               onClick={() => onRemoveLoop(i)}
-              style={{ left: Math.max(4, x + 8), top: RULER_H + 6, background: lc.solid, color: lc.text }}
+              style={{ left, top: RULER_H + 6, background: lc.solid, color: lc.text }}
               className="absolute w-7 h-7 rounded-lg flex items-center justify-center shadow cursor-pointer opacity-90 hover:opacity-100">
               <Trash2 className="w-4 h-4" />
             </button>

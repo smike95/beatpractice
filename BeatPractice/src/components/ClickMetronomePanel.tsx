@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Square, Zap } from "lucide-react";
+import { Play, Square } from "lucide-react";
 import { core } from "../core";
 import { CLICK_SOUND_NAMES } from "../types";
 import { btn as btnStyle } from "./ui/styles";
 import { Slider } from "./Slider";
-import { Switch } from "./Switch";
+import { PanelCard } from "./ui/PanelCard";
+import { MetronomeSettingsForm } from "./MetronomeSettingsForm";
 import { MetronomeIcon } from "./MetronomeIcon";
 
 type Lang = "uk" | "en";
@@ -17,7 +18,6 @@ const clampBpm = (v: number) => Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(v
 /* Touch targets: 44 px on phones, a little denser from `sm` upwards. */
 /* ------------------------------------------------------------------ */
 const ui = {
-  card: "rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4 space-y-4 shadow-sm",
   inset: "rounded-xl border border-slate-800 bg-slate-950",
   stepBtn:
     "h-11 sm:h-10 sm:min-w-[2.75rem] px-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 " +
@@ -106,7 +106,7 @@ function BeatsPicker(props: { beats: number; L: Translate; onPick: (n: number) =
 }
 
 /**
- * Metronome with no track (Training tab, at the bottom): start / stop, tempo (buttons and typing), beats per bar, its OWN accent, volume and sound.
+ * Free metronome (shown only while no track is open): start / stop, tempo (buttons and typing), beats per bar, its OWN accent, volume and sound.
  * It starts with the tempo, accent, volume and sound of the opened song and changes only what the user changes. The quiet bars do not touch it.
  * The clicks are made by the core (the same sounds as the main metronome, even timing). It never plays together with the track.
  */
@@ -150,7 +150,7 @@ export function ClickMetronomePanel(props: {
   const pct = Math.round(volume * 100);
 
   return (
-    <section id="click-metronome-panel" className={ui.card}>
+    <PanelCard id="click-metronome-panel" icon={<MetronomeIcon className="h-6 w-6" />} title={L("Вільний метроном", "Free metronome")}>
       {/* start, beat dots and tempo */}
       <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 px-3 py-3 ${ui.inset}`}>
         <RunButton running={running} onToggle={() => (running ? stop() : start())} L={L} />
@@ -158,30 +158,24 @@ export function ClickMetronomePanel(props: {
         <BpmControl bpm={bpm} draft={draft} L={L} onStep={step} onDraft={setDraft} onCommit={commitDraft} />
       </div>
 
-      {/* beats per bar, volume, accent */}
+      {/* beats per bar and volume */}
       <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
         <BeatsPicker beats={beats} L={L} onPick={(n) => setOwn((o) => ({ ...o, beats: n }))} />
-
         <div className={`flex min-w-[min(220px,100%)] flex-1 items-center gap-2 px-3 py-2 ${ui.inset}`}>
           <MetronomeIcon className="h-6 w-6 shrink-0 text-slate-300" />
           <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={(v: number) => setOwn((o) => ({ ...o, volume: v }))} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
           <span className="w-12 shrink-0 text-right font-mono text-xs font-bold text-slate-200">{pct}%</span>
         </div>
-
-        <div className={`flex items-center gap-2 px-3 py-2 ${ui.inset}`}>
-          <Zap className="h-6 w-6 shrink-0 text-slate-300" />
-          <Switch id="switch-click-accent" checked={accent} onChange={(v) => setOwn((o) => ({ ...o, accent: v }))} label={L("Акцент на першій долі", "Accent on the first beat")} />
-        </div>
       </div>
 
-      {/* sound */}
-      <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap" role="group" aria-label={L("Звук метронома", "Metronome sound")}>
-        {CLICK_SOUND_NAMES.map(([uk, en], id) => (
-          <button key={id} type="button" disabled={soundCount <= id} onClick={() => setOwn((o) => ({ ...o, sound: id }))} className={`${ui.chip(sound === id && soundCount > 0)} px-3`}>
-            {lang === "en" ? en : uk}
-          </button>
-        ))}
+      {/* accent and sound: the same rows as in the settings window of the song's metronome (there is no count-in without a song) */}
+      <div className="max-w-md">
+        <MetronomeSettingsForm
+          lang={lang}
+          accent={accent} onAccent={(v) => setOwn((o) => ({ ...o, accent: v }))}
+          sound={sound} soundCount={soundCount} onSound={(id) => setOwn((o) => ({ ...o, sound: id }))}
+        />
       </div>
-    </section>
+    </PanelCard>
   );
 }

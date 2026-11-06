@@ -2,7 +2,6 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BC } from './core';
 import { PlaylistPanel } from './components/PlaylistPanel';
 import { BeatPracticeLogo } from './components/BeatPracticeLogo';
-import { MetronomeIcon } from './components/MetronomeIcon';
 import { TrackMetronomeMixer } from './components/TrackMetronomeMixer';
 import { Waveform } from './components/Waveform';
 import { LoopsPanel } from './components/LoopsPanel';
@@ -15,7 +14,6 @@ import { ExportDialog } from './components/ExportDialog';
 import { PackDialog } from './components/PackDialog';
 import { ModelsBanner } from './components/ModelsBanner';
 import { Slider } from './components/Slider';
-import { Switch } from './components/Switch';
 import { WindowControls } from './components/WindowControls';
 import { isDesktop } from './platform';
 import { AboutDialog } from './components/AboutDialog';
@@ -23,37 +21,11 @@ import { usePlayer } from './player/usePlayer';
 import { ThemeMode } from './types';
 import { Language, TranslationKey, translations } from './i18n';
 import { QuickTempoBar } from './components/QuickTempoBar';
-import { QuickMetronomeBar } from './components/QuickMetronomeBar';
+import { MetronomeStrip } from './components/MetronomeStrip';
+import { TempoMapDialog } from './components/TempoMapDialog';
 import { Modal } from './components/ui/Modal';
 import { btn } from './components/ui/styles';
-import {
-  Play,
-  Pause,
-  RotateCcw,
-  Upload,
-  Music,
-  Music2,
-  Sliders,
-  Zap,
-  Timer,
-  ListMusic,
-  Sun,
-  Moon,
-  Monitor,
-  Smartphone,
-  Languages,
-  Loader2,
-  Square,
-  Repeat,
-  Repeat1,
-  ListEnd,
-  SkipBack,
-  SkipForward,
-  Pencil,
-  Download,
-  Package,
-  Info,
-} from 'lucide-react';
+import { Download, Info, Languages, ListEnd, Monitor, Moon, Music, Package, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
 
 const formatTime = (seconds: number): string => {
   if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -117,7 +89,7 @@ export default function App() {
     try { localStorage.setItem('beatpractice_mixer_open', v ? '0' : '1'); } catch { /* ignore */ }
     return !v;
   });
-  const [activeTab, setActiveTab] = useState<'metro' | 'training'>('metro');
+  const [tempoMapOpen, setTempoMapOpen] = useState(false);
 
   // Theme state: 'light' | 'dark' | 'system'
   const [themeMode, setThemeMode] = useState<ThemeMode>(() => {
@@ -230,15 +202,6 @@ export default function App() {
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (bt[mid] <= currentTime) { ans = mid; lo = mid + 1; } else hi = mid - 1; }
     return ans + 1;
   })();
-  const SOUNDS: Array<[string, string]> = [
-    ['Класичний', 'Classic'], ["Дерев'яний блок", 'Wood block'], ['Хай-хет', 'Hi-hat'],
-    ['Рім-клік', 'Rim click'], ['Ковбел', 'Cowbell'], ['Електронний біп', 'Electronic beep'],
-  ];
-  const TABS = [
-    { id: 'metro' as const, Icon: Sliders, label: lang === 'en' ? 'Metronome & tempo' : 'Метроном та темп' },
-    { id: 'training' as const, Icon: Timer, label: lang === 'en' ? 'Training' : 'Тренування' },
-  ];
-
   const themeLangButtons = (sfx: string) => (
     <>
       <button
@@ -293,7 +256,7 @@ export default function App() {
         <div className="flex items-stretch" data-tauri-drag-region>
           <div className="flex-1 min-w-0" data-tauri-drag-region>
             <div className="max-w-[1920px] mx-auto flex flex-wrap lg:flex-nowrap items-center lg:items-stretch gap-x-2 gap-y-1 px-3 py-2 sm:px-4 lg:p-0 lg:gap-0" data-tauri-drag-region>
-              <div className="order-1 flex-1 min-w-0 lg:flex-none lg:w-[25rem] lg:shrink-0 flex items-center gap-3 lg:px-4 lg:py-2 pointer-events-none">
+              <div className="order-1 lg:order-none flex-1 min-w-0 lg:flex-none lg:w-[25rem] lg:shrink-0 flex items-center gap-3 lg:px-4 lg:py-2 pointer-events-none">
                 <BeatPracticeLogo className="w-10 h-10 shrink-0" />
                 <span className="hidden sm:inline text-2xl font-black text-slate-100 tracking-tight">BeatPractice</span>
               </div>
@@ -476,6 +439,18 @@ export default function App() {
                         <strong className="text-slate-300">{track ? (track.meterLabels[0] ?? track.timeSignature) : '4/4'}</strong>
                       )}
                     </span>
+                    {track && (
+                      <button
+                        id="btn-tempo-map"
+                        type="button"
+                        onClick={() => setTempoMapOpen(true)}
+                        title={lang === 'en' ? 'Tempo map and sections' : 'Карта темпу та секцій'}
+                        aria-label={lang === 'en' ? 'Tempo map and sections' : 'Карта темпу та секцій'}
+                        className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150"
+                      >
+                        <Wrench className="h-5 w-5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -493,54 +468,23 @@ export default function App() {
                   labels={{ minus5: t('decreaseTempo5'), minus1: t('decreaseTempo1'), plus1: t('increaseTempo1'), plus5: t('increaseTempo5'), reset: t('resetOriginalTempo') }}
                 />
 
-                <QuickMetronomeBar
-                  clickIcon={<MetronomeIcon className={`w-6 h-6 shrink-0 ${metronomeConfig.enabled ? 'text-slate-200' : 'text-slate-500'}`} />}
-                  accentIcon={<Zap className={`w-6 h-6 shrink-0 ${metronomeConfig.accentFirstBeat ? 'text-slate-200' : 'text-slate-500'}`} />}
-                  countInIcon={<Timer className={`w-6 h-6 shrink-0 ${isCountInOn ? 'text-slate-200' : 'text-slate-500'}`} />}
-                  labels={{ click: t('click'), accent: t('accent'), countIn: t('countIn') }}
-                  titles={{
-                    click: metronomeConfig.enabled ? t('metronomeOn') : t('metronomeOff'),
-                    accent: metronomeConfig.accentFirstBeat ? t('accentOn') : t('accentOff'),
-                    countIn: isCountInOn ? t('countInOn') : t('countInOff'),
-                  }}
-                  clickOn={metronomeConfig.enabled}
-                  accentOn={metronomeConfig.accentFirstBeat}
-                  countInOn={isCountInOn}
-                  onToggleClick={() => setMetronomeConfig(prev => ({ ...prev, enabled: !prev.enabled }))}
-                  onToggleAccent={() => setMetronomeConfig(prev => ({ ...prev, accentFirstBeat: !prev.accentFirstBeat }))}
-                  onToggleCountIn={() => setMetronomeConfig(prev => ({ ...prev, countInBars: isCountInOn ? 0 : 1, countInOnLoop: !isCountInOn }))}
+                <MetronomeStrip
+                  lang={lang}
+                  enabled={metronomeConfig.enabled}
+                  onToggle={() => setMetronomeConfig(prev => ({ ...prev, enabled: !prev.enabled }))}
+                  meter={track?.timeSignature || '4/4'}
+                  beatsPerBar={currentBeatsPerBar}
+                  activeBeat={(isPlaying || countInRemaining !== null) ? currentBeat % currentBeatsPerBar : -1}
+                  accent={metronomeConfig.accentFirstBeat}
+                  onAccent={(v) => setMetronomeConfig(prev => ({ ...prev, accentFirstBeat: v }))}
+                  countInBars={metronomeConfig.countInBars}
+                  onCountInBars={(n) => setMetronomeConfig(prev => ({ ...prev, countInBars: n }))}
+                  countInOnlyAtStart={metronomeConfig.countInOnlyAtStart ?? false}
+                  onCountInMode={(v) => setMetronomeConfig(prev => ({ ...prev, countInOnlyAtStart: v }))}
+                  sound={player.clickSound}
+                  soundCount={player.caps.clickSounds}
+                  onSound={player.setClickSound}
                 />
-
-                {/* 3. Quick Metronome Visual Beat Clicks Widget (Shown on desktop & tablet, hidden on mobile) */}
-                <div
-                  id="quick-metronome-visual-beats"
-                  className="flex h-10 items-center justify-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-xl border border-slate-800 select-none shrink-0 box-border overflow-hidden whitespace-nowrap"
-                  title={lang === 'en' ? `Metronome visual clicks (${track?.timeSignature || '4/4'})` : `Візуальні кліки метронома (${track?.timeSignature || '4/4'})`}
-                >
-                  <span className="text-xs text-slate-400 font-mono font-bold mr-0.5">
-                    {track?.timeSignature || '4/4'}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    {Array.from({ length: currentBeatsPerBar }).map((_, idx) => {
-                      const isActive = (isPlaying || countInRemaining !== null) && (currentBeat % currentBeatsPerBar) === idx;
-                      const isFirst = idx === 0;
-                      return (
-                        <div
-                          key={idx}
-                          className={`w-6 h-6 rounded flex items-center justify-center font-mono font-bold text-xs transition-all duration-75 select-none ${
-                            isActive
-                              ? isFirst
-                                ? 'bg-rose-500 text-white scale-110 shadow-[0_0_8px_rgba(244,63,94,0.8)] font-black'
-                                : 'bg-sky-600 dark:bg-sky-400 text-white dark:text-slate-950 scale-105 shadow-[0_0_8px_rgba(2,132,199,0.8)] dark:shadow-[0_0_8px_rgba(56,189,248,0.8)] beat-non-accent-active font-black'
-                              : 'bg-slate-900 text-slate-400 border border-slate-800 beat-inactive'
-                          }`}
-                        >
-                          {idx + 1}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
             </div>
 
 
@@ -606,168 +550,23 @@ export default function App() {
             {player.message && <p className="mt-3 text-xs text-rose-400">{player.message}</p>}
           </section>
 
-          {/* Tabs: Metronome & tempo / Training (stem separation is in the folded mixer) */}
-          <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2 flex-wrap">
-            {TABS.map(({ id, Icon, label }) => (
-              <button
-                key={id}
-                id={`tab-${id}`}
-                onClick={() => setActiveTab(id)}
-                className={`min-h-11 sm:min-h-9 px-3.5 text-xs font-bold rounded-lg flex items-center gap-2 transition-colors duration-150 cursor-pointer ${
-                  activeTab === id
-                    ? 'tab-active border shadow-2xs'
-                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-slate-400 dark:hover:text-slate-200 dark:hover:bg-slate-900'
-                }`}
-              >
-                <Icon className="w-6 h-6" />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* TAB 1: Metronome & tempo */}
-          {activeTab === 'metro' && (
-            <div className="space-y-4">
-              <section className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
-                <div className="flex items-center gap-3">
-                  <MetronomeIcon className="w-6 h-6 text-slate-200 shrink-0" />
-                  <div>
-                    <div className="text-sm font-bold text-slate-100 uppercase tracking-wide">{lang === 'en' ? 'Metronome' : 'Метроном'}</div>
-                    <div className="text-xs text-slate-400">{lang === 'en' ? 'The click is locked to the real beats of the song.' : 'Клік прив’язаний до справжніх долей пісні й не пливе.'}</div>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-300">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{t('countIn')}:</span>
-                    {[0, 1, 2].map((n) => (
-                      <button
-                        key={n}
-                        onClick={() => setMetronomeConfig((prev) => ({ ...prev, countInBars: n }))}
-                        className={btn.option(metronomeConfig.countInBars === n)}
-                      >
-                        {n === 0 ? 'OFF' : `${n} ${lang === 'en' ? (n === 1 ? 'bar' : 'bars') : n === 1 ? 'такт' : 'такти'}`}
-                      </button>
-                    ))}
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <Switch
-                      id="switch-countin-on-loop"
-                      checked={metronomeConfig.countInOnLoop}
-                      disabled={!isCountInOn}
-                      onChange={(v) => setMetronomeConfig((prev) => ({ ...prev, countInOnLoop: v }))}
-                      label={lang === 'en' ? 'Count-in before every loop repeat' : 'Відлік перед кожним повтором циклу'}
-                    />
-                    <span>{lang === 'en' ? 'Count-in before every loop repeat' : 'Відлік перед кожним повтором циклу'}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-xs font-semibold text-slate-300">{lang === 'en' ? 'Metronome sound' : 'Звук метронома'}</div>
-                  <div className="flex flex-wrap gap-2">
-                    {SOUNDS.map(([uk, en], id) => (
-                      <button
-                        key={id}
-                        disabled={player.caps.clickSounds <= id}
-                        onClick={() => player.setClickSound(id)}
-                        className={btn.option(player.clickSound === id && player.caps.clickSounds > 0)}
-                      >
-                        {lang === 'en' ? en : uk}
-                      </button>
-                    ))}
-                  </div>
-                  {player.caps.clickSounds === 0 && (
-                    <p className="text-xs text-amber-500">
-                      {lang === 'en'
-                        ? 'Your build of the core does not have sound choice yet: rebuild beat-core with the updated files (see README).'
-                        : 'У вашій збірці ядра ще немає вибору звуку: перезберіть beat-core з оновленими файлами (див. README).'}
-                    </p>
-                  )}
-                </div>
-              </section>
-
-              {/* Tempo map (sections found automatically) */}
-              <section className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-3">
-                <div className="flex items-center gap-2 text-sm font-bold text-slate-100">
-                  <Music2 className="w-6 h-6" />
-                  <span>{lang === 'en' ? 'Tempo map & sections' : 'Карта темпу та секцій'}</span>
-                </div>
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-semibold text-slate-300">{lang === 'en' ? 'Meter recognition' : 'Розпізнавання розміру'}:</span>
-                    {([
-                      [0, lang === 'en' ? 'Auto' : 'Авто', lang === 'en' ? 'Balanced: bars of 3 to 7 beats, changes need clear evidence' : 'Збалансовано: такти з 3–7 долей, зміни розміру за чітких ознак'],
-                      [1, lang === 'en' ? 'Sensitive' : 'Чутливо', lang === 'en' ? 'Follows the neural network more closely: finds odd and changing meters more readily' : 'Ближче до нейромережі: легше знаходить непарні й змінні розміри'],
-                      [2, lang === 'en' ? '3 and 4 only' : 'Лише 3 і 4 долі', lang === 'en' ? 'Only 3/4 and 4/4, changes need strong evidence' : 'Лише 3/4 і 4/4, зміни розміру лише за дуже чітких ознак'],
-                    ] as const).map(([m, label, tip]) => (
-                      <button
-                        key={m}
-                        id={`meter-mode-${m}`}
-                        title={tip}
-                        disabled={!player.ready || !player.caps.meterModes}
-                        onClick={() => player.setMeterMode(m)}
-                        className={btn.option(player.meterMode === m)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  <p className="text-xs text-slate-500">
-                    {player.caps.meterModes
-                      ? (lang === 'en' ? 'If a complex song is shown with the wrong meter, try "Sensitive". Cycles of this track are cleared when the mode changes.' : 'Якщо складний трек показано з хибним розміром, спробуйте «Чутливо». Під час зміни режиму цикли цього треку скидаються.')
-                      : (lang === 'en' ? 'Update the core (beat-core) to choose the recognition mode.' : 'Щоб обирати режим розпізнавання, оновіть ядро (beat-core).')}
-                  </p>
-                </div>
-                {sectionRows.length === 0 ? (
-                  <p className="text-sm text-slate-400">{lang === 'en' ? 'Open a track to see its sections.' : 'Відкрийте трек, щоб побачити секції.'}</p>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-xs text-slate-300">
-                      <thead>
-                        <tr className="text-left text-slate-400 border-b border-slate-800">
-                          <th className="py-1.5 pr-3">#</th>
-                          <th className="py-1.5 pr-3">{lang === 'en' ? 'Bars' : 'Такти'}</th>
-                          <th className="py-1.5 pr-3">{lang === 'en' ? 'Time' : 'Час'}</th>
-                          <th className="py-1.5 pr-3">{lang === 'en' ? 'Meter' : 'Розмір'}</th>
-                          <th className="py-1.5 pr-3">BPM</th>
-                          <th className="py-1.5" />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sectionRows.map((sec, i) => (
-                          <tr key={i} className="border-b border-slate-800/60">
-                            <td className="py-1.5 pr-3 font-mono">{i + 1}</td>
-                            <td className="py-1.5 pr-3 font-mono">{sec.firstBar}–{sec.lastBar} ({sec.bars})</td>
-                            <td className="py-1.5 pr-3 font-mono">{formatTime(sec.startTime / speed)}–{formatTime(sec.endTime / speed)}</td>
-                            <td className="py-1.5 pr-3 font-mono font-bold">{sec.label}</td>
-                            <td className="py-1.5 pr-3 font-mono">{sec.bpm > 0 ? Math.round(sec.bpm * speed) : '—'}</td>
-                            <td className="py-1.5 text-right whitespace-nowrap">
-                              <button onClick={() => handleSeek(sec.loopStart)} className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 cursor-pointer">{lang === 'en' ? 'Go to' : 'Перейти'}</button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </section>
-            </div>
-          )}
-
-          {/* TAB 2: Training (more tools will be added here) */}
-          {activeTab === 'training' && (
+          {/* Under the waveform only the training tools. Before a track is open: just the free metronome. */}
+          {track ? (
             <div className="space-y-4">
               <LoopsPanel
                 loops={player.loops}
                 activeLoop={player.activeLoop}
                 selectedLoop={player.selectedLoop}
                 barTimes={player.barTimes}
-                duration={track?.duration ?? 0}
+                duration={track.duration}
                 ready={player.ready}
                 lang={lang}
                 maxLoops={3}
                 isDark={isDark}
                 currentBar={currentBarNumber}
+                countInOn={isCountInOn}
+                countInOnLoop={metronomeConfig.countInOnLoop}
+                onCountInOnLoop={(v) => setMetronomeConfig((prev) => ({ ...prev, countInOnLoop: v }))}
                 onSelect={player.setSelectedLoop}
                 onActivate={player.activateLoop}
                 onUpdate={player.updateLoop}
@@ -775,60 +574,66 @@ export default function App() {
                 onRemove={player.removeLoop}
               />
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-start">
-              <QuietBarsPanel
-                lang={lang}
-                config={metronomeConfig}
-                onChange={(patch) => player.setMetronomeConfig((prev) => ({ ...prev, ...patch }))}
-                loopOn={player.activeLoop !== null}
-              />
-              <RampPanel
-                lang={lang}
-                ready={!!track && player.ready}
-                playing={isPlaying}
-                currentBpm={track ? track.bpmExact : 0}
-                originalBpm={track ? track.originalBpmExact : 0}
-                loopActive={player.activeLoop !== null}
-                loopWraps={player.snap?.loopWraps ?? 0}
-                position={currentTime}
-                duration={track ? track.duration : 0}
-                onSetBpm={(bpm) => player.changeBpm(bpm)}
-                onPlay={() => { if (!isPlaying) player.togglePlay(); }}
-              />
-              </div>
-              <ClickMetronomePanel
-                lang={lang}
-                trackKey={activeTrackId ?? ''}
-                defaults={{
-                  bpm: track ? Math.round(track.currentBpm) : 100,
-                  beats: currentBeatsPerBar,
-                  accent: metronomeConfig.accentFirstBeat,
-                  volume: metronomeConfig.volume,
-                  sound: player.clickSound,
-                }}
-                soundCount={player.caps.clickSounds}
-                clickBeat={player.snap?.clickBeat ?? -1}
-                trackPlaying={isPlaying}
-                onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}
-              />
-              <div className="flex items-center gap-3 rounded-xl border border-slate-800 px-3 py-2 text-sm">
-                <Switch
-                  id="switch-countin-on-loop-loops-tab"
-                  checked={metronomeConfig.countInOnLoop}
-                  disabled={!isCountInOn}
-                  onChange={(v) => setMetronomeConfig((prev) => ({ ...prev, countInOnLoop: v }))}
-                  label={lang === 'en' ? 'Count-in before every loop repeat' : 'Відлік перед кожним повтором циклу'}
-                  title={isCountInOn ? undefined : (lang === 'en' ? 'Turn the count-in on first (Metronome tab)' : 'Спершу увімкніть відлік (вкладка «Метроном»)')}
+              <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
+                <QuietBarsPanel
+                  lang={lang}
+                  config={metronomeConfig}
+                  onChange={(patch) => player.setMetronomeConfig((prev) => ({ ...prev, ...patch }))}
                 />
-                <span>{lang === 'en' ? 'Count-in before every loop repeat' : 'Відлік перед кожним повтором циклу'}</span>
+                <RampPanel
+                  lang={lang}
+                  ready={player.ready}
+                  playing={isPlaying}
+                  currentBpm={track.bpmExact}
+                  originalBpm={track.originalBpmExact}
+                  loopActive={player.activeLoop !== null}
+                  loopWraps={player.snap?.loopWraps ?? 0}
+                  position={currentTime}
+                  duration={track.duration}
+                  onSetBpm={(bpm) => player.changeBpm(bpm)}
+                  onPlay={() => { if (!isPlaying) player.togglePlay(); }}
+                  onEnsureRepeat={() => { if (player.playMode !== 'repeat') player.setPlayMode('repeat'); }}
+                  onPause={() => { if (isPlaying) player.togglePlay(); }}
+                />
               </div>
             </div>
+          ) : (
+            <ClickMetronomePanel
+              lang={lang}
+              trackKey={activeTrackId ?? ''}
+              defaults={{
+                bpm: 100,
+                beats: currentBeatsPerBar,
+                accent: metronomeConfig.accentFirstBeat,
+                volume: metronomeConfig.volume,
+                sound: player.clickSound,
+              }}
+              soundCount={player.caps.clickSounds}
+              clickBeat={player.snap?.clickBeat ?? -1}
+              trackPlaying={isPlaying}
+              onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}
+            />
           )}
 
         </main>
       </div>
 
       {aboutOpen && <AboutDialog lang={lang} onClose={() => setAboutOpen(false)} />}
+      {tempoMapOpen && track && (
+        <TempoMapDialog
+          lang={lang}
+          halveTempo={player.halveTempo}
+          onHalveTempo={(on) => void player.setHalveTempo(on)}
+          meterPreset={player.meterMode}
+          onMeterPreset={(p) => void player.setMeterMode(p)}
+          meterModesSupported={player.caps.meterModes}
+          ready={player.ready}
+          sections={sectionRows}
+          speed={speed}
+          onGoTo={handleSeek}
+          onClose={() => setTempoMapOpen(false)}
+        />
+      )}
 
       {exporting && track && (
         <ExportDialog

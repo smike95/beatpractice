@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { Pencil, Plus, Repeat, Trash2 } from "lucide-react";
 import { LoopSlot, barsText, loopColor, loopLabel } from "../types";
 import { Switch } from "./Switch";
+import { SpinField } from "./ui/SpinField";
+import { Segmented } from "./ui/Segmented";
 import { StableLabel } from "./ui/StableLabel";
 import { PanelCard } from "./ui/PanelCard";
 import { btn as btnStyle } from "./ui/styles";
@@ -22,6 +24,9 @@ interface Props {
   onAdd: () => void;
   onRemove: (i: number) => void;
   currentBar: number; // 1-based bar the playhead is in
+  countInOn: boolean;               // the count-in is switched on (metronome settings)
+  countInOnLoop: boolean;           // count-in before every repeat of the loop
+  onCountInOnLoop: (v: boolean) => void;
 }
 
 function lastLE(arr: number[], t: number): number {
@@ -33,34 +38,9 @@ function lastLE(arr: number[], t: number): number {
   return ans;
 }
 
-/** Number field: type freely, applied on Enter / leaving the field. */
+/** Bar number: type it, or use the up / down buttons to the right of the field. */
 function BarInput(props: { value: number; min: number; max: number; disabled?: boolean; onCommit: (v: number) => void }) {
-  const { value, min, max, disabled, onCommit } = props;
-  const [draft, setDraft] = useState<string | null>(null);
-  useEffect(() => setDraft(null), [value]);
-  const commit = () => {
-    if (draft !== null) {
-      const v = parseInt(draft, 10);
-      if (!isNaN(v)) onCommit(Math.min(max, Math.max(min, v)));
-    }
-    setDraft(null);
-  };
-  return (
-    <input
-      type="text"
-      inputMode="numeric"
-      disabled={disabled}
-      value={draft ?? String(value)}
-      onFocus={(e) => e.currentTarget.select()}
-      onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, "").slice(0, 4))}
-      onBlur={commit}
-      onKeyDown={(e) => {
-        if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-        if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
-      }}
-      className="w-16 h-11 sm:h-9 px-1.5 rounded-lg bg-slate-950 border border-slate-700 text-slate-100 font-mono text-center text-sm transition-colors duration-150 focus:border-sky-500 disabled:opacity-40"
-    />
-  );
+  return <SpinField value={props.value} min={props.min} max={props.max} disabled={props.disabled} onChange={props.onCommit} label="№" widthClass="w-14" />;
 }
 
 /** The loop's name with a pencil (as for the track title): the pencil turns the name into a field; Enter / leaving applies, Esc cancels; empty = "Loop N". */
@@ -132,6 +112,18 @@ export function LoopsPanel(props: Props) {
           "One loop plays at a time. Drag across the waveform to set the selected loop. Edges always snap to bar starts.",
         )}
       </p>
+
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-slate-800 px-3 py-2">
+        <span className="text-xs font-semibold text-slate-300">{L("Відлік перед кожним повтором циклу", "Count-in before every loop repeat")}</span>
+        <Segmented
+          id="switch-countin-on-loop-loops-tab"
+          ariaLabel={L("Відлік перед кожним повтором циклу", "Count-in before every loop repeat")}
+          value={props.countInOnLoop}
+          onChange={props.onCountInOnLoop}
+          disabled={!props.countInOn}
+          options={[{ value: false, label: L("Вимк", "Off") }, { value: true, label: L("Увімк", "On"), title: props.countInOn ? undefined : L("Спершу увімкніть відлік у налаштуваннях метронома", "Turn the count-in on first in the metronome settings") }]}
+        />
+      </div>
 
       {loops.length === 0 && (
         <div className="rounded-xl border border-dashed border-slate-700 p-4 flex items-center justify-between gap-3 flex-wrap">

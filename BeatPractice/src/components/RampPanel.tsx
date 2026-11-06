@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Play, Square, TrendingUp } from "lucide-react";
-import { NumberStepper } from "./NumberStepper";
+import { SpinField } from "./ui/SpinField";
 import { PanelCard } from "./ui/PanelCard";
 import { Field } from "./ui/Field";
 import { MiniButton } from "./ui/MiniButton";
@@ -25,6 +25,8 @@ export function RampPanel(props: {
   duration: number;
   onSetBpm: (bpm: number) => void;
   onPlay: () => void;
+  onEnsureRepeat: () => void;   // no loop is on: the whole track has to repeat
+  onPause: () => void;          // Stop also stops the song
 }) {
   const { lang, ready, playing, currentBpm, originalBpm, loopActive, loopWraps, position, duration } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
@@ -82,10 +84,11 @@ export function RampPanel(props: {
     lastCount.current = count; setPasses(0); setStepNo(0); setDone(false);
     props.onSetBpm(from);
     if (from === to) { setDone(true); return; }
+    if (!loopActive) props.onEnsureRepeat();
     setRunning(true);
     if (!playing) props.onPlay();
   };
-  const stop = () => setRunning(false);
+  const stop = () => { setRunning(false); if (playing) props.onPause(); };
 
   const unit = loopActive ? L("проходів циклу", "loop passes") : L("проходів треку", "track passes");
   const status = !ready ? L("Відкрийте трек.", "Open a track.")
@@ -97,6 +100,7 @@ export function RampPanel(props: {
   return (
     <PanelCard
       id="ramp-panel"
+      className="h-full"
       icon={<TrendingUp className="w-6 h-6" />}
       title={L("Розгін", "Speed-up")}
       actions={
@@ -114,30 +118,27 @@ export function RampPanel(props: {
       }
     >
       <p className="text-xs text-slate-400">
-        {L(
-          "Темп росте сходинками: кожні кілька проходів на заданий крок, від стартового до цільового. Прохід — один раз через активний цикл (без циклу — весь трек, увімкніть повтор треку).",
-          "The tempo goes up in steps: every few passes by the chosen step, from the start to the target. A pass is one go through the active loop (with no loop, the whole track: turn on the track repeat).",
-        )}
+        {L("Темп збільшується з кожним проходом із зазначеним кроком.", "The tempo goes up with every pass by the chosen step.")}
       </p>
 
-      <div className="ramp-grid gap-x-6 gap-y-4">
-        <Field label={<>{L("Старт, BPM", "Start, BPM")} {startOv === null && <span className="text-slate-500">({L("поточний темп", "current tempo")})</span>}</>}>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <Field label={<>{L("Старт, BPM", "Start, BPM")} {startOv === null && <span className="text-slate-500">({L("поточний", "current")})</span>}</>}>
           <div className="flex items-center gap-2 flex-wrap">
-            <NumberStepper id="ramp-start" value={startShown} min={lo} max={hi} step={1} decimals={1} label={L("Стартовий темп", "Start tempo")} disabled={!ready || running} onChange={(v) => setStartOv(v)} />
+            <SpinField id="ramp-start" value={startShown} min={lo} max={hi} step={1} decimals={1} widthClass="w-16" label={L("Стартовий темп", "Start tempo")} disabled={!ready || running} onChange={(v) => setStartOv(v)} />
             {startOv !== null && <MiniButton disabled={running} onClick={() => setStartOv(null)}>{L("поточний", "current")}</MiniButton>}
           </div>
         </Field>
         <Field label={<>{L("Ціль, BPM", "Target, BPM")} {targetOv === null && <span className="text-slate-500">({L("оригінал", "original")})</span>}</>}>
           <div className="flex items-center gap-2 flex-wrap">
-            <NumberStepper id="ramp-target" value={targetShown} min={lo} max={hi} step={1} decimals={1} label={L("Цільовий темп", "Target tempo")} disabled={!ready || running} onChange={(v) => setTargetOv(v)} />
+            <SpinField id="ramp-target" value={targetShown} min={lo} max={hi} step={1} decimals={1} widthClass="w-16" label={L("Цільовий темп", "Target tempo")} disabled={!ready || running} onChange={(v) => setTargetOv(v)} />
             {targetOv !== null && <MiniButton disabled={running} onClick={() => setTargetOv(null)}>{L("оригінал", "original")}</MiniButton>}
           </div>
         </Field>
         <Field label={L("Крок, BPM", "Step, BPM")}>
-          <NumberStepper id="ramp-step" value={step} min={1} max={50} label={L("Крок прискорення", "Step")} disabled={running} onChange={setStep} />
+          <SpinField id="ramp-step" value={step} min={1} max={50} label={L("Крок прискорення", "Step")} disabled={running} onChange={setStep} />
         </Field>
         <Field label={L(`Змінювати темп кожні N ${unit}`, `Change the tempo every N ${unit}`)}>
-          <NumberStepper id="ramp-every" value={every} min={1} max={32} label={L("Проходів на крок", "Passes per step")} disabled={running} onChange={setEvery} />
+          <SpinField id="ramp-every" value={every} min={1} max={32} label={L("Проходів на крок", "Passes per step")} disabled={running} onChange={setEvery} />
         </Field>
       </div>
       {status && <p className="text-sm text-slate-200" role="status">{status}</p>}

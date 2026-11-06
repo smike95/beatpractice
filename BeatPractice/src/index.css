@@ -732,3 +732,10 @@ button, [role="switch"], [role="button"], a, input[type="range"], summary { touc
   .bp-range::-webkit-slider-thumb { height: 26px; width: 26px; margin-top: -9px; }
   .bp-range::-moz-range-thumb { height: 22px; width: 22px; }
 }
+
+/* ==========================================================================
+   SEGMENTED CONTROL (components/ui/Segmented.tsx) and POPOVER
+   ========================================================================== */
+.seg-on { background: #334155; color: #ffffff; }
+html.light .seg-on { background: #0369a1; color: #ffffff; box-shadow: 0 1px 2px rgba(3, 105, 161, 0.4); }
+.bp-popover { animation: bp-pop 140ms ease-out; }

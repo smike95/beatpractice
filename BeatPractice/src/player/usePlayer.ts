@@ -309,7 +309,7 @@ export function usePlayer() {
     if (!songReady) return;
     core.setMetronome(metronomeConfig.enabled, metronomeConfig.volume, metronomeConfig.accentFirstBeat).catch(() => {});
     core.setCountIn(metronomeConfig.countInBars, metronomeConfig.countInOnLoop).catch(() => {});
-    core.setQuietBars(metronomeConfig.quietEnabled, metronomeConfig.quietClickBars, metronomeConfig.quietBars).catch(() => {});
+    core.setQuietBars(metronomeConfig.quietEnabled, metronomeConfig.quietClickBars, metronomeConfig.quietBars + (metronomeConfig.quietContinue ? 100 : 0)).catch(() => {});
     core.setSongVolume(isTrackMuted ? 0 : trackVolume).catch(() => {});
   }, [songReady, metronomeConfig, trackVolume, isTrackMuted]);
 
@@ -370,11 +370,29 @@ export function usePlayer() {
     : null;
 
   // ---- actions --------------------------------------------------------------------------------
+  // Count-in switched off for one start (resuming in the middle with "count-in only at the start"); put back as soon as the sound runs.
+  const countInHeld = useRef(false);
+  useEffect(() => {
+    if (snap?.playing && countInHeld.current) {
+      countInHeld.current = false;
+      core.setCountIn(metronomeConfig.countInBars, metronomeConfig.countInOnLoop).catch(() => {});
+    }
+  }, [snap?.playing]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Play: with an active loop it starts at the loop start, unless the paused position is inside the loop (then it just goes on). */
   const togglePlay = useCallback(async () => {
     if (!ready || !snap) return;
-    if (snap.playing) await core.pause();
-    else await core.play();
-  }, [ready, snap]);
+    if (snap.playing) { await core.pause(); return; }
+    let pos = snap.position;
+    if (loop.active && (pos < loop.start - 0.01 || pos >= loop.end - 0.01)) { pos = loop.start; await core.seek(pos); }
+    if (metronomeConfig.countInBars > 0 && metronomeConfig.countInOnlyAtStart) {
+      const startPos = loop.active ? loop.start : 0;
+      const firstBar = loop.active ? loop.start : (barTimes[0] ?? 0);
+      const atStart = pos <= startPos + 0.3 || pos <= firstBar + 0.05;
+      if (!atStart) { countInHeld.current = true; await core.setCountIn(0, metronomeConfig.countInOnLoop).catch(() => {}); }
+    }
+    await core.play();
+  }, [ready, snap, loop, metronomeConfig, barTimes]);
 
   // While the rhythm is still being analysed the original song can already be played.
   const togglePreview = useCallback(async () => {
@@ -442,6 +460,7 @@ export function usePlayer() {
       setActiveLoop(idx);
       setSelectedLoop(idx);
       persistLoops(loops, idx);
+      await core.seek(slot.start).catch(() => {});     // playback goes to the loop at once (the previous loop is replaced in the core)
     },
     [ready, activeId, loops, persistLoops],
   );
@@ -507,6 +526,7 @@ export function usePlayer() {
       setSelectedLoop(idx);
       setActiveLoop(idx);
       persistLoops(next, idx);
+      await core.seek(start).catch(() => {});
     },
     [ready, activeId, loops, selectedLoop, persistLoops],
   );
@@ -748,6 +768,18 @@ export function usePlayer() {
     [ready, activeId, patchItem],
   );
 
+  /** Tempo found twice too fast (210 instead of 105): divide it by two for the whole track. Bars change, so the loops are cleared like with a meter mode. */
+  const setHalveTempo = useCallback(
+    async (on: boolean) => {
+      if (!ready || !activeId) return;
+      const preset = (activeItem?.meterMode ?? 0) % 10;
+      core.setSpeed(1).catch(() => {});
+      patchItem(activeId, (it) => ({ ...it, speed: 1 }));
+      await setMeterMode(preset + (on ? 10 : 0));
+    },
+    [ready, activeId, activeItem, patchItem, setMeterMode],
+  );
+
   const updateTrackMeta = useCallback(
     (id: string, meta: { artist: string; title: string; cover: string }) => {
       patchItem(id, (it) => ({ ...it, artist: meta.artist.trim() || undefined, title: meta.title.trim() || undefined, cover: meta.cover || undefined }));
@@ -835,8 +867,10 @@ export function usePlayer() {
     sections,
     meterLabels,
     variableMeter,
-    meterMode: activeItem?.meterMode ?? 0,
-    setMeterMode,
+    meterMode: (activeItem?.meterMode ?? 0) % 10,         // recognition preset 0 auto, 1 sensitive, 2 strict
+    halveTempo: (activeItem?.meterMode ?? 0) >= 10,        // the tempo is divided by two for this track
+    setMeterMode: (preset: number) => setMeterMode(preset + ((activeItem?.meterMode ?? 0) >= 10 ? 10 : 0)),   // keeps the "halve" choice
+    setHalveTempo,
     updateTrackMeta,
     hasNext,
     hasPrev,
