@@ -23,6 +23,8 @@ import { Language, TranslationKey, translations } from './i18n';
 import { QuickTempoBar } from './components/QuickTempoBar';
 import { MetronomeStrip } from './components/MetronomeStrip';
 import { TempoMapDialog } from './components/TempoMapDialog';
+import { LoopConflictDialog } from './components/LoopConflictDialog';
+import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
 import { btn } from './components/ui/styles';
 import { Download, Info, Languages, ListEnd, Monitor, Moon, Music, Package, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
@@ -378,7 +380,7 @@ export default function App() {
                   <button
                     onClick={() => player.togglePreview()}
                     title={lang === 'en' ? 'Listen to the original while the analysis runs' : 'Послухати оригінал, поки триває аналіз'}
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-100 cursor-pointer shrink-0"
+                    className={`p-1.5 rounded-lg border cursor-pointer shrink-0 text-white ${snap.playing ? 'bg-slate-800 hover:bg-slate-700 border-slate-700' : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-500'}`}
                   >
                     {snap.playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
                   </button>
@@ -677,6 +679,17 @@ export default function App() {
               <button id="btn-pack-notice-ok" className={btn.primary} onClick={player.dismissPackNotice}>{lang === 'en' ? 'I understand' : 'Розумію'}</button>
             </div>
         </Modal>
+      )}
+
+      {player.loopChoice && (
+        <LoopConflictDialog
+          lang={lang}
+          loops={player.loops}
+          hits={player.loopChoice.hits}
+          canCreate={player.loops.length < MAX_LOOPS}
+          isDark={isDark}
+          onChoose={(answer) => { void player.resolveLoopChoice(answer); }}
+        />
       )}
 
       {editing && track && activeTrackId && (

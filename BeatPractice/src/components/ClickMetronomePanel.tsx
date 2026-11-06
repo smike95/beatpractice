@@ -33,7 +33,7 @@ function RunButton(props: { running: boolean; onToggle: () => void; L: Translate
     <button
       id="btn-click-metronome" type="button" onClick={onToggle} aria-pressed={running} title={text} aria-label={text}
       className={`h-12 w-12 shrink-0 rounded-xl flex items-center justify-center cursor-pointer text-white shadow-sm transition-colors duration-150 ${
-        running ? "bg-rose-700 hover:bg-rose-600" : "bg-sky-700 hover:bg-sky-600"
+        running ? "bg-rose-700 hover:bg-rose-600" : "bg-emerald-600 hover:bg-emerald-500"
       }`}
     >
       {running ? <Square className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current" />}

@@ -662,8 +662,8 @@ html.light .tab-active { background: #0369a1; color: #ffffff; border-color: #075
 html.light .cover-ph-active { background: #0369a1; color: #ffffff; }
 
 /* A button that has something to do right now (for example "reset to the original tempo" when the tempo was changed): clearly lit. */
-.btn-attn { background: #0369a1; color: #ffffff; border-color: #38bdf8; }
-.btn-attn:hover { background: #0284c7; }
+.btn-attn { background: #6d28d9; color: #ffffff; border-color: #a78bfa; }
+.btn-attn:hover { background: #7c3aed; }
 html.light .btn-attn { background: #0369a1; color: #ffffff; border-color: #075985; }
 
 /* Light theme: the outlines of buttons and fields are clearly visible (the general hairlines stay light). */

@@ -89,6 +89,21 @@ function mostCommonBarLength(data: SongData): number {
   return best;
 }
 
+/** A new loop that shares bars with existing loops, waiting for the user's decision. */
+export interface LoopChoice {
+  start: number;
+  end: number;
+  hits: number[];                 // indices of the existing loops it shares bars with
+  origin: "drag" | "add";
+}
+
+/** Indices of the loops that share at least some bars with start..end (loops that only touch at a bar line do not count). */
+function overlappingLoops(loops: LoopSlot[], start: number, end: number): number[] {
+  const out: number[] = [];
+  loops.forEach((l, i) => { if (Math.min(l.end, end) - Math.max(l.start, start) > 0.02) out.push(i); });
+  return out;
+}
+
 export function usePlayer() {
   const [init, setInit] = useState<InitInfo | null>(null);
   const [snap, setSnap] = useState<Snapshot | null>(null);
@@ -113,6 +128,8 @@ export function usePlayer() {
   const [loops, setLoops] = useState<LoopSlot[]>([]);
   const [activeLoop, setActiveLoop] = useState<number | null>(null);
   const [selectedLoop, setSelectedLoop] = useState(0);
+  // a new loop that shares bars with existing ones waits here until the user decides (new loop / change one of the hit loops)
+  const [loopChoice, setLoopChoice] = useState<LoopChoice | null>(null);
   const [caps, setCaps] = useState<Caps>({ clickSounds: 0, countInBeats: false, stems: false, meterModes: false });
   const [stemsInfo, setStemsInfo] = useState<StemsInfo | null>(null);
   const [stemMix, setStemMixState] = useState<StemMix>(defaultMix());
@@ -131,6 +148,13 @@ export function usePlayer() {
   const playModeRef = useRef<PlayMode>(playMode);
   playModeRef.current = playMode;
   const opening = useRef(false);
+  // Which snapshot belongs to which opened track: the core has no track id, so snapshots are numbered.
+  // A READY snapshot is trusted only if its request started after core.openFile() returned for the requested track
+  // (otherwise it is the previous track's snapshot and its tempo / length would land on the new track).
+  const pollSeq = useRef(0);        // number of the latest snapshot request that was started
+  const snapSeq = useRef(0);        // number of the request that produced the current `snap`
+  const freshFrom = useRef(0);      // the first request number that already reflects the requested track
+  const openGen = useRef(0);        // grows with every track opening; stale async work compares against it
   const playlistRef = useRef(playlist);
   playlistRef.current = playlist;
 
@@ -160,8 +184,9 @@ export function usePlayer() {
       if (busy) return;
       busy = true;
       try {
+        const my = ++pollSeq.current;
         const s = await core.snapshot();
-        if (!stop) setSnap(s);
+        if (!stop) { snapSeq.current = my; setSnap(s); }
       } catch (e) {
         if (!stop) setMessage(String(e));
       } finally {
@@ -211,10 +236,13 @@ export function usePlayer() {
     requestedId.current = item.id;
     handledId.current = null;
     opening.current = true;
+    openGen.current += 1;
+    freshFrom.current = Number.MAX_SAFE_INTEGER;   // nothing is trusted until the core has accepted the file
     setSong(null);
     setSongReady(false);
     setLoops([]);
     setActiveLoop(null);
+    setLoopChoice(null);
     setMessage("");
     try {
       const ok = await core.openFile(item.path);
@@ -222,6 +250,7 @@ export function usePlayer() {
     } catch (e) {
       setMessage(String(e));
     } finally {
+      freshFrom.current = pollSeq.current + 1;       // only requests started from now on describe this track
       opening.current = false;
     }
   }, []);
@@ -240,28 +269,37 @@ export function usePlayer() {
     if (!snap || snap.state !== BC.READY) return;
     const id = requestedId.current;
     if (!id || opening.current || handledId.current === id) return;
+    if (snapSeq.current < freshFrom.current) return;   // still the previous track's READY snapshot
     handledId.current = id;
     const s = snap;
+    const gen = openGen.current;
+    const stale = () => requestedId.current !== id || openGen.current !== gen;   // the user has switched tracks meanwhile
     (async () => {
       try {
         const item = playlistRef.current.find((p) => p.id === id);
         await core.setMeterMode(item?.meterMode ?? 0).catch(() => false);   // re-reads the saved analysis: fast
+        if (stale()) return;
         const data = await core.songData();
+        if (stale()) return;
         const speed = item?.speed ?? 1;
         await core.setSpeed(speed);
+        if (stale()) return;
         const slots = item?.loops ?? [];
         const act = item?.activeLoop ?? null;
         setLoops(slots);
         setSelectedLoop(0);
         if (act !== null && slots[act] && slots[act].end > slots[act].start) {
           const ok = await core.setLoop(slots[act].start, slots[act].end);
+          if (stale()) return;
           setActiveLoop(ok ? act : null);
         } else {
           await core.clearLoop();
+          if (stale()) return;
           setActiveLoop(null);
         }
         // a .beatpack brings its own title, loops and owner
         const pk = await core.packInfo();
+        if (stale()) return;
         if (pk.isPack) {
           const mine = getOwnerId();
           if (pk.owner && mine && pk.owner !== mine) setPackNotice({ owner: pk.owner, title: pk.title || item?.name || "" });
@@ -479,17 +517,36 @@ export function usePlayer() {
     [ready, loops, activeLoop, persistLoops],
   );
 
-  /** New loop: the current bar and the next three bars. */
+  /** Puts a loop from the "+" button into the list: `target` is "new" or the index of the loop it replaces. */
+  const applyAddLoop = useCallback(
+    async (slot: LoopSlot, target: "new" | number) => {
+      const makeNew = target === "new";
+      if (makeNew && loops.length >= MAX_LOOPS) return;
+      if (!makeNew && !loops[target]) return;
+      const idx = makeNew ? loops.length : target;
+      const put: LoopSlot = makeNew || !loops[idx]?.name ? slot : { ...slot, name: loops[idx].name };   // a changed loop keeps its name
+      const next = makeNew ? [...loops, put] : loops.map((l, i) => (i === idx ? put : l));
+      setLoops(next);
+      setSelectedLoop(idx);
+      if (activeLoop === idx) {
+        const ok = await core.setLoop(put.start, put.end);
+        if (!ok) setMessage("Ядро не прийняло цикл (завеликий або замалий).");
+      }
+      persistLoops(next, activeLoop);
+    },
+    [loops, activeLoop, persistLoops],
+  );
+
+  /** New loop: the current bar and the next three bars. If it shares bars with existing loops, the user is asked first. */
   const addLoop = useCallback(() => {
     if (!ready || !snap || loops.length >= MAX_LOOPS || barTimes.length === 0) return;
     const bi = Math.max(0, lastLE(barTimes, snap.position));
     const endBar = Math.min(barTimes.length, bi + 4);
     const slot: LoopSlot = { start: barTimes[bi], end: endBar < barTimes.length ? barTimes[endBar] : snap.duration };
-    const next = [...loops, slot];
-    setLoops(next);
-    setSelectedLoop(next.length - 1);
-    persistLoops(next, activeLoop);
-  }, [ready, snap, loops, barTimes, activeLoop, persistLoops]);
+    const hits = overlappingLoops(loops, slot.start, slot.end);
+    if (hits.length > 0) { setLoopChoice({ start: slot.start, end: slot.end, hits, origin: "add" }); return; }
+    void applyAddLoop(slot, "new");
+  }, [ready, snap, loops, barTimes, applyAddLoop]);
 
   const removeLoop = useCallback(
     async (idx: number) => {
@@ -509,12 +566,14 @@ export function usePlayer() {
     [loops, activeLoop, selectedLoop, persistLoops],
   );
 
-  /** A loop dragged on the waveform becomes a NEW loop while there is room for one (up to MAX_LOOPS); when they are all taken it replaces the selected one. */
-  const dragLoop = useCallback(
-    async (start: number, end: number) => {
+  /** Puts a loop dragged on the waveform into the list: `target` is "new" or the index of the loop it replaces; it becomes the active loop. */
+  const applyDragLoop = useCallback(
+    async (start: number, end: number, target: "new" | number) => {
       if (!ready || !activeId) return;
-      const makeNew = loops.length < MAX_LOOPS;
-      const idx = makeNew ? loops.length : Math.min(selectedLoop, loops.length - 1);
+      const makeNew = target === "new";
+      if (makeNew && loops.length >= MAX_LOOPS) return;
+      if (!makeNew && !loops[target]) return;
+      const idx = makeNew ? loops.length : target;
       const slot: LoopSlot = makeNew ? { start, end } : { start, end, ...(loops[idx]?.name ? { name: loops[idx].name } : {}) };   // a replaced loop keeps its name
       const ok = await core.setLoop(start, end);
       if (!ok) {
@@ -528,7 +587,33 @@ export function usePlayer() {
       persistLoops(next, idx);
       await core.seek(start).catch(() => {});
     },
-    [ready, activeId, loops, selectedLoop, persistLoops],
+    [ready, activeId, loops, persistLoops],
+  );
+
+  /**
+   * A loop dragged on the waveform becomes a NEW loop while there is room for one (up to MAX_LOOPS); when they are all taken it replaces the selected one.
+   * If it shares bars with existing loops, the user is asked first: a new loop, or change one of the loops it touches.
+   */
+  const dragLoop = useCallback(
+    async (start: number, end: number) => {
+      if (!ready || !activeId) return;
+      const hits = overlappingLoops(loops, start, end);
+      if (hits.length > 0) { setLoopChoice({ start, end, hits, origin: "drag" }); return; }
+      await applyDragLoop(start, end, loops.length < MAX_LOOPS ? "new" : Math.min(selectedLoop, loops.length - 1));
+    },
+    [ready, activeId, loops, selectedLoop, applyDragLoop],
+  );
+
+  /** The user's answer to the question about a loop that shares bars: "new", the index of the loop to change, or null = cancel. */
+  const resolveLoopChoice = useCallback(
+    async (answer: "new" | number | null) => {
+      const c = loopChoice;
+      setLoopChoice(null);
+      if (!c || answer === null) return;
+      if (c.origin === "drag") await applyDragLoop(c.start, c.end, answer);
+      else await applyAddLoop({ start: c.start, end: c.end }, answer);
+    },
+    [loopChoice, applyDragLoop, applyAddLoop],
   );
 
   const jumpBar = useCallback(
@@ -917,6 +1002,8 @@ export function usePlayer() {
     selectedLoop,
     setSelectedLoop,
     addLoop,
+    loopChoice,
+    resolveLoopChoice,
     removeLoop,
     updateLoop,
     activateLoop,

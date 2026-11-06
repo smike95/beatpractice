@@ -44,7 +44,7 @@ export function MetronomeStrip(props: {
                   active
                     ? idx === 0
                       ? "scale-110 bg-rose-500 font-black text-white shadow-[0_0_8px_rgba(244,63,94,0.8)]"
-                      : "beat-non-accent-active scale-105 bg-sky-600 font-black text-white shadow-[0_0_8px_rgba(2,132,199,0.8)] dark:bg-sky-400 dark:text-slate-950 dark:shadow-[0_0_8px_rgba(56,189,248,0.8)]"
+                      : "beat-non-accent-active scale-105 bg-sky-600 font-black text-white shadow-[0_0_8px_rgba(2,132,199,0.8)] dark:bg-sky-400 dark:text-slate-950 dark:shadow-[0_0_8px_rgba(167,139,250,0.8)]"
                     : "beat-inactive border border-slate-800 bg-slate-900 text-slate-400"
                 }`}
               >

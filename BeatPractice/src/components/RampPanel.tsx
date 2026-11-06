@@ -110,7 +110,7 @@ export function RampPanel(props: {
           disabled={!ready}
           onClick={() => (running ? stop() : start())}
           aria-pressed={running}
-          className={`min-h-11 px-4 rounded-lg font-bold inline-flex items-center justify-center gap-2 cursor-pointer text-white shadow-sm transition-colors duration-150 disabled:opacity-40 disabled:cursor-default ${running ? "bg-rose-700 hover:bg-rose-600" : "bg-sky-700 hover:bg-sky-600"}`}
+          className={`min-h-11 px-4 rounded-lg font-bold inline-flex items-center justify-center gap-2 cursor-pointer text-white shadow-sm transition-colors duration-150 disabled:opacity-40 disabled:cursor-default ${running ? "bg-rose-700 hover:bg-rose-600" : "bg-emerald-600 hover:bg-emerald-500"}`}
         >
           {running ? <Square className="w-5 h-5 shrink-0 fill-current" /> : <Play className="w-5 h-5 shrink-0 fill-current" />}
           <StableLabel active={running ? 1 : 0} labels={[L("Почати розгін", "Start"), L("Зупинити", "Stop")]} />
