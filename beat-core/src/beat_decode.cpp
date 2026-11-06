@@ -63,9 +63,15 @@ double globalPeriod(const std::vector<float>& beatLogit, const AnalyzerConfig& c
 
 // Local beat period (seconds) for every frame: the autocorrelation is measured in a sliding window and the
 // result follows the previous window, so a tempo change is tracked instead of being forced to the global tempo.
-std::vector<double> localPeriods(const std::vector<float>& beatLogit, double globalP, const AnalyzerConfig& cfg) {
+struct LocalTempo { std::vector<double> period; std::vector<char> weak; };
+
+// Local beat period (seconds) for every frame: the autocorrelation is measured in a sliding window and the
+// result follows the previous reliable window, so a tempo change is tracked instead of being forced to the global tempo.
+// A window where the network is unsure (the autocorrelation is much weaker than in most of the song, e.g. a drum roll in the
+// intro) does not get a tempo of its own: it takes the period of the nearest reliable window, and the chain is held tighter there.
+LocalTempo localPeriods(const std::vector<float>& beatLogit, double globalP, const AnalyzerConfig& cfg) {
     const int n = (int)beatLogit.size();
-    std::vector<double> flat(n, globalP);
+    LocalTempo flat{std::vector<double>(n, globalP), std::vector<char>(n, 0)};
     if (!cfg.localTempo) return flat;
     std::vector<double> p(n);
     for (int i = 0; i < n; ++i) p[i] = sigmoid(beatLogit[i]);
@@ -77,8 +83,9 @@ std::vector<double> localPeriods(const std::vector<float>& beatLogit, double glo
     const int lagHi = std::min((int)std::floor(cfg.maxPeriodSec * kFrameRate + 1e-9), W / 2);
     if (n < W || lagHi <= lagLo) return flat;
 
-    std::vector<double> centers, pers;
-    double prev = globalP * kFrameRate;                                   // in frames
+    // pass 1: for every window its strength (the normalized autocorrelation peak: 1 = perfectly periodic) and its clear peaks (periods in frames)
+    std::vector<double> centers, strength;
+    std::vector<std::vector<double>> cands;
     for (int c0 = W / 2; ; c0 += H) {
         int c = std::min(c0, n - W / 2);
         const int a = c - W / 2, b = c + W / 2;
@@ -88,26 +95,59 @@ std::vector<double> localPeriods(const std::vector<float>& beatLogit, double glo
             double s = 0; for (int i = a; i + lag < b; ++i) s += x[i] * x[i + lag];
             ac[lag] = s; best = std::max(best, s);
         }
-        // candidates: clear peaks; choose the one nearest (in log scale) to the previous window's tempo
-        double pick = -1, bestDist = 1e9;
+        double e0 = 0; for (int i = a; i < b; ++i) e0 += x[i] * x[i];
+        std::vector<double> pk;
         for (int lag = lagLo; lag <= lagHi; ++lag) {
             bool peak = (lag == lagLo || ac[lag] >= ac[lag - 1]) && (lag == lagHi || ac[lag] >= ac[lag + 1]);
             if (!peak || ac[lag] < 0.55 * best || best <= 0) continue;
-            // parabolic refinement of the peak position
-            double l = lag;
+            double l = lag;     // parabolic refinement of the peak position
             if (lag > lagLo && lag < lagHi) { double d = ac[lag-1] - 2 * ac[lag] + ac[lag+1]; if (d < 0) l += 0.5 * (ac[lag-1] - ac[lag+1]) / d; }
-            double dist = std::fabs(std::log(l / prev));
-            if (dist < bestDist) { bestDist = dist; pick = l; }
+            pk.push_back(l);
         }
-        if (pick < 0) pick = prev;
-        prev = pick;
-        centers.push_back(c); pers.push_back(pick / kFrameRate);
+        centers.push_back(c); strength.push_back(e0 > 0 ? best / e0 : 0.0); cands.push_back(std::move(pk));   // normalized: does not depend on how many beats fit in the window
         if (c >= n - W / 2) break;
     }
+    const size_t nw = centers.size();
+
+    // which windows are unreliable
+    std::vector<char> weakW(nw, 0);
+    {
+        std::vector<double> sorted(strength); std::sort(sorted.begin(), sorted.end());
+        const double med = sorted[nw / 2];
+        size_t nStrong = 0;
+        for (size_t i = 0; i < nw; ++i) { weakW[i] = strength[i] < cfg.localWeakShare * med; if (!weakW[i]) ++nStrong; }
+        if (nStrong == 0) std::fill(weakW.begin(), weakW.end(), 0);
+    }
+
+    // pass 2: reliable windows choose the peak nearest (log scale) to the previous RELIABLE window's tempo
+    std::vector<double> pers(nw, 0.0);
+    double prev = globalP * kFrameRate;
+    for (size_t i = 0; i < nw; ++i) {
+        if (weakW[i]) continue;
+        double pick = -1, bestDist = 1e9;
+        for (double l : cands[i]) { double d = std::fabs(std::log(l / prev)); if (d < bestDist) { bestDist = d; pick = l; } }
+        if (pick < 0) pick = prev;
+        prev = pick; pers[i] = pick / kFrameRate;
+    }
+    // unreliable windows take the nearest reliable window's tempo
+    for (size_t i = 0; i < nw; ++i) {
+        if (!weakW[i]) continue;
+        size_t best = i, bestD = nw + 1;
+        for (size_t j = 0; j < nw; ++j) if (!weakW[j]) { size_t d = i > j ? i - j : j - i; if (d < bestD) { bestD = d; best = j; } }
+        pers[i] = weakW[best] ? globalP : pers[best];
+    }
+    // frame mask of the unreliable stretches (the nearest window decides)
+    std::vector<char> weakMask(n, 0);
+    { size_t k = 0;
+      for (int t = 0; t < n; ++t) {
+          while (k + 1 < nw && std::fabs(centers[k + 1] - t) <= std::fabs(centers[k] - t)) ++k;
+          weakMask[t] = weakW[k];
+      } }
+
     // steady songs keep the single global period, exactly as before
     bool steady = true;
     for (double v : pers) if (std::fabs(v / globalP - 1.0) > cfg.localSteadyTolerance) steady = false;
-    if (steady) return flat;
+    if (steady) return LocalTempo{flat.period, weakMask};
     // median of 3 against single outliers, then interpolate between window centres (log scale)
     std::vector<double> sm(pers);
     for (size_t i = 1; i + 1 < pers.size(); ++i) { double a = pers[i-1], b = pers[i], d = pers[i+1]; sm[i] = std::max(std::min(a, b), std::min(std::max(a, b), d)); }
@@ -119,11 +159,12 @@ std::vector<double> localPeriods(const std::vector<float>& beatLogit, double glo
         else if (k + 1 >= centers.size()) out[t] = sm.back();
         else { double f = (t - centers[k]) / (centers[k+1] - centers[k]); out[t] = std::exp((1 - f) * std::log(sm[k]) + f * std::log(sm[k+1])); }
     }
-    return out;
+    return LocalTempo{out, weakMask};
 }
 
 // chain of beats that keeps an even spacing (dynamic programming); fills gaps with a steady ruler
-std::vector<int> beatChain(const std::vector<float>& beatLogit, const std::vector<double>& periodSec, const AnalyzerConfig& cfg) {
+std::vector<int> beatChain(const std::vector<float>& beatLogit, const LocalTempo& lt, const AnalyzerConfig& cfg) {
+    const std::vector<double>& periodSec = lt.period;
     const int n = (int)beatLogit.size();
     std::vector<double> p(n);
     for (int i = 0; i < n; ++i) p[i] = sigmoid(beatLogit[i]);
@@ -139,7 +180,8 @@ std::vector<int> beatChain(const std::vector<float>& beatLogit, const std::vecto
         for (int k = lo; k <= hi; ++k) {
             int c = t - k; if (c < 0) continue;
             double l = std::log(k / P);
-            double v = score[c] - cfg.chainTightness * l * l / P;
+            const double tight = cfg.chainTightness * (lt.weak[t] ? cfg.weakTightnessBoost : 1.0);
+            double v = score[c] - tight * l * l / P;
             if (v > bestV) { bestV = v; bestC = c; }
         }
         if (bestC >= 0 && bestV > 0) { score[t] = act[t] + bestV; prev[t] = bestC; }
@@ -173,13 +215,15 @@ struct BarState { int a, b, p; };   // a = previous bar length, b = current bar 
 
 // most likely bar structure: alternating bar lengths (4,3,4,3) are cheap, isolated changes are expensive
 std::vector<std::pair<int,int>> barStructure(const std::vector<int>& frames, const std::vector<float>& downLogit,
-                                             const AnalyzerConfig& cfg) {
+                                             const AnalyzerConfig& cfg, const std::vector<char>& weak) {
     const int nB = (int)frames.size(), nF = (int)downLogit.size();
     std::vector<double> ld(nB), lnd(nB);
     for (int i = 0; i < nB; ++i) {
         int f0 = std::max(0, frames[i] - 2), f1 = std::min(nF, frames[i] + 3);
         float m = -1e30f; for (int f = f0; f < f1; ++f) m = std::max(m, downLogit[f]);
         double pr = sigmoid(m);
+        // where the network is unsure the downbeat evidence is not reliable either: pull it towards the usual share of downbeats (1 in 4)
+        if (frames[i] < (int)weak.size() && weak[frames[i]]) pr = 0.25 + (pr - 0.25) * cfg.weakDownbeatTrust;
         ld[i] = std::log(pr + 1e-6); lnd[i] = std::log(1.0 - pr + 1e-6);
     }
     const auto& Ns = cfg.barLengths;
@@ -229,10 +273,11 @@ BeatMap decodeBeatMap(const Activations& a, const AnalyzerConfig& cfg) {
     BeatMap m; m.durationSec = a.durationSec;
     if (a.beat.size() < 200 || a.beat.size() != a.downbeat.size()) return m;
     m.periodSec = globalPeriod(a.beat, cfg);
-    std::vector<int> fr = beatChain(a.beat, localPeriods(a.beat, m.periodSec, cfg), cfg);
+    const LocalTempo lt = localPeriods(a.beat, m.periodSec, cfg);
+    std::vector<int> fr = beatChain(a.beat, lt, cfg);
     if (fr.size() < 8) return m;
     if (cfg.tempoDivide == 2) { fr = thinBeats(fr, a.downbeat); m.periodSec *= 2.0; if (fr.size() < 8) return m; }
-    auto st = barStructure(fr, a.downbeat, cfg);
+    auto st = barStructure(fr, a.downbeat, cfg, lt.weak);
     for (size_t i = 0; i < fr.size(); ++i) {
         m.beats.push_back(fr[i] / kFrameRate);
         m.barLength.push_back(st[i].first); m.posInBar.push_back(st[i].second);
@@ -243,13 +288,15 @@ BeatMap decodeBeatMap(const Activations& a, const AnalyzerConfig& cfg) {
     starts.push_back((int)fr.size());
     const int nb = (int)starts.size() - 1;
     std::vector<char> strong(nb, 0);
+    std::vector<double> meanP(nb, 0.0);
     for (int k = 0; k < nb; ++k) {
-        bool ok = true;
+        double sum = 0; int cnt = 0;
         for (int i = starts[k]; i < starts[k+1]; ++i) {
             int f = std::min(fr[i], (int)a.beat.size() - 1);
-            if (sigmoid(a.beat[f]) < cfg.strongBeatThreshold) { ok = false; break; }
+            sum += sigmoid(a.beat[f]); ++cnt;
         }
-        strong[k] = ok;
+        meanP[k] = cnt > 0 ? sum / cnt : 0.0;
+        strong[k] = cnt > 0 && meanP[k] >= cfg.strongBeatThreshold;
     }
     int first = -1, last = -1;
     for (int k = 0; k + cfg.stableBars <= nb && first < 0; ++k) {
@@ -257,6 +304,14 @@ BeatMap decodeBeatMap(const Activations& a, const AnalyzerConfig& cfg) {
         for (int j = 0; j < cfg.stableBars; ++j)
             if (!strong[k+j] || m.barLength[starts[k+j]] != m.barLength[starts[k]]) ok = false;
         if (ok) first = k;
+    }
+    // the bars just before the first stable run (a drum fill, an entrance) belong to the range too when the grid simply goes on there
+    if (first >= 0) {
+        for (int j = 0; j < cfg.leadInBars && first > 0; ++j) {
+            const int k = first - 1;
+            if (m.barLength[starts[k]] != m.barLength[starts[first]] || meanP[k] < cfg.leadInMinConfidence) break;
+            first = k;
+        }
     }
     for (int k = nb - 1; k >= 0; --k) if (strong[k]) { last = k; break; }
     if (first >= 0 && last >= first) { m.playFirstBeat = starts[first]; m.playLastBeat = starts[last+1] - 1; }

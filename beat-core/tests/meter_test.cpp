@@ -83,6 +83,27 @@ int main(int argc, char** argv) {
         }
         ok(starts > 20 && onDown * 10 >= starts * 9, "bar starts of mode 10 sit on the network's downbeats  (" + std::to_string(onDown) + "/" + std::to_string(starts) + ")");
     }
+    // "The Beautiful People" (Marilyn Manson, ~144 BPM): the network is unsure for the first ~25 s (a drum roll in 16ths, its
+    // autocorrelation peaks at 4 x 0.14 s = 0.56 s), then it is rock steady. The intro must keep the song's tempo and 4/4 bars,
+    // and the metronome must start where the drums enter (4.6 s), not 25 s later.
+    {
+        BeatMap m = decode(dir, "H_beautiful_people", 0);
+        ok(std::fabs(m.bpm - 144.0) < 1.5, "weak intro: song tempo ~144 BPM  (" + std::to_string(m.bpm) + ")");
+        std::vector<double> ibi;
+        for (size_t i = 0; i + 1 < m.beats.size(); ++i) if (m.beats[i] >= 6.0 && m.beats[i + 1] < 25.0) ibi.push_back(m.beats[i + 1] - m.beats[i]);
+        std::sort(ibi.begin(), ibi.end());
+        double med = ibi.empty() ? 0 : ibi[ibi.size() / 2];
+        ok(med > 0.40 && med < 0.44, "weak intro: beats keep the song's spacing, not the roll's  (median " + std::to_string(med) + " s)");
+        auto c = barLengths(m);
+        ok(of(c, 4) >= total(c) * 95 / 100, "weak intro: bars of 4 beats  (" + show(c) + ")");
+        double startSec = m.playFirstBeat >= 0 ? m.beats[m.playFirstBeat] : 999;
+        ok(startSec > 3.0 && startSec < 6.0, "weak intro: the metronome starts where the drums enter  (" + std::to_string(startSec) + " s)");
+        BeatMap strict = decode(dir, "H_beautiful_people", 2);
+        auto cs = barLengths(strict);
+        ok(of(cs, 4) == total(cs), "mode 2 (coarse): every bar has 4 beats  (" + show(cs) + ")");
+        BeatMap half = decode(dir, "H_beautiful_people", 10);
+        ok(std::fabs(half.bpm - 72.0) < 1.0, "mode 10 halves it: ~72 BPM  (" + std::to_string(half.bpm) + ")");
+    }
     printf(failures ? "\n%d FAILED\n" : "\nALL PASSED\n", failures);
     return failures ? 1 : 0;
 }

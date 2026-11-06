@@ -32,6 +32,12 @@ struct AnalyzerConfig {
     double localWindowSec = 12.0;        // length of the window in which the local beat period is measured
     double localHopSec = 2.0;            // distance between measurements
     double localSteadyTolerance = 0.06;  // if every window is within this share of the global period, the tempo is treated as steady
+    // A window where the network is unsure (its autocorrelation is much weaker than in most of the song, e.g. a drum roll in the
+    // intro) is not trusted with a tempo of its own: it takes the period of the nearest trustworthy window, and the beat chain
+    // is held to an even spacing there.
+    double localWeakShare = 0.9;         // a window whose periodicity is below this share of the median window = unreliable
+    double weakTightnessBoost = 8.0;     // chainTightness is multiplied by this in unreliable stretches
+    double weakDownbeatTrust = 0.3;      // in unreliable stretches the downbeat evidence is pulled towards "no information" by this share
 
     // ---- tempo correction ----
     // 2 = the network followed the half-beats (twice the real tempo, e.g. 210 instead of 105): keep every second beat.
@@ -48,6 +54,8 @@ struct AnalyzerConfig {
     // ---- where the metronome should play ----
     double strongBeatThreshold = 0.3;    // a beat is "real music" if network confidence >= this
     int    stableBars = 3;               // metronome starts at the first bar that begins this many equal bars in a row
+    int    leadInBars = 2;               // ...but up to this many bars before it join the range (drums often enter with a fill)
+    double leadInMinConfidence = 0.15;   // ...as long as they have the same length and the network still sees beats in them (mean)
 
     // Meter recognition presets: 0 = automatic (the defaults above), 1 = sensitive (follows the network more closely, accepts
     // changes of meter and 5/7-beat bars more readily), 2 = strict (only 3 and 4 beats, changes of meter need strong evidence).
