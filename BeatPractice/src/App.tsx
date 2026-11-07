@@ -374,7 +374,7 @@ export default function App() {
                     <h2 id="track-title" className="text-base font-bold text-slate-100 truncate">
                       {track ? track.displayName : (lang === 'en' ? 'Waiting for an audio track' : 'Очікування завантаження аудіотреку')}
                     </h2>
-                    {track && (<>
+                    {track && (
                       <button
                         id="btn-edit-track"
                         onClick={() => setEditing(true)}
@@ -383,25 +383,7 @@ export default function App() {
                       >
                         <Pencil className="w-6 h-6" />
                       </button>
-                      <button
-                        id="btn-export-track"
-                        onClick={() => setExporting(true)}
-                        disabled={!(track && player.ready)}
-                        title={lang === 'en' ? 'Export the track with the current tempo and parts' : 'Експортувати трек із поточним темпом і партіями'}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Download className="w-6 h-6" />
-                      </button>
-                      <button
-                        id="btn-save-pack"
-                        onClick={() => setPacking(true)}
-                        disabled={!(track && player.ready) || player.caps?.packs === false}
-                        title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Package className="w-6 h-6" />
-                      </button>
-                    </>)}
+                    )}
                   </div>
                   <div id="track-meta-line" className="flex items-center gap-x-3 gap-y-0.5 text-xs text-slate-400 mt-0.5 flex-wrap">
                     <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-slate-200 font-mono">{track && track.originalBpmExact > 0 ? `${track.originalBpmExact.toFixed(1)} BPM` : '—'}</strong>
@@ -417,7 +399,7 @@ export default function App() {
                         <strong className="text-slate-300">{track ? (track.meterLabels[0] ?? track.timeSignature) : '4/4'}</strong>
                       )}
                     </span>
-                    {track && (
+                    {track && (<>
                       <button
                         id="btn-tempo-map"
                         type="button"
@@ -428,7 +410,25 @@ export default function App() {
                       >
                         <Wrench className="h-5 w-5" />
                       </button>
-                    )}
+                      <button
+                        id="btn-export-track"
+                        onClick={() => setExporting(true)}
+                        disabled={!(track && player.ready)}
+                        title={lang === 'en' ? 'Export the track with the current tempo and parts' : 'Експортувати трек із поточним темпом і партіями'}
+                        className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Download className="h-5 w-5" />
+                      </button>
+                      <button
+                        id="btn-save-pack"
+                        onClick={() => setPacking(true)}
+                        disabled={!(track && player.ready) || player.caps?.packs === false}
+                        title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
+                        className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Package className="h-5 w-5" />
+                      </button>
+                    </>)}
                   </div>
                 </div>
               </div>
