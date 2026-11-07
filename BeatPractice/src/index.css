@@ -93,6 +93,7 @@ html.light .bg-slate-900\/50,
 html.light .bg-slate-900,
 html.light aside,
 html.light #master-transport-bar,
+html.light #click-metronome-panel,
 html.light #tempo-control-card,
 html.light #time-signature-card,
 html.light #stem-separator-card,
@@ -105,6 +106,7 @@ html.light #waveform-timeline-container {
 html.light #quick-tempo-control-bar,
 html.light #quick-metronome-control-bar,
 html.light #quick-metronome-visual-beats,
+html.light #click-metronome-visual-beats,
 html.light #dual-volume-mixer,
 html.light #measure-nav-combined-bar,
 html.light #zoom-control-bar,
@@ -117,6 +119,7 @@ html.light .bg-slate-950\/70 {
 }
 
 /* Visual Metronome Beats in Light Mode */
+html.light #click-metronome-visual-beats .beat-inactive,
 html.light #quick-metronome-visual-beats .beat-inactive {
   background-color: #ececec !important;
   color: #6e6e73 !important;
@@ -134,6 +137,7 @@ html.light #mobile-metronome-stripe .bg-slate-800 {
 }
 
 html.light .beat-non-accent-active,
+html.light #click-metronome-visual-beats .beat-non-accent-active,
 html.light #quick-metronome-visual-beats .beat-non-accent-active,
 html.light #mobile-metronome-stripe .beat-non-accent-active {
   background-color: #007aff !important;
@@ -171,7 +175,7 @@ html.light .text-slate-500 {
 
 /* 5. Interactive Buttons & Segmented Controls in Light Mode */
 html.light .bg-slate-800,
-html.light .bg-slate-900:not(#master-transport-bar):not(header) {
+html.light .bg-slate-900:not(#master-transport-bar):not(#click-metronome-panel):not(header) {
   background-color: #ececec !important;
 }
 html.light .hover\:bg-slate-800:hover,
@@ -763,3 +767,9 @@ html.mac header .mac-traffic-space { display: block; width: 78px; flex: none; }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
 html.light #track-bar { background-color: rgba(246, 246, 248, 0.82) !important; border-color: rgba(0, 0, 0, 0.12) !important; }
 #track-bar { -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px); }
+
+/* no header any more: the sticky bars start at the top of the window */
+:root { --hdr: 0px; }
+/* macOS: room for the traffic lights above the emblem in the playlist column */
+.mac-top-space { display: none; }
+html.mac .mac-top-space { display: block; height: 28px; flex: none; }

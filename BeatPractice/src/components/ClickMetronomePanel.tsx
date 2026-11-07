@@ -1,112 +1,41 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Square } from "lucide-react";
+import { Play, SlidersHorizontal, Square } from "lucide-react";
 import { core } from "../core";
-import { CLICK_SOUND_NAMES } from "../types";
-import { btn as btnStyle } from "./ui/styles";
 import { Slider } from "./Slider";
-import { PanelCard } from "./ui/PanelCard";
 import { MetronomeSettingsForm } from "./MetronomeSettingsForm";
 import { MetronomeIcon } from "./MetronomeIcon";
+import { BeatLamps } from "./MetronomeStrip";
+import { QuickTempoBar } from "./QuickTempoBar";
+import { Popover } from "./ui/Popover";
 
 type Lang = "uk" | "en";
 type Translate = (uk: string, en: string) => string;
 const MIN_BPM = 30, MAX_BPM = 250;
 const clampBpm = (v: number) => Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(v)));
 
-/* ------------------------------------------------------------------ */
-/* Shared look of this panel (one place instead of repeated strings). */
-/* Touch targets: 44 px on phones, a little denser from `sm` upwards. */
-/* ------------------------------------------------------------------ */
-const ui = {
-  inset: "rounded-xl border border-slate-800 bg-slate-950",
-  stepBtn:
-    "h-11 sm:h-10 sm:min-w-[2.75rem] px-2 rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 " +
-    "text-sm font-bold tabular-nums text-slate-200 cursor-pointer select-none transition-colors duration-150",
-  chip: (active: boolean) => btnStyle.option(active),
-};
+/** Every block of the row is 48 px high, like the blocks of the song's metronome and tempo. */
+const block = "flex h-12 items-center rounded-xl border border-slate-800 bg-slate-950 select-none";
 
-/** Start / stop. The size is fixed (48 × 48) and the icons are the same size, so nothing jumps when the state changes. */
+/** Start / stop. The size is fixed and the icons are the same size, so nothing jumps when the state changes. */
 function RunButton(props: { running: boolean; onToggle: () => void; L: Translate }) {
   const { running, onToggle, L } = props;
   const text = running ? L("Зупинити метроном", "Stop the metronome") : L("Запустити метроном", "Start the metronome");
   return (
     <button
       id="btn-click-metronome" type="button" onClick={onToggle} aria-pressed={running} title={text} aria-label={text}
-      className={`h-12 w-12 shrink-0 rounded-xl flex items-center justify-center cursor-pointer text-white shadow-sm transition-colors duration-150 ${
+      className={`h-9 w-24 shrink-0 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer text-white text-xs font-bold shadow-sm transition-colors duration-150 ${
         running ? "bg-rose-700 hover:bg-rose-600" : "bg-emerald-600 hover:bg-emerald-500"
       }`}
     >
-      {running ? <Square className="w-6 h-6 fill-current" /> : <Play className="w-6 h-6 fill-current" />}
+      {running ? <Square className="w-5 h-5 fill-current" /> : <Play className="w-5 h-5 fill-current" />}
+      {running ? L("Стоп", "Stop") : L("Старт", "Start")}
     </button>
-  );
-}
-
-/** Dots of the bar; the one that clicks now lights up. */
-function BeatDots(props: { beats: number; accent: boolean; active: number }) {
-  const { beats, accent, active } = props;
-  return (
-    <div className="flex flex-wrap items-center gap-1.5" aria-hidden="true">
-      {Array.from({ length: beats }, (_, i) => (
-        <span
-          key={i}
-          className={`h-3.5 w-3.5 rounded-full border transition-colors duration-100 ${
-            active === i ? (accent && i === 0 ? "bg-amber-400 border-amber-300" : "bg-sky-400 border-sky-300") : "border-slate-600"
-          }`}
-        />
-      ))}
-    </div>
-  );
-}
-
-/** Tempo: the field with − / + steps. On a phone the field is on top and the six steps form one row below it. */
-function BpmControl(props: {
-  bpm: number; draft: string | null; L: Translate;
-  onStep: (d: number) => void; onDraft: (v: string | null) => void; onCommit: () => void;
-}) {
-  const { bpm, draft, L, onStep, onDraft, onCommit } = props;
-  const step = (d: number) => (
-    <button
-      key={d} type="button" className={ui.stepBtn} onClick={() => onStep(d)}
-      aria-label={d < 0 ? L(`Повільніше на ${-d}`, `Slower by ${-d}`) : L(`Швидше на ${d}`, `Faster by ${d}`)}
-    >
-      {d < 0 ? `−${-d}` : `+${d}`}
-    </button>
-  );
-  return (
-    <div className="grid w-full grid-cols-6 gap-1.5 sm:flex sm:w-auto sm:items-center sm:ml-auto">
-      {[-10, -5, -1].map(step)}
-      <input
-        id="click-metronome-bpm" type="text" inputMode="numeric" value={draft ?? String(bpm)}
-        onChange={(e) => onDraft(e.target.value.replace(/[^0-9]/g, "").slice(0, 3))}
-        onFocus={(e) => e.target.select()} onBlur={onCommit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") (e.target as HTMLInputElement).blur();
-          if (e.key === "Escape") { onDraft(null); (e.target as HTMLInputElement).blur(); }
-        }}
-        aria-label="BPM" title="BPM"
-        className="col-span-6 row-start-1 mb-1 h-12 w-full rounded-lg border border-slate-700 bg-transparent text-center font-mono text-2xl font-bold tabular-nums transition-colors duration-150 sm:col-auto sm:mb-0 sm:h-10 sm:w-16"
-      />
-      {[1, 5, 10].map(step)}
-    </div>
-  );
-}
-
-/** Beats per bar (2 to 7). */
-function BeatsPicker(props: { beats: number; L: Translate; onPick: (n: number) => void }) {
-  const { beats, L, onPick } = props;
-  return (
-    <div className="grid grid-cols-6 gap-1.5 sm:flex" role="group" aria-label={L("Долей у такті", "Beats per bar")}>
-      {[2, 3, 4, 5, 6, 7].map((n) => (
-        <button key={n} type="button" onClick={() => onPick(n)} aria-pressed={beats === n} className={`${ui.chip(beats === n)} sm:w-9`}>
-          {n}
-        </button>
-      ))}
-    </div>
   );
 }
 
 /**
- * Free metronome (shown only while no track is open): start / stop, tempo (buttons and typing), beats per bar, its OWN accent, volume and sound.
+ * Free metronome. It is built like the metronome of the song, in one row that wraps by blocks:
+ * 1) emblem, name, start / stop; 2) tempo and the settings button (accent, time signature, sound); 3) the lamps of the beats; then the volume.
  * It starts with the tempo, accent, volume and sound of the opened song and changes only what the user changes. The quiet bars do not touch it.
  * The clicks are made by the core (the same sounds as the main metronome, even timing). It never plays together with the track.
  */
@@ -132,7 +61,6 @@ export function ClickMetronomePanel(props: {
   const sound = own.sound ?? defaults.sound;
 
   const [running, setRunning] = useState(false);
-  const [draft, setDraft] = useState<string | null>(null);
   const graceUntil = useRef(0);
 
   // send every change to the core while it is running
@@ -143,39 +71,71 @@ export function ClickMetronomePanel(props: {
   useEffect(() => { if (running && clickBeat < 0 && Date.now() > graceUntil.current) setRunning(false); }, [clickBeat, running]);   // the core stopped it (a song was opened)
   useEffect(() => () => { core.clickSet(false, 100, 4, true, 1, 0).catch(() => {}); }, []);
 
-  const step = (d: number) => { setDraft(null); setOwn((o) => ({ ...o, bpm: clampBpm(bpm + d) })); };
-  const commitDraft = () => {
-    if (draft !== null) { const n = parseInt(draft, 10); if (!isNaN(n)) setOwn((o) => ({ ...o, bpm: clampBpm(n) })); setDraft(null); }
-  };
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsBox = useRef<HTMLDivElement>(null);
   const pct = Math.round(volume * 100);
+  const setBpm = (v: number) => setOwn((o) => ({ ...o, bpm: clampBpm(v) }));
 
   return (
-    <PanelCard id="click-metronome-panel" icon={<MetronomeIcon className="h-6 w-6" />} title={L("Вільний метроном", "Free metronome")}>
-      {/* start, beat dots and tempo */}
-      <div className={`flex flex-wrap items-center gap-x-4 gap-y-3 px-3 py-3 ${ui.inset}`}>
-        <RunButton running={running} onToggle={() => (running ? stop() : start())} L={L} />
-        <BeatDots beats={beats} accent={accent} active={running ? clickBeat : -1} />
-        <BpmControl bpm={bpm} draft={draft} L={L} onStep={step} onDraft={setDraft} onCommit={commitDraft} />
-      </div>
+    <section id="click-metronome-panel" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        {/* 1: emblem, name, start / stop */}
+        <div className={`${block} gap-3 px-3`}>
+          <MetronomeIcon className={`h-6 w-6 shrink-0 ${running ? "text-slate-200" : "text-slate-400"}`} />
+          <span className="text-sm font-bold text-slate-100 whitespace-nowrap">{L("Вільний метроном", "Free metronome")}</span>
+          <RunButton running={running} onToggle={() => (running ? stop() : start())} L={L} />
+        </div>
 
-      {/* beats per bar and volume */}
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
-        <BeatsPicker beats={beats} L={L} onPick={(n) => setOwn((o) => ({ ...o, beats: n }))} />
-        <div className={`flex min-w-[min(220px,100%)] flex-1 items-center gap-2 px-3 py-2 ${ui.inset}`}>
-          <MetronomeIcon className="h-6 w-6 shrink-0 text-slate-300" />
+        {/* 2: tempo and the settings button */}
+        <div ref={settingsBox} className="relative flex items-center gap-2">
+          <QuickTempoBar
+            hasTrack
+            currentBpm={bpm}
+            canReset={bpm !== clampBpm(defaults.bpm)}
+            onChange={setBpm}
+            onReset={() => setBpm(defaults.bpm)}
+            labels={{
+              minus5: L("Повільніше на 5", "Slower by 5"), minus1: L("Повільніше на 1", "Slower by 1"),
+              plus1: L("Швидше на 1", "Faster by 1"), plus5: L("Швидше на 5", "Faster by 5"),
+              reset: L("Темп відкритого треку", "Tempo of the open track"),
+            }}
+          />
+          <div className={`${block} px-1.5`}>
+            <button
+              id="btn-click-metronome-settings" type="button" onClick={() => setSettingsOpen((v) => !v)}
+              aria-expanded={settingsOpen} aria-haspopup="dialog"
+              title={L("Налаштування метронома", "Metronome settings")} aria-label={L("Налаштування метронома", "Metronome settings")}
+              className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border cursor-pointer transition-colors duration-150 ${
+                settingsOpen ? "seg-on border-transparent" : "border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+              }`}
+            >
+              <SlidersHorizontal className="h-5 w-5" />
+            </button>
+          </div>
+          <Popover open={settingsOpen} onClose={() => setSettingsOpen(false)} containerRef={settingsBox} ariaLabel={L("Налаштування метронома", "Metronome settings")} id="click-metronome-settings-popover" align="left">
+            <h3 className="text-sm font-bold text-slate-100">{L("Налаштування метронома", "Metronome settings")}</h3>
+            <MetronomeSettingsForm
+              lang={lang}
+              accent={accent} onAccent={(v) => setOwn((o) => ({ ...o, accent: v }))}
+              beats={{ value: beats, onChange: (n) => setOwn((o) => ({ ...o, beats: n })) }}
+              sound={sound} soundCount={soundCount} onSound={(id) => setOwn((o) => ({ ...o, sound: id }))}
+            />
+          </Popover>
+        </div>
+
+        {/* 3: the lamps of the beats */}
+        <div className={`${block} px-3`}>
+          <BeatLamps id="click-metronome-visual-beats" lang={lang} beatsPerBar={beats} activeBeat={running ? clickBeat : -1} />
+        </div>
+
+        {/* volume: the same channel as the metronome in the mixer of the song */}
+        <div className={`${block} mixer-channel-box min-w-[220px] flex-1 gap-2 px-3`}>
+          <MetronomeIcon className="h-6 w-6 shrink-0 text-slate-300 mixer-icon" />
+          <span className="mixer-label shrink-0 text-xs font-semibold text-slate-300">{L("Клік", "Click")}</span>
           <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={(v: number) => setOwn((o) => ({ ...o, volume: v }))} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
-          <span className="w-12 shrink-0 text-right font-mono text-xs font-bold text-slate-200">{pct}%</span>
+          <span className="mixer-value w-11 shrink-0 text-right font-mono text-xs font-bold text-slate-200">{pct}%</span>
         </div>
       </div>
-
-      {/* accent and sound: the same rows as in the settings window of the song's metronome (there is no count-in without a song) */}
-      <div className="max-w-md">
-        <MetronomeSettingsForm
-          lang={lang}
-          accent={accent} onAccent={(v) => setOwn((o) => ({ ...o, accent: v }))}
-          sound={sound} soundCount={soundCount} onSound={(id) => setOwn((o) => ({ ...o, sound: id }))}
-        />
-      </div>
-    </PanelCard>
+    </section>
   );
 }

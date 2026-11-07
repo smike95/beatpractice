@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PlaylistItem } from '../types';
-import { ListMusic, Plus, Trash2, Music, Music2, GripVertical } from 'lucide-react';
+import { ChevronRight, Pin, PinOff, Plus, Search, Trash2, Music, Music2, GripVertical, X } from 'lucide-react';
+import { BeatPracticeLogo } from './BeatPracticeLogo';
 import { Language, translations } from '../i18n';
 import { displayName } from '../player/usePlayer';
 import { Modal } from './ui/Modal';
@@ -18,6 +19,11 @@ interface PlaylistPanelProps {
   footer?: React.ReactNode;
   isSidebar?: boolean;
   lang?: Language;
+  /** narrow strip: the emblem, the covers of the tracks and an arrow at the bottom */
+  compact?: boolean;
+  pinned?: boolean;
+  onTogglePin?: () => void;
+  onExpand?: () => void;
 }
 
 const formatDuration = (seconds: number): string => {
@@ -48,7 +54,11 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   onReorder,
   footer,
   isSidebar = false,
-  lang = 'uk'
+  lang = 'uk',
+  compact = false,
+  pinned = false,
+  onTogglePin,
+  onExpand,
 }) => {
   const t = (key: keyof typeof translations.uk) => (translations[lang] || translations.uk)[key] || key;
   const containerClasses = isSidebar
@@ -95,28 +105,113 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     if (to !== drag.from) onReorder(drag.from, to);
   };
 
+  // ---- search: the list is filtered while typing; Enter / the button opens the first track found ----
+  const [query, setQuery] = useState('');
+  const q = query.trim().toLowerCase();
+  const visible = playlist
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => q === '' || displayName(item).toLowerCase().includes(q));
+  const submitSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (q !== '' && visible.length > 0) onSelectTrack(visible[0].item);
+  };
+  const coverOf = (item: PlaylistItem, isActive: boolean, size: string) =>
+    item.cover ? (
+      <img src={item.cover} alt="" className={`${size} rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-sky-500' : ''}`} />
+    ) : (
+      <div className={`${size} rounded-md flex items-center justify-center shrink-0 ${isActive ? 'cover-ph-active shadow-xs' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
+        <Music2 className="w-5 h-5" />
+      </div>
+    );
+
+  if (compact) {
+    return (
+      <div id="playlist-panel" className="flex h-full w-full flex-col items-center">
+        <div className="mac-top-space" data-tauri-drag-region />
+        <div className="shrink-0 pb-3 pointer-events-none" data-tauri-drag-region><BeatPracticeLogo className="w-9 h-9" /></div>
+        <div className="flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center gap-2 py-1">
+          {playlist.map((item) => (
+            <button key={item.id} type="button" onClick={() => onSelectTrack(item)} title={displayName(item)} aria-label={displayName(item)} className="shrink-0 rounded-lg cursor-pointer">
+              {coverOf(item, item.id === activeTrackId, 'w-10 h-10')}
+            </button>
+          ))}
+        </div>
+        <button
+          type="button"
+          id="btn-expand-playlist"
+          onClick={onExpand}
+          title={lang === 'en' ? 'Show the playlist' : 'Показати плейліст'}
+          aria-label={lang === 'en' ? 'Show the playlist' : 'Показати плейліст'}
+          className="mt-2 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-slate-300 hover:text-slate-100 hover:bg-slate-800 cursor-pointer"
+        >
+          <ChevronRight className="w-6 h-6" />
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div id="playlist-panel" className={containerClasses}>
-      {/* Header */}
-      <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800 shrink-0">
-        <div className="flex items-center gap-2 select-none">
-          <ListMusic className="w-6 h-6 text-slate-700 dark:text-slate-300 shrink-0" />
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 whitespace-nowrap">
-            {t('playlist')}: {playlist.length}
-          </h3>
-        </div>
+      {/* Emblem and name (left), the pin (right) */}
+      <div className="mac-top-space" data-tauri-drag-region />
+      <div className="flex items-center gap-2 shrink-0" data-tauri-drag-region>
+        <BeatPracticeLogo className="w-9 h-9 shrink-0 pointer-events-none" />
+        <span className="flex-1 min-w-0 truncate text-left text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 pointer-events-none">BeatPractice</span>
+        {onTogglePin && (
+          <button
+            type="button"
+            id="btn-pin-playlist"
+            onClick={onTogglePin}
+            aria-pressed={pinned}
+            title={pinned ? (lang === 'en' ? 'Unpin: the playlist folds into a strip' : 'Відкріпити: плейліст згортається у смугу') : (lang === 'en' ? 'Pin: keep the playlist open' : 'Закріпити: плейліст завжди відкритий')}
+            aria-label={pinned ? (lang === 'en' ? 'Unpin the playlist' : 'Відкріпити плейліст') : (lang === 'en' ? 'Pin the playlist' : 'Закріпити плейліст')}
+            className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-lg cursor-pointer transition-colors ${pinned ? 'seg-on' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
+          >
+            {pinned ? <Pin className="w-5 h-5" /> : <PinOff className="w-5 h-5" />}
+          </button>
+        )}
+      </div>
 
+      {/* Search (live) with its button, and adding tracks */}
+      <form onSubmit={submitSearch} role="search" className="flex items-center gap-2 mt-3 shrink-0">
+        <div className="relative flex-1 min-w-0">
+          <input
+            id="playlist-search"
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Escape') setQuery(''); }}
+            placeholder={lang === 'en' ? 'Search the playlist' : 'Пошук у плейлісті'}
+            aria-label={lang === 'en' ? 'Search the playlist' : 'Пошук у плейлісті'}
+            className="h-10 w-full rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-sm text-slate-100 placeholder:text-slate-500"
+          />
+          {query !== '' && (
+            <button type="button" onClick={() => setQuery('')} title={lang === 'en' ? 'Clear' : 'Очистити'} aria-label={lang === 'en' ? 'Clear' : 'Очистити'}
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-100 cursor-pointer">
+              <X className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+        <button
+          type="submit"
+          id="btn-playlist-search"
+          title={lang === 'en' ? 'Open the first track found' : 'Відкрити перший знайдений трек'}
+          aria-label={lang === 'en' ? 'Open the first track found' : 'Відкрити перший знайдений трек'}
+          className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
+        >
+          <Search className="w-5 h-5" />
+        </button>
         <button
           type="button"
           id="btn-add-more-tracks"
           onClick={onOpenAddFiles}
-          className="min-h-11 sm:min-h-9 px-3 text-xs font-semibold bg-slate-900 hover:bg-slate-800 active:bg-slate-950 dark:bg-slate-800 dark:hover:bg-slate-700 text-white rounded-lg flex items-center gap-1.5 transition-all cursor-pointer active:scale-95 shadow-xs"
+          className="h-10 px-3 shrink-0 text-xs font-semibold bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
           title={t('addTrack')}
         >
-          <Plus className="w-6 h-6" />
-          <span>{t('addTrack')}</span>
+          <Plus className="w-5 h-5" />
+          <span className="whitespace-nowrap">{t('addTrack')}</span>
         </button>
-      </div>
+      </form>
 
       {/* Track List */}
       <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto mt-3 pr-1 space-y-2">
@@ -137,10 +232,12 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             </p>
           </div>
         ) : (
-          playlist.map((item, index) => {
+          visible.length === 0 ? (
+            <p className="px-2 py-4 text-center text-xs text-slate-400">{lang === 'en' ? 'Nothing found' : 'Нічого не знайдено'}</p>
+          ) : visible.map(({ item, index }) => {
             const isActive = item.id === activeTrackId;
-            const showLineBefore = drag && drag.ins === index && drag.ins !== drag.from && drag.ins !== drag.from + 1;
-            const showLineAfter = drag && index === playlist.length - 1 && drag.ins === playlist.length && drag.from !== playlist.length - 1;
+            const showLineBefore = !q && drag && drag.ins === index && drag.ins !== drag.from && drag.ins !== drag.from + 1;
+            const showLineAfter = !q && drag && index === playlist.length - 1 && drag.ins === playlist.length && drag.from !== playlist.length - 1;
             return (
               <React.Fragment key={item.id}>
               {showLineBefore && <div className="h-1 rounded-full bg-sky-500 -my-1" />}
@@ -158,8 +255,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-1 min-w-0 flex-1">
-                  {/* Grip handle: drag to move the track */}
-                  <button
+                  {/* Grip handle: drag to move the track (not while the list is filtered) */}
+                  {!q && <button
                     type="button"
                     className="p-2.5 sm:p-1.5 -ml-2.5 sm:-ml-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-grab active:cursor-grabbing touch-none shrink-0 rounded-lg transition-colors duration-150"
                     title={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
@@ -171,7 +268,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     onPointerCancel={() => setDrag(null)}
                   >
                     <GripVertical className="w-6 h-6" />
-                  </button>
+                  </button>}
                   {/* Play or active animated icon */}
                   {item.cover ? (
                     <img src={item.cover} alt="" className={`w-10 h-10 rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-sky-500' : ''}`} />
@@ -237,7 +334,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       >
         <div className="flex items-center gap-1.5">
           <span>Треків:</span>
-          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{playlist.length}</span>
+          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{q ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
         </div>
 
         <div className="flex items-center gap-1.5">

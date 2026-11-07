@@ -55,7 +55,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   if (!caps.stems) {
     return (
       <section className={card}>
-        <p className="text-sm text-amber-500">
+        <p className="text-sm text-sky-500">
           {L(
             "У вашій збірці ядра ще немає розділення на партії: перезберіть beat-core з оновленими файлами (див. README).",
             "Your build of the core cannot separate stems yet: rebuild beat-core with the updated files (see README).",
@@ -74,7 +74,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   if (info && !info.available) {
     return (
       <section className={card}>
-        <p className="text-sm text-amber-500">
+        <p className="text-sm text-sky-500">
           {L("Модель розділення ще не встановлена. Завантажте її (один раз, близько 170 МБ):", "The separation model is not installed yet. Download it (once, about 170 MB):")}
         </p>
         <pre className="text-xs font-mono bg-slate-950 border border-slate-800 rounded-lg p-3 text-slate-200 overflow-x-auto">cd /шлях/до/beat-core{"\n"}sh scripts/fetch_stem_model.sh</pre>

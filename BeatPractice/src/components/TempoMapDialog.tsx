@@ -60,7 +60,7 @@ export function TempoMapDialog(props: {
             ? L("Якщо складний трек показано з хибним розміром, спробуйте «Чутливо» або «Грубо».", "If a complex song is shown with the wrong meter, try “Sensitive” or “Coarse”.")
             : L("Щоб обирати режим розпізнавання, оновіть ядро (beat-core).", "Update the core (beat-core) to choose the recognition mode.")}
         </p>
-        <p className="flex items-center gap-1.5 text-xs font-semibold text-amber-500">
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-500">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           {L("Під час зміни режиму цикли цього треку скидаються.", "Changing the mode clears the loops of this track.")}
         </p>

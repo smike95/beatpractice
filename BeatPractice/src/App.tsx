@@ -27,7 +27,7 @@ import { LoopConflictDialog } from './components/LoopConflictDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
 import { btn } from './components/ui/styles';
-import { Download, Info, Languages, ListEnd, Monitor, Moon, Music, Package, PanelLeftClose, PanelLeftOpen, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
+import { Download, Info, Languages, ListEnd, Monitor, Moon, Music, Package, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
 
 const formatTime = (seconds: number): string => {
   if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -66,46 +66,58 @@ export default function App() {
   const handleBpmChange = player.changeBpm;
   const handleResetBpm = player.resetBpm;
   const handleSeek = player.seek;
-  // The playlist column can be folded to the left. On narrow windows it is a drawer above the content (closed at first).
-  const [playlistOpen, setPlaylistOpen] = useState<boolean>(() => {
-    try {
-      const v = localStorage.getItem('beatpractice_playlist_open');
-      if (v === '1' || v === '0') return v === '1' && window.innerWidth >= 1024;
-    } catch { /* ignore */ }
-    return typeof window === 'undefined' || window.innerWidth >= 1024;
+  // The playlist column: pinned = always open and the content is pushed aside; not pinned = a narrow strip that opens above the content on hover.
+  const [wide, setWide] = useState<boolean>(() => typeof window === 'undefined' || window.innerWidth >= 1024);
+  const [playlistPinned, setPlaylistPinned] = useState<boolean>(() => {
+    try { const v = localStorage.getItem('beatpractice_playlist_pinned'); if (v === '1' || v === '0') return v === '1'; } catch { /* ignore */ }
+    return true;
   });
-  const setPlaylistOpenSaved = (v: boolean) => {
-    setPlaylistOpen(v);
-    try { localStorage.setItem('beatpractice_playlist_open', v ? '1' : '0'); } catch { /* ignore */ }
-  };
+  const [playlistOpen, setPlaylistOpen] = useState(false);   // opened above the content (hover, or the arrow on touch screens)
+  const pinned = playlistPinned && wide;                     // a narrow window cannot push the content aside
+  const expanded = pinned || playlistOpen;
+  const asideRef = useRef<HTMLElement>(null);
+  const leaveTimer = useRef<number | undefined>(undefined);
+  const togglePin = () => setPlaylistPinned((v) => {
+    try { localStorage.setItem('beatpractice_playlist_pinned', v ? '0' : '1'); } catch { /* ignore */ }
+    return !v;
+  });
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1024px)');
-    const onChange = (e: MediaQueryListEvent) => setPlaylistOpen(e.matches);   // narrower: fold, wider again: unfold
+    const onChange = (e: MediaQueryListEvent) => setWide(e.matches);
     mq.addEventListener('change', onChange);
     return () => mq.removeEventListener('change', onChange);
   }, []);
-  const handleSelectTrackFromPlaylist = (item: PlaylistItem) => {
-    player.selectTrack(item);
-    if (window.innerWidth < 1024) setPlaylistOpen(false);   // the drawer gets out of the way after a choice
+  // outside press closes the opened (not pinned) playlist: touch screens have no hover
+  useEffect(() => {
+    if (!playlistOpen || pinned) return;
+    const onDown = (e: PointerEvent) => { if (asideRef.current && !asideRef.current.contains(e.target as Node)) setPlaylistOpen(false); };
+    document.addEventListener('pointerdown', onDown);
+    return () => document.removeEventListener('pointerdown', onDown);
+  }, [playlistOpen, pinned]);
+  const onAsideEnter = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    window.clearTimeout(leaveTimer.current);
+    setPlaylistOpen(true);
+  };
+  const onAsideLeave = (e: React.PointerEvent) => {
+    if (e.pointerType !== 'mouse') return;
+    if (e.buttons) {   // a track is being dragged: decide when the button is released
+      const up = () => { window.removeEventListener('pointerup', up); if (!asideRef.current?.matches(':hover')) setPlaylistOpen(false); };
+      window.addEventListener('pointerup', up);
+      return;
+    }
+    leaveTimer.current = window.setTimeout(() => setPlaylistOpen(false), 150);
   };
   const handleRemoveTrackFromPlaylist = player.removeTrack;
-
+  const handleSelectTrackFromPlaylist = (item: PlaylistItem) => {
+    player.selectTrack(item);
+    if (!pinned && !window.matchMedia('(hover: hover)').matches) setPlaylistOpen(false);   // touch: the strip gets out of the way after a choice
+  };
   useEffect(() => { document.documentElement.classList.toggle('mac', isMac); }, []);
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [packing, setPacking] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
-  // the playlist column is as tall as the window below the header: remember the header height
-  const headerRef = useRef<HTMLElement>(null);
-  useEffect(() => {
-    const el = headerRef.current;
-    if (!el) return;
-    const set = () => document.documentElement.style.setProperty('--hdr', `${el.offsetHeight}px`);
-    set();
-    const ro = new ResizeObserver(set);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [player.init?.loaded]);
   // the folded part of the mixer (stem separation) remembers whether it was open
   const [mixerOpen, setMixerOpen] = useState<boolean>(() => {
     try { return localStorage.getItem('beatpractice_mixer_open') === '1'; } catch { return false; }
@@ -276,69 +288,22 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-slate-700 selection:text-white">
-      {/* Header: emblem + name (above the playlist) and the player controls; stays in place when the page scrolls */}
-      <header ref={headerRef} className="relative border-b border-slate-800/80 bg-slate-900/90 backdrop-blur-md sticky top-0 z-30 select-none" data-tauri-drag-region>
-        <div className="flex items-stretch" data-tauri-drag-region>
-          <div className="flex-1 min-w-0" data-tauri-drag-region>
-            <div className="max-w-[1920px] mx-auto flex flex-wrap lg:flex-nowrap items-center lg:items-stretch gap-x-2 gap-y-1 px-3 py-2 sm:px-4 lg:p-0 lg:gap-0" data-tauri-drag-region>
-              <div className="order-1 lg:order-none flex-1 min-w-0 lg:flex-none lg:w-[25rem] lg:shrink-0 flex items-center gap-3 lg:px-4 lg:py-2 pointer-events-none">
-                <div className="mac-traffic-space" aria-hidden="true" />
-                <button
-                  id="btn-toggle-playlist"
-                  type="button"
-                  onClick={() => setPlaylistOpenSaved(!playlistOpen)}
-                  aria-expanded={playlistOpen}
-                  aria-controls="playlist-sidebar"
-                  title={playlistOpen ? (lang === 'en' ? 'Fold the playlist' : 'Згорнути плейліст') : (lang === 'en' ? 'Show the playlist' : 'Показати плейліст')}
-                  className="pointer-events-auto w-10 h-10 shrink-0 flex items-center justify-center rounded-xl text-slate-300 hover:text-slate-100 hover:bg-slate-800 cursor-pointer"
-                >
-                  {playlistOpen ? <PanelLeftClose className="w-6 h-6" /> : <PanelLeftOpen className="w-6 h-6" />}
-                </button>
-                <BeatPracticeLogo className="w-10 h-10 shrink-0" />
-                <span className="hidden sm:inline text-2xl font-black text-slate-100 tracking-tight">BeatPractice</span>
-              </div>
-              <div className={`contents lg:flex lg:flex-1 lg:min-w-0 lg:items-center lg:gap-3 lg:px-6 lg:py-2 lg:justify-end ${isWindows ? 'lg:pr-[9rem]' : ''}`} data-tauri-drag-region>
-                <button
-                  id="btn-export-track"
-                  onClick={() => setExporting(true)}
-                  disabled={!(track && player.ready)}
-                  title={lang === 'en' ? 'Export the track with the current tempo and parts' : 'Експортувати трек із поточним темпом і партіями'}
-                  className="order-2 lg:order-none w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
-                >
-                  <Download className="w-6 h-6" />
-                </button>
-                <button
-                  id="btn-save-pack"
-                  onClick={() => setPacking(true)}
-                  disabled={!(track && player.ready) || player.caps?.packs === false}
-                  title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
-                  className="order-3 lg:order-none w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default shrink-0"
-                >
-                  <Package className="w-6 h-6" />
-                </button>
-                <div className={`order-4 ${playlistOpen ? 'lg:hidden' : ''} flex items-center gap-1 shrink-0`}>{themeLangButtons('-small')}</div>
-              </div>
-            </div>
-          </div>
-          {isWindows && <div className="absolute top-0 right-0"><WindowControls lang={lang} /></div>}
-        </div>
-      </header>
+      {isWindows && <div className="fixed top-0 right-0 z-50"><WindowControls lang={lang} /></div>}
 
       <ModelsBanner lang={lang} />
 
       {/* Main Layout: Left Desktop Sidebar + Content */}
-      <div className="flex-1 flex max-w-[1920px] w-full mx-auto">
+      <div className="flex-1 flex w-full">
         {/* DESKTOP FULL-HEIGHT PLAYLIST SIDEBAR */}
-        {playlistOpen && <div className="lg:hidden fixed inset-0 z-30 bg-black/40" style={{ top: 'var(--hdr, 56px)' }} onClick={() => setPlaylistOpenSaved(false)} aria-hidden="true" />}
-        <aside
-          id="playlist-sidebar"
-          aria-hidden={!playlistOpen}
-          className={`flex shrink-0 flex-col overflow-hidden bg-slate-900 lg:bg-slate-900/50 border-r border-slate-800/80 transition-[transform,width] duration-200 ease-out
-            fixed left-0 z-40 w-[min(25rem,88vw)] p-4 shadow-2xl lg:shadow-none
-            lg:sticky lg:z-auto lg:self-start
-            ${playlistOpen ? 'translate-x-0 lg:w-[25rem]' : '-translate-x-full invisible lg:translate-x-0 lg:w-0 lg:p-0 lg:border-r-0'}`}
-          style={{ top: 'var(--hdr, 56px)', height: 'calc(100vh - var(--hdr, 56px))' }}
-        >
+        {/* PLAYLIST COLUMN: a strip (emblem, covers, arrow) that opens above the content on hover, or pinned open */}
+        <div className="sticky top-0 h-screen shrink-0 z-40 transition-[width] duration-200 ease-out" style={{ width: pinned ? '25rem' : '4.5rem' }}>
+          <aside
+            ref={asideRef}
+            id="playlist-sidebar"
+            onPointerEnter={onAsideEnter}
+            onPointerLeave={onAsideLeave}
+            className={`absolute inset-y-0 left-0 flex flex-col overflow-hidden bg-slate-900 border-r border-slate-800/80 transition-[width,box-shadow] duration-200 ease-out ${expanded ? 'w-[min(25rem,92vw)] p-4' : 'w-[4.5rem] p-3'} ${expanded && !pinned ? 'shadow-2xl' : ''}`}
+          >
           <PlaylistPanel
             isSidebar
             playlist={playlist.map((it) => ({ ...it, trackInfo: { ...it.trackInfo, duration: it.trackInfo.duration / (it.speed > 0 ? it.speed : 1) } }))}
@@ -350,9 +315,14 @@ export default function App() {
             onReorder={player.reorderTracks}
             footer={<div className="flex items-center gap-2">{themeLangButtons('')}</div>}
             lang={lang}
+            compact={!expanded}
+            pinned={pinned}
+            onTogglePin={wide ? togglePin : undefined}
+            onExpand={() => setPlaylistOpen(true)}
           />
 
-        </aside>
+          </aside>
+        </div>
 
         {/* MAIN INTERACTIVE CONTENT */}
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 space-y-4 pb-28 md:pb-8">
@@ -393,7 +363,7 @@ export default function App() {
 
           {/* Master Playback Transport Bar */}
           {/* Track bar: title, tempo and meter on the left, the player controls on the right; stays under the header while the page scrolls */}
-          <div id="track-bar" className="sm:sticky z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 !mt-0 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl" style={{ top: 'var(--hdr, 56px)' }}>
+          <div id="track-bar" data-tauri-drag-region className="sm:sticky z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 !mt-0 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl" style={{ top: 0, ...(isWindows ? { paddingRight: '9.5rem' } : {}) }}>
             <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
               <div className="flex items-center gap-3 min-w-0 flex-1 basis-64">
                 <div className="hidden sm:flex w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden items-center justify-center shrink-0">
@@ -404,7 +374,7 @@ export default function App() {
                     <h2 id="track-title" className="text-base font-bold text-slate-100 truncate">
                       {track ? track.displayName : (lang === 'en' ? 'Waiting for an audio track' : 'Очікування завантаження аудіотреку')}
                     </h2>
-                    {track && (
+                    {track && (<>
                       <button
                         id="btn-edit-track"
                         onClick={() => setEditing(true)}
@@ -413,17 +383,35 @@ export default function App() {
                       >
                         <Pencil className="w-6 h-6" />
                       </button>
-                    )}
+                      <button
+                        id="btn-export-track"
+                        onClick={() => setExporting(true)}
+                        disabled={!(track && player.ready)}
+                        title={lang === 'en' ? 'Export the track with the current tempo and parts' : 'Експортувати трек із поточним темпом і партіями'}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Download className="w-6 h-6" />
+                      </button>
+                      <button
+                        id="btn-save-pack"
+                        onClick={() => setPacking(true)}
+                        disabled={!(track && player.ready) || player.caps?.packs === false}
+                        title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0 disabled:opacity-40 disabled:cursor-not-allowed"
+                      >
+                        <Package className="w-6 h-6" />
+                      </button>
+                    </>)}
                   </div>
                   <div id="track-meta-line" className="flex items-center gap-x-3 gap-y-0.5 text-xs text-slate-400 mt-0.5 flex-wrap">
                     <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-slate-200 font-mono">{track && track.originalBpmExact > 0 ? `${track.originalBpmExact.toFixed(1)} BPM` : '—'}</strong>
-                      {track?.variableTempo && <em title={lang === 'en' ? 'The tempo changes during the song' : 'Темп змінюється протягом пісні'} className="ml-1.5 not-italic font-bold text-amber-500">{lang === 'en' ? 'variable' : 'змінний'}</em>}
+                      {track?.variableTempo && <em title={lang === 'en' ? 'The tempo changes during the song' : 'Темп змінюється протягом пісні'} className="ml-1.5 not-italic font-bold text-sky-500">{lang === 'en' ? 'variable' : 'змінний'}</em>}
                     </span>
                     <span>•</span>
                     <span>{lang === 'en' ? 'Meter' : 'Розмір'}:{' '}
                       {track?.variableMeter ? (
                         <strong className="text-slate-300" title={lang === 'en' ? 'Meters in the song, most frequent first' : 'Розміри в пісні, від найчастішого'}>
-                          <span className="text-amber-500">{lang === 'en' ? 'Variable' : 'Змінний'}</span>: {track.meterLabels.join(', ')}
+                          <span className="text-sky-500">{lang === 'en' ? 'Variable' : 'Змінний'}</span>: {track.meterLabels.join(', ')}
                         </strong>
                       ) : (
                         <strong className="text-slate-300">{track ? (track.meterLabels[0] ?? track.timeSignature) : '4/4'}</strong>

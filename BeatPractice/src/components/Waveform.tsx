@@ -609,13 +609,13 @@ export function Waveform(props: Props) {
                 onClick={() => onSeek(s.loopStart)}
                 title={`${L("Такти", "Bars")} ${s.firstBar}–${s.lastBar}, ${fmt(s.startTime / sp)}`}
                 className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2 border-[3px] cursor-pointer transition-colors bg-slate-800 text-slate-200 hover:bg-slate-700 ${
-                  active ? "border-amber-400" : "border-slate-700"
+                  active ? "border-sky-500" : "border-transparent"
                 }`}
               >
                 <span className="w-2 h-2 rounded-full bg-sky-500" />
                 <span>{sections.length === 1 ? L("Основний трек", "Main track") : `${L("Секція", "Section")} ${i + 1}`}</span>
                 <span className="font-mono text-xs opacity-80">{s.label}</span>
-                {s.bpm > 0 && <span className="font-mono text-xs text-amber-500">{Math.round(s.bpm)}</span>}
+                {s.bpm > 0 && <span className="font-mono text-xs text-sky-500">{Math.round(s.bpm)}</span>}
               </button>
             );
           })}
