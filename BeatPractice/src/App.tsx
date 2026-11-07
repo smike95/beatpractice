@@ -36,6 +36,7 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
 };
 
+const isMac = isDesktop && typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
 const isWindows = isDesktop && typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
 
 function formatPreviewTime(sec: number): string {
@@ -68,6 +69,7 @@ export default function App() {
   const handleSelectTrackFromPlaylist = player.selectTrack;
   const handleRemoveTrackFromPlaylist = player.removeTrack;
 
+  useEffect(() => { document.documentElement.classList.toggle('mac', isMac); }, []);
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [packing, setPacking] = useState(false);
@@ -259,6 +261,7 @@ export default function App() {
           <div className="flex-1 min-w-0" data-tauri-drag-region>
             <div className="max-w-[1920px] mx-auto flex flex-wrap lg:flex-nowrap items-center lg:items-stretch gap-x-2 gap-y-1 px-3 py-2 sm:px-4 lg:p-0 lg:gap-0" data-tauri-drag-region>
               <div className="order-1 lg:order-none flex-1 min-w-0 lg:flex-none lg:w-[25rem] lg:shrink-0 flex items-center gap-3 lg:px-4 lg:py-2 pointer-events-none">
+                <div className="mac-traffic-space" aria-hidden="true" />
                 <BeatPracticeLogo className="w-10 h-10 shrink-0" />
                 <span className="hidden sm:inline text-2xl font-black text-slate-100 tracking-tight">BeatPractice</span>
               </div>

@@ -81,8 +81,8 @@ export function barsText(n: number, lang: "uk" | "en"): string {
 
 /** Every loop has its own colour everywhere in the interface (list, waveform). */
 const LOOP_PALETTE = [
-  { light: "#0284c7", dark: "#38bdf8" },   // blue
-  { light: "#7c3aed", dark: "#a78bfa" },   // violet
+  { light: "#007aff", dark: "#409cff" },   // blue
+  { light: "#af52de", dark: "#ca78f6" },   // violet
   { light: "#d97706", dark: "#fbbf24" },   // amber
   { light: "#059669", dark: "#34d399" },   // green
   { light: "#db2777", dark: "#f472b6" },   // pink
@@ -92,7 +92,7 @@ export function loopColor(index: number, isDark: boolean): { solid: string; fill
   const p = LOOP_PALETTE[((index % LOOP_PALETTE.length) + LOOP_PALETTE.length) % LOOP_PALETTE.length];
   const solid = isDark ? p.dark : p.light;
   const r = parseInt(solid.slice(1, 3), 16), g = parseInt(solid.slice(3, 5), 16), b = parseInt(solid.slice(5, 7), 16);
-  return { solid, fill: `rgba(${r},${g},${b},0.14)`, fillStrong: `rgba(${r},${g},${b},0.30)`, text: isDark ? "#0f172a" : "#ffffff" };
+  return { solid, fill: `rgba(${r},${g},${b},0.14)`, fillStrong: `rgba(${r},${g},${b},0.30)`, text: isDark ? "#1d1d1f" : "#ffffff" };
 }
 
 /** Names of the metronome sounds, in the order of the core: [Ukrainian, English]. */

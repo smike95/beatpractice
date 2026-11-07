@@ -229,18 +229,18 @@ export function Waveform(props: Props) {
 
   const colors = useMemo(
     () => ({
-      wave: isDark ? "#475569" : "#b4c2d3",
-      waveDone: isDark ? "#64748b" : "#94a3b8",
+      wave: isDark ? "#48484a" : "#c7c7cc",
+      waveDone: isDark ? "#6e6e73" : "#8e8e93",
       // when some parts are off: the whole song is drawn dim, the parts that are heard are drawn brighter over it
-      waveDim: isDark ? "#2f3b4d" : "#dfe6ee",
-      waveLive: isDark ? "#9fb0c8" : "#53677f",
-      bar: isDark ? "rgba(167,139,250,0.60)" : "rgba(2,132,199,0.55)",
+      waveDim: isDark ? "#48484a" : "#e5e5ea",
+      waveLive: isDark ? "#aeaeb2" : "#6e6e73",
+      bar: isDark ? "rgba(202,120,246,0.60)" : "rgba(0,122,255,0.55)",
       beat: isDark ? "rgba(148,163,184,0.25)" : "rgba(100,116,139,0.22)",
-      label: isDark ? "#94a3b8" : "#475569",
-      loop: isDark ? "rgba(167,139,250,0.32)" : "rgba(2,132,199,0.24)",
+      label: isDark ? "#8e8e93" : "#48484a",
+      loop: isDark ? "rgba(202,120,246,0.32)" : "rgba(0,122,255,0.24)",
       dim: isDark ? "rgba(2,6,23,0.50)" : "rgba(15,23,42,0.16)",
-      loopText: isDark ? "#0f172a" : "#ffffff",
-      loopEdge: isDark ? "#a78bfa" : "#0284c7",
+      loopText: isDark ? "#1d1d1f" : "#ffffff",
+      loopEdge: isDark ? "#ca78f6" : "#007aff",
       play: "#e11d48",
       ruler: isDark ? "rgba(15,23,42,0.55)" : "rgba(241,245,249,0.9)",
     }),
