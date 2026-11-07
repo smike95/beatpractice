@@ -50,7 +50,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
         aria-expanded={expanded}
         aria-controls="mixer-details"
         title={expanded ? (lang === 'en' ? 'Fold the mixer' : 'Згорнути мікшер') : (lang === 'en' ? 'Unfold the mixer: stem separation' : 'Розгорнути мікшер: розділення на партії')}
-        className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider shrink-0 cursor-pointer rounded-lg px-2.5 min-h-11 sm:min-h-9 -mx-2.5 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+        className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider shrink-0 cursor-pointer rounded-lg px-2.5 mr-2 min-h-11 sm:min-h-9 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
       >
         <Sliders className="w-6 h-6 text-slate-700 dark:text-slate-300" />
         <span className="text-xs text-slate-700 dark:text-slate-300 font-bold">{lang === 'en' ? 'Mixer' : 'Мікшер'}</span>

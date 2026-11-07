@@ -27,6 +27,7 @@ interface Props {
   stemGains?: number[];
   onSeek: (t: number) => void;
   onDragLoop: (start: number, end: number) => void;
+  onUpdateLoop?: (idx: number, slot: LoopSlot) => void;   // a loop edge was moved with its handle
   maxLoops: number;                       // dragging makes a new loop while there is room for one
   onRemoveLoop: (index: number) => void;
   onJumpBar: (dir: -1 | 1) => void;
@@ -119,12 +120,12 @@ function drawPeaks(
 export function Waveform(props: Props) {
   const { song, duration, position, playing, barTimes, sections, loop, loops, activeLoop, selectedLoop, speed, isDark, currentBeat, beatsPerBar, lang } = props;
   const { stemPeaks, stemGains } = props;
-  const { onSeek, onDragLoop, onJumpBar, maxLoops, onRemoveLoop } = props;
+  const { onSeek, onDragLoop, onUpdateLoop, onJumpBar, maxLoops, onRemoveLoop } = props;
   const sp = speed > 0 ? speed : 1;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
 
   const [zoom, setZoom] = useState(1);
-  const [viewStart, setViewStart] = useState(0);
+  const [viewStartS, setViewStart] = useState(0);   // the window start as stored; `viewStart` below is the one actually drawn
   const [follow, setFollow] = useState(true);
   const [dragSel, setDragSel] = useState<{ a: number; b: number } | null>(null);
 
@@ -145,13 +146,25 @@ export function Waveform(props: Props) {
     [duration, zoom],
   );
 
+  // While following, the window start is computed from the playhead in the same render (not one frame later through an effect):
+  // otherwise the playhead and the waveform move in separate frames and the playhead visibly twitches at high zoom.
+  // The start is also rounded to whole device pixels, so the waveform does not shimmer between sub-pixel positions.
+  const followsPlayhead = zoom > 1 && duration > 0 && follow && !(loop.active && loop.end > loop.start && loop.end - loop.start <= viewDur);
+  let viewStart = viewStartS;
+  if (followsPlayhead) {
+    const raw = clampStart(position - viewDur / 2);
+    const dpr = typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1;
+    const pxPerSec = (Math.max(1, mainW) * dpr) / viewDur;
+    viewStart = clampStart(Math.round(raw * pxPerSec) / pxPerSec);
+  }
+
   // Follow mode (zoomed in): the playhead moves to the middle of the window, then stays
   // in the middle while the waveform scrolls; once the end of the waveform reaches the
   // right edge the waveform stops and the playhead moves on to the end.
   useEffect(() => {
     if (duration <= 0) return;
     if (zoom === 1) {
-      if (viewStart !== 0) setViewStart(0);
+      if (viewStartS !== 0) setViewStart(0);
       if (!follow) setFollow(true);
       return;
     }
@@ -159,13 +172,13 @@ export function Waveform(props: Props) {
     // A loop that fits into the window: the waveform stands still, only the playhead moves.
     // (If the loop is not in view yet, the window is placed once so that it is centred on the loop.)
     if (loop.active && loop.end > loop.start && loop.end - loop.start <= viewDur) {
-      if (loop.start < viewStart - 1e-6 || loop.end > viewStart + viewDur + 1e-6) {
+      if (loop.start < viewStartS - 1e-6 || loop.end > viewStartS + viewDur + 1e-6) {
         setViewStart(clampStart((loop.start + loop.end) / 2 - viewDur / 2));
       }
       return;
     }
     const target = clampStart(position - viewDur / 2);
-    if (Math.abs(target - viewStart) > 1e-6) setViewStart(target);
+    if (Math.abs(target - viewStartS) > 1e-6) setViewStart(target);
   }, [position, zoom, duration, follow, loop.active, loop.start, loop.end]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- horizontal scrollbar under the waveform (manual scrolling) ----
@@ -305,7 +318,7 @@ export function Waveform(props: Props) {
       ctx.strokeRect(xOf(l.start) + 0.5, RULER_H + 1.5, Math.max(2, xOf(l.end) - xOf(l.start)) - 1, MAIN_H - RULER_H - 3);
       ctx.restore();
       ctx.fillStyle = lc.solid;
-      ctx.font = "bold 15px Menlo, monospace";
+      ctx.font = "bold 16px Menlo, monospace";
       ctx.fillText(`${i + 1}`, xOf(l.start) + 6, MAIN_H - 9);
     });
     if (dragSel) {
@@ -343,7 +356,7 @@ export function Waveform(props: Props) {
     const pxPerBar = w / visBars;
     const steps = [1, 2, 4, 5, 8, 10, 16, 20, 25, 50, 100, 200];
     const step = steps.find((s) => pxPerBar * s >= 52) ?? 200;
-    ctx.font = "15px Menlo, monospace";
+    ctx.font = "16px Menlo, monospace";
     ctx.textBaseline = "middle";
     const b0 = Math.max(0, lastLE(barTimes, t0));
     for (let b = b0; b < barTimes.length && barTimes[b] <= t1; b++) {
@@ -367,7 +380,7 @@ export function Waveform(props: Props) {
       ctx.fillRect(x1 - 3, RULER_H, 4, MAIN_H - RULER_H);
       ctx.fillRect(x0, MAIN_H - 4, Math.max(2, x1 - x0), 4);
       ctx.fillStyle = ac.text;
-      ctx.font = "bold 15px Menlo, monospace";
+      ctx.font = "bold 16px Menlo, monospace";
       ctx.textBaseline = "middle";
       ctx.fillText(loopLabel(loops[activeLoop ?? 0], activeLoop ?? 0, lang), Math.max(x0, 0) + 8, RULER_H / 2 + 1);
     }
@@ -390,7 +403,7 @@ export function Waveform(props: Props) {
       // how many bars are selected now
       const nBars = Math.max(1, lastLE(barTimes, b - 0.001) - lastLE(barTimes, a + 0.001) + 1);
       const txt = barsText(nBars, lang);
-      ctx.font = "bold 15px Menlo, monospace";
+      ctx.font = "bold 16px Menlo, monospace";
       const tw = ctx.measureText(txt).width + 16;
       const cx = Math.min(w - tw / 2 - 2, Math.max(tw / 2 + 2, (xOf(a) + xOf(b)) / 2));
       ctx.fillStyle = dc.solid;
@@ -444,6 +457,50 @@ export function Waveform(props: Props) {
     const start = barTimes[ia];
     const end = ib + 1 < barTimes.length ? barTimes[ib + 1] : duration;
     return [start, end];
+  };
+
+  // ---- handles on the loop edges: drag to move an edge to another bar line --------------------------
+  const [edgeDrag, setEdgeDrag] = useState<{ idx: number; edge: "start" | "end"; t: number } | null>(null);
+  const edgeRef = useRef<{ idx: number; edge: "start" | "end"; t: number; pid: number } | null>(null);
+  const barLines = useMemo(() => {
+    const out = barTimes.filter((t) => t < duration - 1e-6);
+    out.push(duration);
+    return out;
+  }, [barTimes, duration]);
+  const nearestLine = (t: number): number => {          // index into barLines of the bar line closest to t
+    let best = 0;
+    for (let i = 1; i < barLines.length; i++) if (Math.abs(barLines[i] - t) < Math.abs(barLines[best] - t)) best = i;
+    return best;
+  };
+  const edgeTarget = (idx: number, edge: "start" | "end", t: number): number => {   // snapped edge time that keeps the loop at least one bar long
+    const l = loops[idx];
+    let k = nearestLine(t);
+    if (edge === "start") k = Math.min(k, nearestLine(l.end) - 1);
+    else k = Math.max(k, nearestLine(l.start) + 1);
+    k = Math.min(barLines.length - 1, Math.max(0, k));
+    return barLines[k];
+  };
+  const onEdgeDown = (e: React.PointerEvent, idx: number, edge: "start" | "end") => {
+    if (barLines.length < 2) return;
+    e.stopPropagation();
+    (e.currentTarget as Element).setPointerCapture(e.pointerId);
+    const t = loops[idx][edge];
+    edgeRef.current = { idx, edge, t, pid: e.pointerId };
+    setEdgeDrag({ idx, edge, t });
+  };
+  const onEdgeMove = (e: React.PointerEvent) => {
+    const d = edgeRef.current;
+    if (!d || d.pid !== e.pointerId) return;
+    const t = edgeTarget(d.idx, d.edge, timeAt(e.clientX));
+    if (t !== d.t) { d.t = t; setEdgeDrag({ idx: d.idx, edge: d.edge, t }); }
+  };
+  const onEdgeUp = (e: React.PointerEvent) => {
+    const d = edgeRef.current;
+    if (!d || d.pid !== e.pointerId) return;
+    edgeRef.current = null;
+    setEdgeDrag(null);
+    const l = loops[d.idx];
+    if (l && d.t !== l[d.edge] && onUpdateLoop) onUpdateLoop(d.idx, { ...l, [d.edge]: d.t });
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -612,6 +669,34 @@ export function Waveform(props: Props) {
             </button>
           );
         })}
+        {/* handles on both edges of every loop (and a preview of the span while an edge is dragged) */}
+        {song && duration > 0 && onUpdateLoop && loops.map((l, i) => {
+          const lc = loopColor(i, isDark);
+          const drag = edgeDrag && edgeDrag.idx === i ? edgeDrag : null;
+          const s0 = drag?.edge === "start" ? drag.t : l.start;
+          const e0 = drag?.edge === "end" ? drag.t : l.end;
+          const xs = ((s0 - viewStart) / viewDur) * mainW, xe = ((e0 - viewStart) / viewDur) * mainW;
+          const handle = (edge: "start" | "end", x: number) => {
+            if (x < -8 || x > mainW + 8) return null;
+            return (
+              <div key={`${i}-${edge}`} role="slider" aria-label={`${edge === "start" ? L("Початок циклу", "Loop start") : L("Кінець циклу", "Loop end")} ${loopLabel(l, i, lang)}`}
+                title={edge === "start" ? L("Потягніть, щоб змінити початок циклу", "Drag to move the start of the loop") : L("Потягніть, щоб змінити кінець циклу", "Drag to move the end of the loop")}
+                onPointerDown={(e) => onEdgeDown(e, i, edge)} onPointerMove={onEdgeMove} onPointerUp={onEdgeUp} onPointerCancel={onEdgeUp}
+                style={{ left: x - 9, top: RULER_H, height: MAIN_H - RULER_H, width: 18, cursor: "ew-resize", touchAction: "none" }}
+                className="absolute z-10 flex items-center justify-center group">
+                <span style={{ background: lc.solid, height: Math.min(44, MAIN_H - RULER_H - 8) }}
+                  className="block w-1.5 rounded-full shadow ring-1 ring-black/25 opacity-80 group-hover:opacity-100 group-hover:w-2" />
+              </div>
+            );
+          };
+          return (
+            <div key={`loop-handles-${i}`}>
+              {drag && <div style={{ left: Math.max(0, xs), width: Math.max(0, Math.min(mainW, xe) - Math.max(0, xs)), top: RULER_H, height: MAIN_H - RULER_H, background: lc.solid, opacity: 0.22 }} className="absolute pointer-events-none" />}
+              {handle("start", xs)}
+              {handle("end", xe)}
+            </div>
+          );
+        })}
         {song && zoom > 1 && !follow && (
           <button
             onClick={() => setFollow(true)}
@@ -634,7 +719,7 @@ export function Waveform(props: Props) {
         </div>
       )}
       <div className="text-xs text-slate-500 -mt-1.5">
-        {L("Клік — перемотати. Протягніть по хвилі — задати цикл по тактах.", "Click to seek. Drag across the waveform to set a bar loop.")}
+        {L("Клік — перемотати. Протягніть по хвилі — задати цикл по тактах. Краї циклу можна тягнути за ручки.", "Click to seek. Drag across the waveform to set a bar loop. Drag the handles on its edges to adjust it.")}
       </div>
 
       {/* keep "playing" referenced so the header re-renders predictably */}

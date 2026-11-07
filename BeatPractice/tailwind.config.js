@@ -6,14 +6,14 @@ export default {
     // HIG (macOS): the system font at 13 pt is the body size, 10 pt is the minimum. The interface keeps exactly three sizes:
     // small = Subheadline (11), medium = Body (13), large = Title 1 (22).
     fontSize: {
-      xs: ["11px", "14px"],
-      sm: ["11px", "14px"],
-      base: ["13px", "16px"],
-      lg: ["13px", "16px"],
-      xl: ["13px", "16px"],
-      "2xl": ["22px", "26px"],
-      "3xl": ["22px", "26px"],
-      "4xl": ["22px", "26px"],
+      xs: ["13px", "16px"],
+      sm: ["13px", "16px"],
+      base: ["15px", "20px"],
+      lg: ["15px", "20px"],
+      xl: ["15px", "20px"],
+      "2xl": ["26px", "30px"],
+      "3xl": ["26px", "30px"],
+      "4xl": ["26px", "30px"],
     },
     extend: {
       // SF Pro is the system font of macOS (never embedded); other systems fall back to their own UI font

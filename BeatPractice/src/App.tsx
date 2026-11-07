@@ -18,7 +18,7 @@ import { WindowControls } from './components/WindowControls';
 import { isDesktop } from './platform';
 import { AboutDialog } from './components/AboutDialog';
 import { usePlayer } from './player/usePlayer';
-import { ThemeMode } from './types';
+import { PlaylistItem, ThemeMode } from './types';
 import { Language, TranslationKey, translations } from './i18n';
 import { QuickTempoBar } from './components/QuickTempoBar';
 import { MetronomeStrip } from './components/MetronomeStrip';
@@ -27,7 +27,7 @@ import { LoopConflictDialog } from './components/LoopConflictDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
 import { btn } from './components/ui/styles';
-import { Download, Info, Languages, ListEnd, Monitor, Moon, Music, Package, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
+import { Download, Info, Languages, ListEnd, Monitor, Moon, Music, Package, PanelLeftClose, PanelLeftOpen, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
 
 const formatTime = (seconds: number): string => {
   if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -66,7 +66,28 @@ export default function App() {
   const handleBpmChange = player.changeBpm;
   const handleResetBpm = player.resetBpm;
   const handleSeek = player.seek;
-  const handleSelectTrackFromPlaylist = player.selectTrack;
+  // The playlist column can be folded to the left. On narrow windows it is a drawer above the content (closed at first).
+  const [playlistOpen, setPlaylistOpen] = useState<boolean>(() => {
+    try {
+      const v = localStorage.getItem('beatpractice_playlist_open');
+      if (v === '1' || v === '0') return v === '1' && window.innerWidth >= 1024;
+    } catch { /* ignore */ }
+    return typeof window === 'undefined' || window.innerWidth >= 1024;
+  });
+  const setPlaylistOpenSaved = (v: boolean) => {
+    setPlaylistOpen(v);
+    try { localStorage.setItem('beatpractice_playlist_open', v ? '1' : '0'); } catch { /* ignore */ }
+  };
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    const onChange = (e: MediaQueryListEvent) => setPlaylistOpen(e.matches);   // narrower: fold, wider again: unfold
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const handleSelectTrackFromPlaylist = (item: PlaylistItem) => {
+    player.selectTrack(item);
+    if (window.innerWidth < 1024) setPlaylistOpen(false);   // the drawer gets out of the way after a choice
+  };
   const handleRemoveTrackFromPlaylist = player.removeTrack;
 
   useEffect(() => { document.documentElement.classList.toggle('mac', isMac); }, []);
@@ -262,6 +283,17 @@ export default function App() {
             <div className="max-w-[1920px] mx-auto flex flex-wrap lg:flex-nowrap items-center lg:items-stretch gap-x-2 gap-y-1 px-3 py-2 sm:px-4 lg:p-0 lg:gap-0" data-tauri-drag-region>
               <div className="order-1 lg:order-none flex-1 min-w-0 lg:flex-none lg:w-[25rem] lg:shrink-0 flex items-center gap-3 lg:px-4 lg:py-2 pointer-events-none">
                 <div className="mac-traffic-space" aria-hidden="true" />
+                <button
+                  id="btn-toggle-playlist"
+                  type="button"
+                  onClick={() => setPlaylistOpenSaved(!playlistOpen)}
+                  aria-expanded={playlistOpen}
+                  aria-controls="playlist-sidebar"
+                  title={playlistOpen ? (lang === 'en' ? 'Fold the playlist' : 'Згорнути плейліст') : (lang === 'en' ? 'Show the playlist' : 'Показати плейліст')}
+                  className="pointer-events-auto w-10 h-10 shrink-0 flex items-center justify-center rounded-xl text-slate-300 hover:text-slate-100 hover:bg-slate-800 cursor-pointer"
+                >
+                  {playlistOpen ? <PanelLeftClose className="w-6 h-6" /> : <PanelLeftOpen className="w-6 h-6" />}
+                </button>
                 <BeatPracticeLogo className="w-10 h-10 shrink-0" />
                 <span className="hidden sm:inline text-2xl font-black text-slate-100 tracking-tight">BeatPractice</span>
               </div>
@@ -284,60 +316,7 @@ export default function App() {
                 >
                   <Package className="w-6 h-6" />
                 </button>
-              {/* Transport: back / play / next / what happens at the end (as in common players) */}
-              <div id="transport-cluster" className="order-5 basis-full justify-center lg:order-none lg:basis-auto lg:justify-start flex items-center gap-2 shrink-0 lg:absolute lg:left-1/2 lg:top-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2">
-                <button
-                  id="btn-restart-playback"
-                  onClick={player.skipBack}
-                  disabled={!track}
-                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40"
-                  title={lang === 'en' ? 'To the start / previous track' : 'На початок / попередній трек'}
-                >
-                  <SkipBack className="w-6 h-6 fill-current" />
-                </button>
-                <button
-                  id="btn-main-play-pause"
-                  onClick={handleTogglePlay}
-                  disabled={isLoadingAudio}
-                  className={`h-12 w-32 px-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer ${
-                    isPlaying
-                      ? 'bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 shadow-amber-400/30'
-                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
-                  }`}
-                  title="Відтворення / Пауза (Пробіл)"
-                >
-                  {isPlaying ? (<><Pause className="w-6 h-6 fill-current" /><span className="text-base">{t('pause')}</span></>) : (<><Play className="w-6 h-6 fill-current" /><span className="text-base">{t('play')}</span></>)}
-                </button>
-                <button
-                  id="btn-next-track"
-                  onClick={player.playNext}
-                  disabled={!player.hasNext}
-                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
-                  title={lang === 'en' ? 'Next track' : 'Наступний трек'}
-                >
-                  <SkipForward className="w-6 h-6 fill-current" />
-                </button>
-                <button
-                  id="btn-play-mode"
-                  onClick={player.cyclePlayMode}
-                  aria-label={lang === 'en' ? 'When the song ends' : 'Коли пісня закінчиться'}
-                  title={
-                    player.playMode === 'stop'
-                      ? (lang === 'en' ? 'At the end: stop (click to change)' : 'Після кінця: зупинитись (натисніть, щоб змінити)')
-                      : player.playMode === 'repeat'
-                        ? (lang === 'en' ? 'At the end: play this song again, with count-in (click to change)' : 'Після кінця: знову цей трек з початку, з відліком (натисніть, щоб змінити)')
-                        : (lang === 'en' ? 'At the end: play the next track (click to change)' : 'Після кінця: наступний трек із плейліста (натисніть, щоб змінити)')
-                  }
-                  className={`w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${
-                    player.playMode === 'stop'
-                      ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-                      : 'bg-sky-600 text-white border-sky-500 hover:bg-sky-500'
-                  }`}
-                >
-                  {player.playMode === 'repeat' ? <Repeat1 className="w-6 h-6" /> : player.playMode === 'next' ? <ListEnd className="w-6 h-6" /> : <Repeat className="w-6 h-6" />}
-                </button>
-              </div>
-                <div className="order-4 lg:hidden flex items-center gap-1 shrink-0">{themeLangButtons('-small')}</div>
+                <div className={`order-4 ${playlistOpen ? 'lg:hidden' : ''} flex items-center gap-1 shrink-0`}>{themeLangButtons('-small')}</div>
               </div>
             </div>
           </div>
@@ -350,8 +329,14 @@ export default function App() {
       {/* Main Layout: Left Desktop Sidebar + Content */}
       <div className="flex-1 flex max-w-[1920px] w-full mx-auto">
         {/* DESKTOP FULL-HEIGHT PLAYLIST SIDEBAR */}
+        {playlistOpen && <div className="lg:hidden fixed inset-0 z-30 bg-black/40" style={{ top: 'var(--hdr, 56px)' }} onClick={() => setPlaylistOpenSaved(false)} aria-hidden="true" />}
         <aside
-          className="hidden lg:flex w-[25rem] shrink-0 border-r border-slate-800/80 bg-slate-900/50 p-4 flex-col sticky self-start overflow-hidden"
+          id="playlist-sidebar"
+          aria-hidden={!playlistOpen}
+          className={`flex shrink-0 flex-col overflow-hidden bg-slate-900 lg:bg-slate-900/50 border-r border-slate-800/80 transition-[transform,width] duration-200 ease-out
+            fixed left-0 z-40 w-[min(25rem,88vw)] p-4 shadow-2xl lg:shadow-none
+            lg:sticky lg:z-auto lg:self-start
+            ${playlistOpen ? 'translate-x-0 lg:w-[25rem]' : '-translate-x-full invisible lg:translate-x-0 lg:w-0 lg:p-0 lg:border-r-0'}`}
           style={{ top: 'var(--hdr, 56px)', height: 'calc(100vh - var(--hdr, 56px))' }}
         >
           <PlaylistPanel
@@ -407,11 +392,11 @@ export default function App() {
           )}
 
           {/* Master Playback Transport Bar */}
-          <section id="master-transport-bar" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
-            {/* Row 1: cover, title and the usual player controls */}
-            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          {/* Track bar: title, tempo and meter on the left, the player controls on the right; stays under the header while the page scrolls */}
+          <div id="track-bar" className="sm:sticky z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 !mt-0 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl" style={{ top: 'var(--hdr, 56px)' }}>
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
               <div className="flex items-center gap-3 min-w-0 flex-1 basis-64">
-                <div className="w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden flex items-center justify-center shrink-0">
+                <div className="hidden sm:flex w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden items-center justify-center shrink-0">
                   {track?.cover ? <img src={track.cover} alt="" className="w-full h-full object-cover" /> : <Music className="w-6 h-6 text-slate-300" />}
                 </div>
                 <div className="min-w-0">
@@ -460,10 +445,66 @@ export default function App() {
                 </div>
               </div>
 
+              <div className="flex-1 basis-auto flex justify-end">
+              <div id="transport-cluster" className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+                <button
+                  id="btn-restart-playback"
+                  onClick={player.skipBack}
+                  disabled={!track}
+                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40"
+                  title={lang === 'en' ? 'To the start / previous track' : 'На початок / попередній трек'}
+                >
+                  <SkipBack className="w-6 h-6 fill-current" />
+                </button>
+                <button
+                  id="btn-main-play-pause"
+                  onClick={handleTogglePlay}
+                  disabled={isLoadingAudio}
+                  className={`h-12 w-32 px-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer ${
+                    isPlaying
+                      ? 'bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 shadow-amber-400/30'
+                      : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
+                  }`}
+                  title="Відтворення / Пауза (Пробіл)"
+                >
+                  {isPlaying ? (<><Pause className="w-6 h-6 fill-current" /><span className="text-base">{t('pause')}</span></>) : (<><Play className="w-6 h-6 fill-current" /><span className="text-base">{t('play')}</span></>)}
+                </button>
+                <button
+                  id="btn-next-track"
+                  onClick={player.playNext}
+                  disabled={!player.hasNext}
+                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
+                  title={lang === 'en' ? 'Next track' : 'Наступний трек'}
+                >
+                  <SkipForward className="w-6 h-6 fill-current" />
+                </button>
+                <button
+                  id="btn-play-mode"
+                  onClick={player.cyclePlayMode}
+                  aria-label={lang === 'en' ? 'When the song ends' : 'Коли пісня закінчиться'}
+                  title={
+                    player.playMode === 'stop'
+                      ? (lang === 'en' ? 'At the end: stop (click to change)' : 'Після кінця: зупинитись (натисніть, щоб змінити)')
+                      : player.playMode === 'repeat'
+                        ? (lang === 'en' ? 'At the end: play this song again, with count-in (click to change)' : 'Після кінця: знову цей трек з початку, з відліком (натисніть, щоб змінити)')
+                        : (lang === 'en' ? 'At the end: play the next track (click to change)' : 'Після кінця: наступний трек із плейліста (натисніть, щоб змінити)')
+                  }
+                  className={`w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${
+                    player.playMode === 'stop'
+                      ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                      : 'bg-sky-600 text-white border-sky-500 hover:bg-sky-500'
+                  }`}
+                >
+                  {player.playMode === 'repeat' ? <Repeat1 className="w-6 h-6" /> : player.playMode === 'next' ? <ListEnd className="w-6 h-6" /> : <Repeat className="w-6 h-6" />}
+                </button>
+              </div>
+              </div>
             </div>
+          </div>
 
+          <section id="master-transport-bar" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
             {/* Row 2: tempo, metronome switches, visual beats (they wrap instead of overflowing) */}
-            <div className="mt-3 flex flex-wrap items-center gap-2 max-w-full">
+            <div className="flex flex-wrap items-center gap-2 max-w-full">
                 <QuickTempoBar
                   hasTrack={!!track}
                   currentBpm={track?.currentBpm}
@@ -537,6 +578,7 @@ export default function App() {
                 stemGains={player.stemEffectiveGains}
                 onSeek={handleSeek}
                 onDragLoop={player.dragLoop}
+                onUpdateLoop={(i, slot) => void player.updateLoop(i, slot)}
                 onJumpBar={player.jumpBar}
               />
             ) : (
