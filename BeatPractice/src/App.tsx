@@ -552,9 +552,10 @@ export default function App() {
             {player.message && <p className="mt-3 text-xs text-rose-400">{player.message}</p>}
           </section>
 
-          {/* Under the waveform only the training tools. Before a track is open: just the free metronome. */}
-          {track ? (
-            <div className="space-y-4">
+          {/* Under the waveform: before a track is open only the free metronome; with a track the training tools, and the free metronome stays as the lowest block. */}
+          <div className="space-y-4">
+          {track && (
+            <>
               <LoopsPanel
                 loops={player.loops}
                 activeLoop={player.activeLoop}
@@ -598,8 +599,8 @@ export default function App() {
                   onPause={() => { if (isPlaying) player.togglePlay(); }}
                 />
               </div>
-            </div>
-          ) : (
+            </>
+          )}
             <ClickMetronomePanel
               lang={lang}
               trackKey={activeTrackId ?? ''}
@@ -615,7 +616,7 @@ export default function App() {
               trackPlaying={isPlaying}
               onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}
             />
-          )}
+          </div>
 
         </main>
       </div>
