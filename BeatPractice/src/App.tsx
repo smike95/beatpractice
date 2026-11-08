@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { BC } from './core';
 import { PlaylistPanel } from './components/PlaylistPanel';
 import { BeatPracticeLogo } from './components/BeatPracticeLogo';
+import { CoverPlaceholder } from './components/CoverPlaceholder';
 import { TrackMetronomeMixer } from './components/TrackMetronomeMixer';
 import { Waveform } from './components/Waveform';
 import { LoopsPanel } from './components/LoopsPanel';
@@ -27,7 +28,7 @@ import { LoopConflictDialog } from './components/LoopConflictDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
 import { btn } from './components/ui/styles';
-import { Download, Info, Languages, ListEnd, Monitor, Moon, Music, Package, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
+import { Download, Info, Languages, ListEnd, Monitor, Moon, Package, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
 
 const formatTime = (seconds: number): string => {
   if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -109,6 +110,35 @@ export default function App() {
     leaveTimer.current = window.setTimeout(() => setPlaylistOpen(false), 150);
   };
   const handleRemoveTrackFromPlaylist = player.removeTrack;
+  // Is the metronome slider of the mixer on the screen (not scrolled away, not under the sticky track bar)? If so, the free metronome does not repeat it.
+  const [mixerVolumeVisible, setMixerVolumeVisible] = useState(false);
+  useEffect(() => {
+    let io: IntersectionObserver | undefined;
+    let raf = 0;
+    const setup = () => {
+      io?.disconnect();
+      const el = document.getElementById('range-mixer-metronome-volume');
+      if (!el) { setMixerVolumeVisible(false); return; }
+      const bar = document.getElementById('track-bar');
+      const top = bar && getComputedStyle(bar).position === 'sticky' ? Math.round(bar.getBoundingClientRect().height) : 0;
+      io = new IntersectionObserver(([e]) => setMixerVolumeVisible(!!e && e.isIntersecting), { rootMargin: `-${top}px 0px 0px 0px`, threshold: 0.9 });
+      io.observe(el);
+    };
+    raf = requestAnimationFrame(setup);
+    window.addEventListener('resize', setup);
+    return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', setup); io?.disconnect(); };
+  }, [activeTrackId]);
+
+  // The track bar is the top of the card at first; when the page scrolls under it, it stays at the top with a shadow below the cut line.
+  const barSentinel = useRef<HTMLDivElement>(null);
+  const [barStuck, setBarStuck] = useState(false);
+  useEffect(() => {
+    const el = barSentinel.current;
+    if (!el) return;
+    const io = new IntersectionObserver(([e]) => setBarStuck(!!e && !e.isIntersecting && window.innerWidth >= 640 && e.boundingClientRect.top < 0));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
   const handleSelectTrackFromPlaylist = (item: PlaylistItem) => {
     player.selectTrack(item);
     if (!pinned && !window.matchMedia('(hover: hover)').matches) setPlaylistOpen(false);   // touch: the strip gets out of the way after a choice
@@ -362,16 +392,22 @@ export default function App() {
           )}
 
           {/* Master Playback Transport Bar */}
-          {/* Track bar: title, tempo and meter on the left, the player controls on the right; stays under the header while the page scrolls */}
-          <div id="track-bar" data-tauri-drag-region className="sm:sticky z-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-2.5 !mt-0 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl" style={{ top: 0, ...(isWindows ? { paddingRight: '9.5rem' } : {}) }}>
-            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
-              <div className="flex items-center gap-3 min-w-0 flex-1 basis-64">
+          {/* Track bar: the top of the card with the track; when the page scrolls it stays under the top edge of the window and casts a shadow */}
+          <div ref={barSentinel} aria-hidden="true" className="!m-0 h-px -mb-px pointer-events-none" />
+          <div
+            id="track-bar"
+            data-tauri-drag-region
+            className={`sm:sticky z-20 !mt-0 bg-slate-900 transition-shadow pt-4 sm:pt-5 pb-1 ${barStuck ? 'is-stuck -mx-4 sm:-mx-6 px-8 sm:px-11' : 'px-4 sm:px-5 border border-b-0 border-slate-800 rounded-t-2xl'}`}
+            style={{ top: 0, ...(isWindows ? { paddingRight: '9.5rem' } : {}) }}
+          >
+            <div data-tauri-drag-region className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
+              <div data-tauri-drag-region className="flex items-center gap-3 min-w-0 flex-1 basis-auto">
                 <div className="hidden sm:flex w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden items-center justify-center shrink-0">
-                  {track?.cover ? <img src={track.cover} alt="" className="w-full h-full object-cover" /> : <Music className="w-6 h-6 text-slate-300" />}
+                  {track?.cover ? <img src={track.cover} alt="" className="w-full h-full object-cover" /> : <CoverPlaceholder className="w-full h-full" rounded="" />}
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <h2 id="track-title" className="text-base font-bold text-slate-100 truncate">
+                <div data-tauri-drag-region className="min-w-0">
+                  <div data-tauri-drag-region className="flex items-center gap-1.5 min-w-0">
+                    <h2 id="track-title" className="text-base font-bold text-slate-100 truncate max-w-[24rem]">
                       {track ? track.displayName : (lang === 'en' ? 'Waiting for an audio track' : 'Очікування завантаження аудіотреку')}
                     </h2>
                     {track && (
@@ -385,7 +421,7 @@ export default function App() {
                       </button>
                     )}
                   </div>
-                  <div id="track-meta-line" className="flex items-center gap-x-3 gap-y-0.5 text-xs text-slate-400 mt-0.5 flex-wrap">
+                  <div id="track-meta-line" data-tauri-drag-region className="flex items-center gap-x-3 gap-y-0.5 text-xs text-slate-400 mt-0.5 flex-nowrap whitespace-nowrap">
                     <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-slate-200 font-mono">{track && track.originalBpmExact > 0 ? `${track.originalBpmExact.toFixed(1)} BPM` : '—'}</strong>
                       {track?.variableTempo && <em title={lang === 'en' ? 'The tempo changes during the song' : 'Темп змінюється протягом пісні'} className="ml-1.5 not-italic font-bold text-sky-500">{lang === 'en' ? 'variable' : 'змінний'}</em>}
                     </span>
@@ -433,8 +469,8 @@ export default function App() {
                 </div>
               </div>
 
-              <div className="flex-1 basis-auto flex justify-end">
-              <div id="transport-cluster" className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+              <div data-tauri-drag-region className="flex-1 basis-auto flex justify-end">
+              <div id="transport-cluster" data-tauri-drag-region className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                 <button
                   id="btn-restart-playback"
                   onClick={player.skipBack}
@@ -490,7 +526,7 @@ export default function App() {
             </div>
           </div>
 
-          <section id="master-transport-bar" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-xl">
+          <section id="master-transport-bar" className="bg-slate-900 border border-slate-800 border-t-0 rounded-2xl rounded-t-none !mt-0 p-4 sm:p-5 pt-2 sm:pt-2 shadow-xl">
             {/* Row 2: tempo, metronome switches, visual beats (they wrap instead of overflowing) */}
             <div className="flex flex-wrap items-center gap-2 max-w-full">
                 <QuickTempoBar
@@ -648,6 +684,10 @@ export default function App() {
               clickBeat={player.snap?.clickBeat ?? -1}
               trackPlaying={isPlaying}
               onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}
+              hasTrack={!!track}
+              sharedVolume={metronomeConfig.volume}
+              onSharedVolume={(vol) => setMetronomeConfig(prev => ({ ...prev, volume: vol }))}
+              showVolume={!track || !mixerVolumeVisible}
             />
           </div>
 

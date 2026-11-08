@@ -47,6 +47,11 @@ export function ClickMetronomePanel(props: {
   clickBeat: number;                // position in the bar of the last click, -1 = off (from the snapshot)
   trackPlaying: boolean;
   onPauseTrack: () => void;
+  /** with a track open both metronomes share one volume, set by the mixer; this block shows its own slider only while the mixer's one is scrolled out of sight */
+  hasTrack: boolean;
+  sharedVolume: number;
+  onSharedVolume: (v: number) => void;
+  showVolume: boolean;
 }) {
   const { lang, trackKey, defaults, soundCount, clickBeat, trackPlaying, onPauseTrack } = props;
   const L: Translate = (uk, en) => (lang === "en" ? en : uk);
@@ -57,7 +62,8 @@ export function ClickMetronomePanel(props: {
   const bpm = clampBpm(own.bpm ?? defaults.bpm);
   const beats = own.beats ?? defaults.beats;
   const accent = own.accent ?? defaults.accent;
-  const volume = own.volume ?? defaults.volume;
+  const volume = props.hasTrack ? props.sharedVolume : own.volume ?? defaults.volume;
+  const setVolume = (v: number) => (props.hasTrack ? props.onSharedVolume(v) : setOwn((o) => ({ ...o, volume: v })));
   const sound = own.sound ?? defaults.sound;
 
   const [running, setRunning] = useState(false);
@@ -128,13 +134,15 @@ export function ClickMetronomePanel(props: {
           <BeatLamps id="click-metronome-visual-beats" lang={lang} beatsPerBar={beats} activeBeat={running ? clickBeat : -1} />
         </div>
 
-        {/* volume: the same channel as the metronome in the mixer of the song */}
+        {/* volume: the same channel as the metronome in the mixer of the song; only while the mixer's slider is out of sight */}
+        {props.showVolume && (
         <div className={`${block} mixer-channel-box min-w-[220px] flex-1 gap-2 px-3`}>
           <MetronomeIcon className="h-6 w-6 shrink-0 text-slate-300 mixer-icon" />
           <span className="mixer-label shrink-0 text-xs font-semibold text-slate-300">{L("Клік", "Click")}</span>
-          <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={(v: number) => setOwn((o) => ({ ...o, volume: v }))} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
+          <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={setVolume} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
           <span className="mixer-value w-11 shrink-0 text-right font-mono text-xs font-bold text-slate-200">{pct}%</span>
         </div>
+        )}
       </div>
     </section>
   );

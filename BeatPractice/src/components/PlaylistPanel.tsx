@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PlaylistItem } from '../types';
-import { ChevronRight, Pin, PinOff, Plus, Search, Trash2, Music, Music2, GripVertical, X } from 'lucide-react';
+import { ChevronRight, Pin, PinOff, Plus, Search, Trash2, Music, GripVertical, X } from 'lucide-react';
 import { BeatPracticeLogo } from './BeatPracticeLogo';
+import { CoverPlaceholder } from './CoverPlaceholder';
 import { Language, translations } from '../i18n';
 import { displayName } from '../player/usePlayer';
 import { Modal } from './ui/Modal';
@@ -119,9 +120,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     item.cover ? (
       <img src={item.cover} alt="" className={`${size} rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-sky-500' : ''}`} />
     ) : (
-      <div className={`${size} rounded-md flex items-center justify-center shrink-0 ${isActive ? 'cover-ph-active shadow-xs' : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'}`}>
-        <Music2 className="w-5 h-5" />
-      </div>
+      <CoverPlaceholder className={size} active={isActive} />
     );
 
   if (compact) {
@@ -205,7 +204,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
           type="button"
           id="btn-add-more-tracks"
           onClick={onOpenAddFiles}
-          className="h-10 px-3 shrink-0 text-xs font-semibold bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-white rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          className="h-10 px-3 shrink-0 text-xs font-semibold bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-100 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
           title={t('addTrack')}
         >
           <Plus className="w-5 h-5" />
@@ -273,23 +272,15 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                   {item.cover ? (
                     <img src={item.cover} alt="" className={`w-10 h-10 rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-sky-500' : ''}`} />
                   ) : (
-                  <div
-                    className={`w-10 h-10 rounded-md flex items-center justify-center shrink-0 ${
-                      isActive
-                        ? 'cover-ph-active shadow-xs'
-                        : 'bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                    }`}
-                  >
+                  <CoverPlaceholder className="w-10 h-10" active={isActive}>
                     {isActive && isPlaying ? (
                       <div className="flex items-end gap-0.5 h-4">
                         <span className="w-0.5 bg-current rounded-full animate-bounce h-4" />
                         <span className="w-0.5 bg-current rounded-full animate-bounce h-2.5 [animation-delay:0.15s]" />
                         <span className="w-0.5 bg-current rounded-full animate-bounce h-4 [animation-delay:0.3s]" />
                       </div>
-                    ) : (
-                      <Music2 className="w-6 h-6" />
-                    )}
-                  </div>
+                    ) : undefined}
+                  </CoverPlaceholder>
                   )}
 
                   {/* Song Details */}
