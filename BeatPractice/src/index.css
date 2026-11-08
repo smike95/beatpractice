@@ -765,10 +765,10 @@ html.light header.sticky { background-color: rgba(246, 246, 248, 0.72) !importan
 html.mac header .mac-traffic-space { display: block; width: 78px; flex: none; }
 .mac-traffic-space { display: none; }
 @media (prefers-reduced-motion: reduce) { * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; } }
-/* the track bar: the top of the card at first; stuck to the top of the window it gets a translucent material and a shadow below the cut line */
-html.light #track-bar:not(.is-stuck) { background-color: #ffffff !important; }
-#track-bar.is-stuck { background-color: rgba(28, 28, 30, 0.84) !important; -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px); box-shadow: 0 14px 22px -14px rgba(0, 0, 0, 0.7); border-bottom: 0.5px solid rgba(255, 255, 255, 0.12); }
-html.light #track-bar.is-stuck { background-color: rgba(246, 246, 248, 0.88) !important; box-shadow: 0 14px 22px -14px rgba(0, 0, 0, 0.3); border-bottom: 0.5px solid rgba(0, 0, 0, 0.12); }
+/* the track bar: the top of the card at first; stuck to the top of the window it is a separate rounded tile with a shadow (no transparency) */
+html.light #track-bar { background-color: #ffffff !important; }
+#track-bar.is-stuck { box-shadow: 0 14px 28px -12px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.35); }
+html.light #track-bar.is-stuck { box-shadow: 0 14px 28px -12px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.12); }
 
 /* no header any more: the sticky bars start at the top of the window */
 :root { --hdr: 0px; }

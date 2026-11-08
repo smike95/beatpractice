@@ -129,13 +129,13 @@ export default function App() {
     return () => { cancelAnimationFrame(raf); window.removeEventListener('resize', setup); io?.disconnect(); };
   }, [activeTrackId]);
 
-  // The track bar is the top of the card at first; when the page scrolls under it, it stays at the top with a shadow below the cut line.
+  // The track bar is the top of the card at first; when the page scrolls under it, it becomes a separate rounded tile that stays at the top.
   const barSentinel = useRef<HTMLDivElement>(null);
   const [barStuck, setBarStuck] = useState(false);
   useEffect(() => {
     const el = barSentinel.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setBarStuck(!!e && !e.isIntersecting && window.innerWidth >= 640 && e.boundingClientRect.top < 0));
+    const io = new IntersectionObserver(([e]) => setBarStuck(!!e && !e.isIntersecting && window.innerWidth >= 640 && e.boundingClientRect.top < 8), { rootMargin: '-8px 0px 0px 0px' });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -397,11 +397,11 @@ export default function App() {
           <div
             id="track-bar"
             data-tauri-drag-region
-            className={`sm:sticky z-20 !mt-0 bg-slate-900 transition-shadow pt-4 sm:pt-5 pb-1 ${barStuck ? 'is-stuck -mx-4 sm:-mx-6 px-8 sm:px-11' : 'px-4 sm:px-5 border border-b-0 border-slate-800 rounded-t-2xl'}`}
-            style={{ top: 0, ...(isWindows ? { paddingRight: '9.5rem' } : {}) }}
+            className={`sm:sticky z-20 !mt-0 bg-slate-900 py-3 px-4 sm:px-5 border border-slate-800 transition-shadow ${barStuck ? 'is-stuck rounded-2xl' : 'border-b-0 rounded-t-2xl'}`}
+            style={{ top: 8, ...(isWindows ? { paddingRight: '9.5rem' } : {}) }}
           >
             <div data-tauri-drag-region className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
-              <div data-tauri-drag-region className="flex items-center gap-3 min-w-0 flex-1 basis-auto">
+              <div data-tauri-drag-region className="flex items-center gap-3 min-w-0 flex-1 basis-64">
                 <div className="hidden sm:flex w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden items-center justify-center shrink-0">
                   {track?.cover ? <img src={track.cover} alt="" className="w-full h-full object-cover" /> : <CoverPlaceholder className="w-full h-full" rounded="" />}
                 </div>
@@ -421,7 +421,7 @@ export default function App() {
                       </button>
                     )}
                   </div>
-                  <div id="track-meta-line" data-tauri-drag-region className="flex items-center gap-x-3 gap-y-0.5 text-xs text-slate-400 mt-0.5 flex-nowrap whitespace-nowrap">
+                  <div id="track-meta-line" data-tauri-drag-region className="flex items-center gap-x-3 gap-y-0.5 text-xs text-slate-400 mt-0.5 flex-wrap">
                     <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-slate-200 font-mono">{track && track.originalBpmExact > 0 ? `${track.originalBpmExact.toFixed(1)} BPM` : '—'}</strong>
                       {track?.variableTempo && <em title={lang === 'en' ? 'The tempo changes during the song' : 'Темп змінюється протягом пісні'} className="ml-1.5 not-italic font-bold text-sky-500">{lang === 'en' ? 'variable' : 'змінний'}</em>}
                     </span>
@@ -435,7 +435,7 @@ export default function App() {
                         <strong className="text-slate-300">{track ? (track.meterLabels[0] ?? track.timeSignature) : '4/4'}</strong>
                       )}
                     </span>
-                    {track && (<>
+                    {track && (<div className="flex items-center gap-x-3 shrink-0">
                       <button
                         id="btn-tempo-map"
                         type="button"
@@ -464,7 +464,7 @@ export default function App() {
                       >
                         <Package className="h-5 w-5" />
                       </button>
-                    </>)}
+                    </div>)}
                   </div>
                 </div>
               </div>
@@ -526,7 +526,7 @@ export default function App() {
             </div>
           </div>
 
-          <section id="master-transport-bar" className="bg-slate-900 border border-slate-800 border-t-0 rounded-2xl rounded-t-none !mt-0 p-4 sm:p-5 pt-2 sm:pt-2 shadow-xl">
+          <section id="master-transport-bar" className="bg-slate-900 border border-slate-800 border-t-0 rounded-2xl rounded-t-none !mt-0 p-4 sm:p-5 pt-1 sm:pt-1 shadow-xl">
             {/* Row 2: tempo, metronome switches, visual beats (they wrap instead of overflowing) */}
             <div className="flex flex-wrap items-center gap-2 max-w-full">
                 <QuickTempoBar
