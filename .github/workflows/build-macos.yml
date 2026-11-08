@@ -126,6 +126,16 @@ jobs:
         working-directory: BeatPractice
         run: npm run tauri build -- --target ${{ matrix.rust_target }} --bundles dmg
 
+      # The window with two huge icons (drag the app onto Applications), fitted to the icons. If it fails, the .dmg that Tauri made stays.
+      - name: Installer window with huge icons (.dmg)
+        continue-on-error: true
+        run: |
+          brew install create-dmg
+          ARCH_LABEL="${{ matrix.arch }}"
+          [ "$ARCH_LABEL" = "arm64" ] && ARCH_LABEL="aarch64"
+          [ "$ARCH_LABEL" = "x86_64" ] && ARCH_LABEL="x64"
+          bash BeatPractice/src-tauri/dmg/make-dmg.sh "${{ matrix.rust_target }}" "$ARCH_LABEL"
+
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:

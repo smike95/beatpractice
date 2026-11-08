@@ -17,13 +17,15 @@ export function QuickTempoBar(props: {
   onChange: (bpm: number) => void;
   onReset: () => void;
   labels: { minus5: string; minus1: string; plus1: string; plus5: string; reset: string };
+  /** no frame of its own: the buttons lie straight on the card (the free metronome) */
+  bare?: boolean;
 }) {
-  const { hasTrack, currentBpm, canReset, onChange, onReset, labels } = props;
+  const { hasTrack, currentBpm, canReset, onChange, onReset, labels, bare = false } = props;
   const base = currentBpm || 120;
   return (
     <div
-      id="quick-tempo-control-bar"
-      className="w-full sm:w-auto grid grid-cols-5 gap-1 p-1 sm:p-0 sm:px-1.5 sm:h-12 sm:flex sm:items-center sm:justify-center bg-slate-950 rounded-xl border border-slate-800 select-none shrink-0"
+      id={bare ? "click-tempo-control-bar" : "quick-tempo-control-bar"}
+      className={`w-full sm:w-auto grid grid-cols-5 gap-1 p-1 sm:p-0 sm:px-1.5 sm:h-12 sm:flex sm:items-center sm:justify-center select-none shrink-0 ${bare ? '' : 'bg-slate-950 rounded-xl border border-slate-800'}`}
     >
       <button type="button" id="btn-quick-tempo-minus-5" onClick={() => onChange(base - 5)} className={step} title={labels.minus5}>-5</button>
       <button type="button" id="btn-quick-tempo-minus-1" onClick={() => onChange(base - 1)} className={step} title={labels.minus1}>-1</button>

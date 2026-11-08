@@ -164,9 +164,9 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             aria-pressed={pinned}
             title={pinned ? (lang === 'en' ? 'Unpin: the playlist folds into a strip' : 'Відкріпити: плейліст згортається у смугу') : (lang === 'en' ? 'Pin: keep the playlist open' : 'Закріпити: плейліст завжди відкритий')}
             aria-label={pinned ? (lang === 'en' ? 'Unpin the playlist' : 'Відкріпити плейліст') : (lang === 'en' ? 'Pin the playlist' : 'Закріпити плейліст')}
-            className={`w-8 h-8 shrink-0 flex items-center justify-center rounded-lg cursor-pointer transition-colors ${pinned ? 'seg-on' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
+            className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md cursor-pointer transition-colors ${pinned ? 'seg-on' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
           >
-            {pinned ? <Pin className="w-5 h-5" /> : <PinOff className="w-5 h-5" />}
+            {pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
           </button>
         )}
       </div>

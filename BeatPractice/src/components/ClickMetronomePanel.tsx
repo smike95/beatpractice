@@ -14,7 +14,8 @@ const MIN_BPM = 30, MAX_BPM = 250;
 const clampBpm = (v: number) => Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(v)));
 
 /** Every block of the row is 48 px high, like the blocks of the song's metronome and tempo. */
-const block = "flex h-12 items-center rounded-xl border border-slate-800 bg-slate-950 select-none";
+const block = "flex h-12 items-center rounded-xl border border-slate-800 bg-slate-950 select-none";   // only the lamps are in a block
+const plain = "flex h-12 items-center select-none";
 
 /** Start / stop. The size is fixed and the icons are the same size, so nothing jumps when the state changes. */
 function RunButton(props: { running: boolean; onToggle: () => void; L: Translate }) {
@@ -86,7 +87,7 @@ export function ClickMetronomePanel(props: {
     <section id="click-metronome-panel" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
         {/* 1: emblem, name, start / stop */}
-        <div className={`${block} gap-3 px-3`}>
+        <div className={`${plain} gap-3`}>
           <MetronomeIcon className={`h-6 w-6 shrink-0 ${running ? "text-slate-200" : "text-slate-400"}`} />
           <span className="text-sm font-bold text-slate-100 whitespace-nowrap">{L("Вільний метроном", "Free metronome")}</span>
           <RunButton running={running} onToggle={() => (running ? stop() : start())} L={L} />
@@ -96,6 +97,7 @@ export function ClickMetronomePanel(props: {
         <div ref={settingsBox} className="relative flex items-center gap-2">
           <QuickTempoBar
             hasTrack
+            bare
             currentBpm={bpm}
             canReset={bpm !== clampBpm(defaults.bpm)}
             onChange={setBpm}
@@ -106,7 +108,7 @@ export function ClickMetronomePanel(props: {
               reset: L("Темп відкритого треку", "Tempo of the open track"),
             }}
           />
-          <div className={`${block} px-1.5`}>
+          <div className={plain}>
             <button
               id="btn-click-metronome-settings" type="button" onClick={() => setSettingsOpen((v) => !v)}
               aria-expanded={settingsOpen} aria-haspopup="dialog"
@@ -136,7 +138,7 @@ export function ClickMetronomePanel(props: {
 
         {/* volume: the same channel as the metronome in the mixer of the song; only while the mixer's slider is out of sight */}
         {props.showVolume && (
-        <div className={`${block} mixer-channel-box min-w-[220px] flex-1 gap-2 px-3`}>
+        <div className={`${plain} min-w-[220px] flex-1 gap-2`}>
           <MetronomeIcon className="h-6 w-6 shrink-0 text-slate-300 mixer-icon" />
           <span className="mixer-label shrink-0 text-xs font-semibold text-slate-300">{L("Клік", "Click")}</span>
           <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={setVolume} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
