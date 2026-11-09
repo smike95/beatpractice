@@ -25,6 +25,8 @@ function effectiveGain(mix: StemMix, i: number): number {
 const MODE_KEY = "rt_playmode_v1";
 const SOUND_KEY = "rt_clicksound_v1";
 const TAGS_KEY = "rt_tags_v1";
+const TAG_ORDER_KEY = "rt_tagorder_v1";   // { tagId: [trackId, ...] }: the order of the tracks inside each tag
+const TAG_VIEW_KEY = "rt_tagview_v1";     // the tag whose list is shown (null = the whole playlist)
 
 function loadTags(): PlaylistTag[] {
   try {
@@ -32,6 +34,17 @@ function loadTags(): PlaylistTag[] {
     if (Array.isArray(j)) return j.filter((t) => t && typeof t.id === "string" && typeof t.name === "string");
   } catch { /* ignore */ }
   return [];
+}
+function loadTagOrder(): Record<string, string[]> {
+  try {
+    const j = JSON.parse(localStorage.getItem(TAG_ORDER_KEY) || "{}");
+    if (j && typeof j === "object" && !Array.isArray(j)) {
+      const out: Record<string, string[]> = {};
+      for (const k of Object.keys(j)) if (Array.isArray(j[k])) out[k] = j[k].filter((x: unknown) => typeof x === "string");
+      return out;
+    }
+  } catch { /* ignore */ }
+  return {};
 }
 const sameTag = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
 
@@ -268,6 +281,8 @@ export function usePlayer() {
     tagsRef.current = tagsRef.current.filter((t) => t.id !== id);
     setTags(tagsRef.current);
     setPlaylist((prev) => prev.map((it) => (it.tags?.includes(id) ? { ...it, tags: it.tags.filter((x) => x !== id) } : it)));
+    setTagOrder((o) => { const { [id]: _gone, ...rest } = o; return rest; });
+    setTagViewState((v) => (v === id ? null : v));
   }, []);
   const toggleItemTag = useCallback((itemId: string, tagId: string) => {
     setPlaylist((prev) => prev.map((it) => {
@@ -281,6 +296,37 @@ export function usePlayer() {
     if (!id) return;
     setPlaylist((prev) => prev.map((it) => (it.id === itemId && !(it.tags ?? []).includes(id) ? { ...it, tags: [...(it.tags ?? []), id] } : it)));
   }, [createTag]);
+
+  // ---- a tag as a saved list: the tracks that have it, in the order the user gave them inside this tag ----
+  const [tagOrder, setTagOrder] = useState<Record<string, string[]>>(loadTagOrder);
+  const [tagView, setTagViewState] = useState<string | null>(() => {
+    try { return localStorage.getItem(TAG_VIEW_KEY); } catch { return null; }
+  });
+  useEffect(() => { try { localStorage.setItem(TAG_ORDER_KEY, JSON.stringify(tagOrder)); } catch { /* ignore */ } }, [tagOrder]);
+  useEffect(() => {
+    try { if (tagView) localStorage.setItem(TAG_VIEW_KEY, tagView); else localStorage.removeItem(TAG_VIEW_KEY); } catch { /* ignore */ }
+  }, [tagView]);
+  const activeTagView = tagView && tags.some((t) => t.id === tagView) ? tagView : null;   // a deleted tag is no view
+  /** The list that is shown (and played in order): the whole playlist, or the tracks of the chosen tag in their own order. */
+  const viewList = useMemo(() => {
+    if (!activeTagView) return playlist;
+    const own = playlist.filter((it) => (it.tags ?? []).includes(activeTagView));
+    const order = tagOrder[activeTagView] ?? [];
+    const rank = (id: string) => { const k = order.indexOf(id); return k < 0 ? Number.MAX_SAFE_INTEGER : k; };
+    return own.map((it, i) => ({ it, i })).sort((x, y) => rank(x.it.id) - rank(y.it.id) || x.i - y.i).map((x) => x.it);   // tracks without a place keep the playlist order, after the placed ones
+  }, [playlist, tagOrder, activeTagView]);
+  const viewListRef = useRef<PlaylistItem[]>(viewList);
+  viewListRef.current = viewList;
+  const setTagView = useCallback((id: string | null) => setTagViewState(id), []);
+  /** Moves a track inside the list of the chosen tag (the order of the whole playlist stays as it is). */
+  const reorderInTag = useCallback((from: number, to: number) => {
+    const tagId = activeTagView;
+    const ids = viewListRef.current.map((it) => it.id);
+    if (!tagId || from < 0 || from >= ids.length || to < 0 || to >= ids.length || from === to) return;
+    const [moved] = ids.splice(from, 1);
+    ids.splice(to, 0, moved);
+    setTagOrder((o) => ({ ...o, [tagId]: ids }));
+  }, [activeTagView]);
 
   const patchItem = useCallback((id: string, patch: (it: PlaylistItem) => PlaylistItem) => {
     setPlaylist((prev) => prev.map((it) => (it.id === id ? patch(it) : it)));
@@ -927,11 +973,14 @@ export function usePlayer() {
     [patchItem],
   );
 
-  const activeIndex = playlist.findIndex((p) => p.id === activeId);
-  const hasNext = activeIndex >= 0 && activeIndex + 1 < playlist.length;
+  // "next" and "back" go along the list that is shown: the chosen tag in its own order, or the whole playlist (also when the playing track is not in the tag)
+  const queueOf = (id: string | null) => (viewListRef.current.some((p) => p.id === id) ? viewListRef.current : playlistRef.current);
+  const queue = viewList.some((p) => p.id === activeId) ? viewList : playlist;
+  const activeIndex = queue.findIndex((p) => p.id === activeId);
+  const hasNext = activeIndex >= 0 && activeIndex + 1 < queue.length;
   const hasPrev = activeIndex > 0;
   const playNext = useCallback(() => {
-    const list = playlistRef.current;
+    const list = queueOf(activeId);
     const i = list.findIndex((p) => p.id === activeId);
     if (i < 0 || i + 1 >= list.length) return;
     if (snap?.playing) autoPlayId.current = list[i + 1].id;
@@ -939,7 +988,7 @@ export function usePlayer() {
   }, [activeId, snap?.playing, selectTrack]);
   /** like a normal player: after the first seconds "back" goes to the start of the song, otherwise to the previous track */
   const skipBack = useCallback(() => {
-    const list = playlistRef.current;
+    const list = queueOf(activeId);
     const i = list.findIndex((p) => p.id === activeId);
     const pos = snap?.position ?? 0;
     if (pos > 2 * Math.max(0.25, snap?.speed ?? 1) || i <= 0) { void restart(); return; }
@@ -965,7 +1014,7 @@ export function usePlayer() {
         return;
       }
       if (mode === "next") {
-        const list = playlistRef.current;
+        const list = queueOf(activeId);
         const i = list.findIndex((p) => p.id === activeId);
         const nxt = i >= 0 && i + 1 < list.length ? list[i + 1] : null;
         if (nxt) {
@@ -1073,6 +1122,10 @@ export function usePlayer() {
     selectTrack,
     removeTrack,
     reorderTracks,
+    viewList,
+    tagView: activeTagView,
+    setTagView,
+    reorderInTag,
     tags,
     createTag,
     renameTag,

@@ -306,7 +306,14 @@ Function PageReinstall
     ; Check the first radio button if this the first time
     ; we enter this page or if the second button wasn't
     ; selected the last time we were on this page
-    ${If} $ReinstallPageCheck <> 2
+    ${If} $R0 = 1
+      ; upgrading: by default the installed files stay and only the changed ones are updated
+      ${If} $ReinstallPageCheck = 1
+        SendMessage $R2 ${BM_SETCHECK} ${BST_CHECKED} 0
+      ${Else}
+        SendMessage $R3 ${BM_SETCHECK} ${BST_CHECKED} 0
+      ${EndIf}
+    ${ElseIf} $ReinstallPageCheck <> 2
       SendMessage $R2 ${BM_SETCHECK} ${BST_CHECKED} 0
     ${Else}
       SendMessage $R3 ${BM_SETCHECK} ${BST_CHECKED} 0
@@ -431,7 +438,8 @@ Var AppStartMenuFolder
 ;
 ; Don't auto jump to finish page after installation page,
 ; because the installation page has useful info that can be used debug any issues with the installer.
-!define MUI_FINISHPAGE_NOAUTOCLOSE
+; BeatPractice: after a successful installation the installer goes straight to the last page, which has a single button ("Finish" / "Готово").
+; (If something fails, the progress page stays open with the details.)
 ; Use show readme button in the finish page as a button create a desktop shortcut
 !define MUI_FINISHPAGE_SHOWREADME
 !define MUI_FINISHPAGE_SHOWREADME_TEXT "$(createDesktop)"
@@ -440,6 +448,7 @@ Var AppStartMenuFolder
 !define MUI_FINISHPAGE_RUN
 !define MUI_FINISHPAGE_RUN_FUNCTION RunMainBinary
 !define MUI_PAGE_CUSTOMFUNCTION_PRE SkipIfPassive
+!define MUI_BUTTONTEXT_FINISH "$(BtnFinish)"
 !insertmacro MUI_PAGE_FINISH
 
 Function RunMainBinary
@@ -506,6 +515,10 @@ LangString choowHowToInstall 0 ""
 {{#each language_files}}
   !include "{{this}}"
 {{/each}}
+
+; the text of the only button on the last page
+LangString BtnFinish ${LANG_ENGLISH} "Finish"
+LangString BtnFinish ${LANG_UKRAINIAN} "Готово"
 
 Function .onInit
   ${GetOptions} $CMDLINE "/P" $PassiveMode
@@ -689,6 +702,10 @@ SectionEnd
 
 Section Install
   SetOutPath $INSTDIR
+
+  ; BeatPractice: on top of an existing installation only the files that differ are written (same time stamp = same file; the build gives
+  ; every file a time stamp derived from its content), so updating is fast and the large unchanged model files are left alone.
+  SetOverwrite ifdiff
 
   !ifmacrodef NSIS_HOOK_PREINSTALL
     !insertmacro NSIS_HOOK_PREINSTALL

@@ -386,6 +386,54 @@ fn core_snap_to_bar(state: State<AppState>, seconds: f64) -> Result<f64, String>
 #[tauri::command]
 fn core_snap_to_beat(state: State<AppState>, seconds: f64) -> Result<f64, String> { with_core(&state, |c| c.snap_to_beat(seconds)) }
 
+/// macOS: the app has just been dragged to Applications from the installer disk image and started: eject the disk image,
+/// its Finder window closes with it. Only when the app runs from Applications and a mounted volume holds a copy of this very app.
+#[cfg(target_os = "macos")]
+fn eject_install_disk() {
+    std::thread::spawn(|| {
+        let exe = match std::env::current_exe() {
+            Ok(p) => p,
+            Err(_) => return,
+        };
+        let path = exe.to_string_lossy().to_string();
+        let user_apps = std::env::var("HOME").map(|h| format!("{}/Applications/", h)).unwrap_or_default();
+        if !(path.starts_with("/Applications/") || (!user_apps.is_empty() && path.starts_with(&user_apps))) {
+            return;
+        }
+        let app_name = match exe
+            .ancestors()
+            .find(|a| a.extension().map_or(false, |x| x == "app"))
+            .and_then(|a| a.file_name())
+        {
+            Some(n) => n.to_string_lossy().to_string(),
+            None => return,
+        };
+        for _ in 0..4 {
+            let mut busy = false;
+            if let Ok(entries) = std::fs::read_dir("/Volumes") {
+                for e in entries.flatten() {
+                    if e.path().join(&app_name).exists() {
+                        // hdiutil only detaches disk images; the volume may still be in use by Finder for a moment
+                        let ok = std::process::Command::new("/usr/bin/hdiutil")
+                            .arg("detach")
+                            .arg(e.path())
+                            .output()
+                            .map(|o| o.status.success())
+                            .unwrap_or(false);
+                        if !ok {
+                            busy = true;
+                        }
+                    }
+                }
+            }
+            if !busy {
+                break;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(2000));
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let builder = tauri::Builder::default();
@@ -404,6 +452,11 @@ pub fn run() {
     builder
         .plugin(tauri_plugin_dialog::init())
         .manage(AppState::default())
+        .setup(|_app| {
+            #[cfg(target_os = "macos")]
+            eject_install_disk();
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             core_init,
             core_load,

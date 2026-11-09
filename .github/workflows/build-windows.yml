@@ -108,6 +108,14 @@ jobs:
             if (Test-Path $p) { Copy-Item $p "$dst\build\" } else { Write-Warning "$f not found" }
           }
           Copy-Item "beat-core\models\*.onnx" "$dst\models\"
+          # Time stamp of every file = a number made from its content: the installer (SetOverwrite ifdiff) then rewrites on update
+          # only the files whose content changed, and skips the large unchanged ones (the models, the runtime)
+          $base = [datetime]::SpecifyKind([datetime]'2020-01-01T00:00:00', 'Utc')
+          Get-ChildItem $dst -Recurse -File | ForEach-Object {
+            $h = (Get-FileHash $_.FullName -Algorithm SHA256).Hash
+            $sec = [Convert]::ToInt64($h.Substring(0, 7), 16) -band (-bnot 1)
+            $_.LastWriteTimeUtc = $base.AddSeconds($sec)
+          }
           Get-ChildItem $dst -Recurse | Select-Object FullName, Length
 
       # ---------- 5. App + installer ----------

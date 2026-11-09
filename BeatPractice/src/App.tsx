@@ -355,6 +355,10 @@ export default function App() {
             onCreateTag={player.createTag}
             onRenameTag={player.renameTag}
             onDeleteTag={player.deleteTag}
+            tagView={player.tagView}
+            onTagView={player.setTagView}
+            viewList={player.viewList}
+            onReorderInTag={player.reorderInTag}
           />
 
           </aside>

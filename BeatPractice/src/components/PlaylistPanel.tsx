@@ -33,6 +33,11 @@ interface PlaylistPanelProps {
   onCreateTag?: (name: string) => void;
   onRenameTag?: (id: string, name: string) => boolean;
   onDeleteTag?: (id: string) => void;
+  /** a tag shown as a saved list with its own order of the tracks */
+  tagView?: string | null;
+  onTagView?: (id: string | null) => void;
+  viewList?: PlaylistItem[];
+  onReorderInTag?: (from: number, to: number) => void;
 }
 
 const formatDuration = (seconds: number): string => {
@@ -74,6 +79,10 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   onCreateTag,
   onRenameTag,
   onDeleteTag,
+  tagView = null,
+  onTagView,
+  viewList,
+  onReorderInTag,
 }) => {
   const t = (key: keyof typeof translations.uk) => (translations[lang] || translations.uk)[key] || key;
   const containerClasses = isSidebar
@@ -86,14 +95,17 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   const [drag, setDrag] = useState<{ id: string; from: number; ins: number } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PlaylistItem | null>(null);
 
+  // the list that is shown: the whole playlist, or the tracks of the chosen tag in the order they have inside that tag
+  const inTagView = !!tagView && !!viewList && !!onReorderInTag;
+  const base = inTagView ? viewList! : playlist;
   const insertionAt = (clientY: number): number => {
-    for (let i = 0; i < playlist.length; i++) {
-      const el = itemRefs.current[playlist[i].id];
+    for (let i = 0; i < base.length; i++) {
+      const el = itemRefs.current[base[i].id];
       if (!el) continue;
       const r = el.getBoundingClientRect();
       if (clientY < r.top + r.height / 2) return i;
     }
-    return playlist.length;
+    return base.length;
   };
   const onGripDown = (e: React.PointerEvent, id: string, from: number) => {
     e.stopPropagation();
@@ -117,7 +129,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     const to = drag.ins > drag.from ? drag.ins - 1 : drag.ins;
     setDrag(null);
     try { (e.currentTarget as Element).releasePointerCapture(e.pointerId); } catch { /* ignore */ }
-    if (to !== drag.from) onReorder(drag.from, to);
+    if (to !== drag.from) (inTagView ? onReorderInTag! : onReorder)(drag.from, to);
   };
 
   // ---- search: the list is filtered while typing; Enter / the button opens the first track found ----
@@ -125,19 +137,17 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   const q = query.trim().toLowerCase();
   // ---- tags: filter chips (a track must have all the chosen tags), the dialogs ----
   const hasTags = !!tags && !!onToggleTag && !!onAddTagToItem && !!onCreateTag && !!onRenameTag && !!onDeleteTag;
-  const [chosenTags, setChosenTags] = useState<string[]>([]);
   const [tagItemId, setTagItemId] = useState<string | null>(null);
   const [manageTags, setManageTags] = useState(false);
   const allTags = tags ?? [];
-  const activeTags = chosenTags.filter((id) => allTags.some((t) => t.id === id));   // a deleted tag drops out of the filter
   const tagName = (id: string) => allTags.find((t) => t.id === id)?.name;
   const tagCounts: Record<string, number> = {};
   playlist.forEach((it) => (it.tags ?? []).forEach((id) => { tagCounts[id] = (tagCounts[id] ?? 0) + 1; }));
-  const filtered = q !== '' || activeTags.length > 0;
-  const visible = playlist
+  const filtered = q !== '';
+  const visible = base
     .map((item, index) => ({ item, index }))
     .filter(({ item }) => q === '' || displayName(item).toLowerCase().includes(q))
-    .filter(({ item }) => activeTags.every((id) => (item.tags ?? []).includes(id)));
+    ;
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (q !== '' && visible.length > 0) onSelectTrack(visible[0].item);
@@ -155,7 +165,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         <div className="mac-top-space" data-tauri-drag-region />
         <div className="shrink-0 pb-3 pointer-events-none" data-tauri-drag-region><BeatPracticeLogo className="w-9 h-9" /></div>
         <div className="flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center gap-2 py-1">
-          {playlist.map((item) => (
+          {base.map((item) => (
             <button key={item.id} type="button" onClick={() => onSelectTrack(item)} title={displayName(item)} aria-label={displayName(item)} className="shrink-0 rounded-lg cursor-pointer">
               {coverOf(item, item.id === activeTrackId, 'w-10 h-10')}
             </button>
@@ -241,9 +251,9 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       {hasTags && (playlist.length > 0 || allTags.length > 0) && (
         <div className="mt-2 flex shrink-0 flex-wrap items-center gap-1.5" role="group" aria-label={lang === 'en' ? 'Filter by tags' : 'Фільтр за тегами'}>
           {allTags.map((tg) => (
-            <button key={tg.id} type="button" aria-pressed={activeTags.includes(tg.id)}
-              onClick={() => setChosenTags((cur) => (cur.includes(tg.id) ? cur.filter((x) => x !== tg.id) : [...cur, tg.id]))}
-              className={`${btn.chip(activeTags.includes(tg.id))} rounded-full !min-h-7 sm:!min-h-7 px-2.5`}>
+            <button key={tg.id} type="button" aria-pressed={tagView === tg.id}
+              onClick={() => onTagView?.(tagView === tg.id ? null : tg.id)}
+              className={`${btn.chip(tagView === tg.id)} rounded-full !min-h-7 sm:!min-h-7 px-2.5`}>
               {tg.name}
             </button>
           ))}
@@ -253,6 +263,14 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             <Tag className="h-4 w-4" />{lang === 'en' ? 'Tags' : 'Теги'}
           </button>
         </div>
+      )}
+
+      {inTagView && (
+        <p className="mt-1.5 shrink-0 text-xs text-slate-400">
+          {lang === 'en'
+            ? `Saved list of the tag “${tagName(tagView!) ?? ''}”: drag the tracks to order them here; the main playlist keeps its own order.`
+            : `Збережений список тегу «${tagName(tagView!) ?? ''}»: перетягуйте треки, щоб впорядкувати їх тут; головний плейліст зберігає свій порядок.`}
+        </p>
       )}
 
       {/* Track List */}
@@ -279,7 +297,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
           ) : visible.map(({ item, index }) => {
             const isActive = item.id === activeTrackId;
             const showLineBefore = !filtered && drag && drag.ins === index && drag.ins !== drag.from && drag.ins !== drag.from + 1;
-            const showLineAfter = !filtered && drag && index === playlist.length - 1 && drag.ins === playlist.length && drag.from !== playlist.length - 1;
+            const showLineAfter = !filtered && drag && index === base.length - 1 && drag.ins === base.length && drag.from !== base.length - 1;
             return (
               <React.Fragment key={item.id}>
               {showLineBefore && <div className="h-1 rounded-full bg-sky-500 -my-1" />}
@@ -388,7 +406,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       >
         <div className="flex items-center gap-1.5">
           <span>Треків:</span>
-          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{filtered ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
+          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{filtered || inTagView ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
         </div>
 
         <div className="flex items-center gap-1.5">
