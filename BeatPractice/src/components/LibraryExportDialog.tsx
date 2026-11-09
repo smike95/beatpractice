@@ -94,6 +94,7 @@ export function LibraryExportDialog(props: {
     const done: PlaylistItem[] = [];
     const skipped: string[] = [];
     const files: string[] = [];
+    const groupsOf = new Map<string, boolean>();   // which tracks went into the library with their separated parts
     let dir: string | null = null;
     try {
       await core.pause().catch(() => {});
@@ -137,6 +138,7 @@ export function LibraryExportDialog(props: {
         if (!started || !(await waitPack())) { if (!cancelled.current) skipped.push(displayName(it)); continue; }
         files.push(path);
         done.push(it);
+        groupsOf.set(it.id, groups !== "");
       }
       if (cancelled.current || files.length === 0) {
         if (files.length === 0 && !cancelled.current) { setErr(L("Жодного треку не вдалося зберегти.", "No track could be saved.")); setPhase("error"); }
@@ -153,6 +155,7 @@ export function LibraryExportDialog(props: {
         tagOrder: Object.fromEntries(usedTags.map((t) => [t.id, listForTag(t.id).map((it) => idx.get(it.id)).filter((k): k is number => k !== undefined)])),
         tracks: done.map((it) => ({
           name: it.name, title: it.title, artist: it.artist, speed: it.speed, meterMode: it.meterMode,
+          duration: it.trackInfo.duration, originalBpm: it.trackInfo.originalBpm, cover: it.cover, hasStems: groupsOf.get(it.id) || it.hasStems || undefined,
           tags: (it.tags ?? []).filter((id) => usedTags.some((t) => t.id === id)),
         })),
       };

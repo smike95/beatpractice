@@ -3,6 +3,7 @@ import { onFilesOpened, pickAudioFiles, pickFolder } from "../platform";
 import { BC, Caps, core, InitInfo, Snapshot, SongData, StemsInfo } from "../core";
 import { AudioTrackInfo, LoopRange, LoopSlot, MetronomeConfig, PlayMode, PlaylistItem, PlaylistTag, StemMix } from "../types";
 import { getOwnerId } from "../utils/license";
+import { DupChoice, findDuplicate, mergeItems, replaceItem } from "./duplicates";
 import { barStartTimes, computeSections, TempoSection, tempoVaries } from "../utils/sections";
 
 const AUDIO_EXTS = ["mp3", "wav", "flac", "ogg", "beatpack", "beatlib"];
@@ -110,6 +111,14 @@ function mostCommonBarLength(data: SongData): number {
     }
   });
   return best;
+}
+
+/** A track that looks like one already in the playlist, waiting for the user's decision. */
+export interface DupAsk {
+  existing: PlaylistItem;
+  incoming: PlaylistItem;
+  index: number;   // which duplicate of this batch it is
+  total: number;   // how many duplicates the batch has
 }
 
 /** A new loop that shares bars with existing loops, waiting for the user's decision. */
@@ -797,12 +806,67 @@ export function usePlayer() {
     [activeId, openTrack],
   );
 
+  // ---- duplicates: a track that is already in the playlist (the same song) is not added silently ----
+  const [dupAsk, setDupAsk] = useState<DupAsk | null>(null);
+  const dupResolver = useRef<((a: { choice: DupChoice; all: boolean }) => void) | null>(null);
+  const answerDup = useCallback((choice: DupChoice, all: boolean) => {
+    setDupAsk(null);
+    const r = dupResolver.current;
+    dupResolver.current = null;
+    r?.({ choice, all });
+  }, []);
+  /**
+   * Adds the tracks to the playlist. For every one that is the same song as a track already there (or as an earlier one of this batch)
+   * the user chooses: keep the existing one, keep the new one (it takes the place of the existing one), or merge them (they complete each other).
+   * Returns, for every incoming id, the id of the track that stands for it in the playlist.
+   */
+  const integrateItems = useCallback(
+    async (incoming: PlaylistItem[]): Promise<Map<string, string>> => {
+      const finalId = new Map<string, string>();
+      const pool: PlaylistItem[] = [...playlistRef.current];
+      let total = 0;
+      { const sim = [...pool]; for (const it of incoming) { if (findDuplicate(sim, it)) total++; else sim.push(it); } }
+      const ops: PlaylistItem[] = [];
+      let remembered = null as DupChoice | null;
+      let n = 0;
+      for (const it of incoming) {
+        const ex = findDuplicate(pool, it);
+        if (!ex) { pool.push(it); ops.push(it); finalId.set(it.id, it.id); continue; }
+        n++;
+        let choice: DupChoice | null = remembered;
+        if (!choice) {
+          const a = await new Promise<{ choice: DupChoice; all: boolean }>((res) => { dupResolver.current = res; setDupAsk({ existing: ex, incoming: it, index: n, total }); });
+          choice = a.choice;
+          if (a.all) remembered = choice;
+        }
+        finalId.set(it.id, ex.id);
+        if (choice === "keep-existing") continue;
+        const updated = choice === "keep-new" ? replaceItem(ex, it) : mergeItems(ex, it);
+        pool[pool.findIndex((p) => p.id === ex.id)] = updated;
+        ops.push(updated);
+      }
+      setPlaylist((prev) => {
+        const next = [...prev];
+        for (const op of ops) {
+          const k = next.findIndex((p) => p.id === op.id);
+          if (k >= 0) next[k] = op; else next.push(op);
+        }
+        return next;
+      });
+      // the track that is open was replaced or merged: it is opened again from its new source
+      const open = ops.find((op) => op.id === requestedId.current && playlistRef.current.some((p) => p.id === op.id));
+      if (open) void openTrack(open);
+      return finalId;
+    },
+    [openTrack],
+  );
+
   /** A library file (.beatlib): its packs are unpacked into the data folder of the app and added to the playlist with their tags and order. */
   const importLibrary = useCallback(
     async (path: string) => {
       try {
         const { manifest, files } = await core.libraryRead(path);
-        let m: { tags?: { id: string; name: string }[]; tracks?: { name?: string; artist?: string; title?: string; speed?: number; meterMode?: number; tags?: string[] }[]; tagOrder?: Record<string, number[]> } = {};
+        let m: { tags?: { id: string; name: string }[]; tracks?: { name?: string; artist?: string; title?: string; speed?: number; meterMode?: number; tags?: string[]; duration?: number; originalBpm?: number; cover?: string; hasStems?: boolean }[]; tagOrder?: Record<string, number[]> } = {};
         try { m = JSON.parse(manifest); } catch { /* a library without a manifest: only the packs */ }
         const tagMap: Record<string, string> = {};
         for (const t of m.tags ?? []) { const id = createTag(t.name); if (id) tagMap[t.id] = id; }
@@ -814,7 +878,9 @@ export function usePlayer() {
             id: `${stamp}_${i}_${Math.random().toString(36).slice(2, 7)}`,
             name: nm,
             path: p,
-            trackInfo: { name: nm, duration: 0, originalBpm: 0, currentBpm: 0, timeSignature: "4/4" },
+            trackInfo: { name: nm, duration: t.duration ?? 0, originalBpm: t.originalBpm ?? 0, currentBpm: t.originalBpm ?? 0, timeSignature: "4/4" },
+            ...(t.cover ? { cover: t.cover } : {}),
+            ...(t.hasStems ? { hasStems: true } : {}),
             speed: typeof t.speed === "number" ? t.speed : 1,
             loops: [],
             activeLoop: null,
@@ -826,28 +892,29 @@ export function usePlayer() {
           } as PlaylistItem;
         });
         if (items.length === 0) return;
-        setPlaylist((prev) => [...prev, ...items]);
+        const finalId = await integrateItems(items);
+        const added = items.filter((it) => finalId.get(it.id) === it.id);
         // the order inside every tag as it was in the library: after the tracks that were already placed there
         setTagOrder((o) => {
           const next = { ...o };
           for (const [oldTag, idx] of Object.entries(m.tagOrder ?? {})) {
             const local = tagMap[oldTag];
             if (!local) continue;
-            const ids = idx.map((k) => items[k]?.id).filter((x): x is string => !!x);
-            next[local] = [...(next[local] ?? []), ...ids];
+            const ids = idx.map((k) => (items[k] ? finalId.get(items[k].id) : undefined)).filter((x): x is string => !!x);
+            next[local] = [...(next[local] ?? []).filter((x) => !ids.includes(x)), ...ids];
           }
           return next;
         });
-        setMessage(`Із збірки додано треків: ${items.length}. Аналіз уже в пакетах, чекати не треба.`);
-        if (!activeId || !playlistRef.current.some((p) => p.id === activeId)) {
-          setActiveId(items[0].id);
-          void openTrack(items[0]);
+        setMessage(`Із збірки: додано ${added.length}, уже були в плейлісті ${items.length - added.length}. Аналіз уже в пакетах, чекати не треба.`);
+        if (added.length > 0 && (!activeId || !playlistRef.current.some((p) => p.id === activeId))) {
+          setActiveId(added[0].id);
+          void openTrack(added[0]);
         }
       } catch (e) {
         setMessage(`Не вдалося відкрити збірку: ${String(e)}`);
       }
     },
-    [activeId, openTrack, createTag],
+    [activeId, openTrack, createTag, integrateItems],
   );
 
   const addFiles = useCallback(
@@ -875,13 +942,16 @@ export function usePlayer() {
           addedAt: Date.now() + i,
         }));
       if (items.length === 0) return;
-      setPlaylist((prev) => [...prev, ...items]);
-      if (!activeId || !playlistRef.current.some((p) => p.id === activeId)) {
-        setActiveId(items[0].id);
-        void openTrack(items[0]);
-      }
+      void (async () => {
+        const finalId = await integrateItems(items);
+        const added = items.filter((it) => finalId.get(it.id) === it.id);
+        if (added.length > 0 && (!activeId || !playlistRef.current.some((p) => p.id === activeId))) {
+          setActiveId(added[0].id);
+          void openTrack(added[0]);
+        }
+      })();
     },
-    [activeId, openTrack, importLibrary],
+    [activeId, openTrack, importLibrary, integrateItems],
   );
 
   const openFilesDialog = useCallback(async () => {
@@ -899,6 +969,12 @@ export function usePlayer() {
   const refreshStemsInfo = useCallback(() => {
     core.stemsInfo().then(setStemsInfo).catch(() => setStemsInfo(null));
   }, []);
+
+  useEffect(() => {
+    if (activeId && (stemsInfo?.cached || stemsState === 2)) {
+      patchItem(activeId, (it) => (it.hasStems ? it : { ...it, hasStems: true }));
+    }
+  }, [activeId, stemsInfo?.cached, stemsState, patchItem]);
 
   const persistMix = useCallback(
     (mix: StemMix, on?: boolean) => {
@@ -1204,6 +1280,8 @@ export function usePlayer() {
     reorderInTag,
     listForTag,
     reloadTrack,
+    dupAsk,
+    answerDup,
     tags,
     createTag,
     renameTag,

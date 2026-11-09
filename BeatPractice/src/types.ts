@@ -54,6 +54,7 @@ export interface PlaylistItem {
   stemMix?: StemMix; // levels of the separated parts for this track
   stemsOn?: boolean; // the separated parts are what is played
   tags?: string[]; // ids of the tags of this track (see PlaylistTag)
+  hasStems?: boolean; // the parts of the song are separated (known after the track was opened with them, or from a library)
   addedAt: number;
 }
 

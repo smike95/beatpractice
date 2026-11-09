@@ -26,6 +26,7 @@ import { MetronomeStrip } from './components/MetronomeStrip';
 import { TempoMapDialog } from './components/TempoMapDialog';
 import { LoopConflictDialog } from './components/LoopConflictDialog';
 import { LibraryExportDialog } from './components/LibraryExportDialog';
+import { DuplicateDialog } from './components/DuplicateDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
 import { btn } from './components/ui/styles';
@@ -766,6 +767,10 @@ export default function App() {
               <button id="btn-pack-notice-ok" className={btn.primary} onClick={player.dismissPackNotice}>{lang === 'en' ? 'I understand' : 'Розумію'}</button>
             </div>
         </Modal>
+      )}
+
+      {player.dupAsk && (
+        <DuplicateDialog lang={lang} ask={player.dupAsk} tags={player.tags} onAnswer={player.answerDup} />
       )}
 
       {libraryExporting && (
