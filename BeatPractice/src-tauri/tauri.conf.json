@@ -41,7 +41,11 @@
           "English",
           "Ukrainian"
         ],
-        "displayLanguageSelector": true
+        "displayLanguageSelector": false,
+        "template": "windows/installer.nsi",
+        "headerImage": "windows/header.bmp",
+        "sidebarImage": "windows/sidebar.bmp",
+        "installerIcon": "icons/icon.ico"
       }
     }
   }
