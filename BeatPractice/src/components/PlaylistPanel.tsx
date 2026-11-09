@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PlaylistItem, PlaylistTag } from '../types';
-import { ChevronRight, Pin, PinOff, Plus, Search, Trash2, Music, GripVertical, Tag, X } from 'lucide-react';
+import { ChevronRight, Pin, PinOff, Package, Plus, Search, Trash2, Music, GripVertical, Tag, X } from 'lucide-react';
 import { BeatPracticeLogo } from './BeatPracticeLogo';
 import { CoverPlaceholder } from './CoverPlaceholder';
 import { Language, translations } from '../i18n';
@@ -38,6 +38,8 @@ interface PlaylistPanelProps {
   onTagView?: (id: string | null) => void;
   viewList?: PlaylistItem[];
   onReorderInTag?: (from: number, to: number) => void;
+  /** save the playlist or a tag as one library file (desktop) */
+  onExportLibrary?: () => void;
 }
 
 const formatDuration = (seconds: number): string => {
@@ -83,6 +85,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   onTagView,
   viewList,
   onReorderInTag,
+  onExportLibrary,
 }) => {
   const t = (key: keyof typeof translations.uk) => (translations[lang] || translations.uk)[key] || key;
   const containerClasses = isSidebar
@@ -262,6 +265,14 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
             <Tag className="h-4 w-4" />{lang === 'en' ? 'Tags' : 'Теги'}
           </button>
+          {onExportLibrary && playlist.length > 0 && (
+            <button type="button" id="btn-export-library" onClick={onExportLibrary}
+              title={lang === 'en' ? 'Save the playlist or a tag as one file for another device' : 'Зберегти плейліст або тег одним файлом для іншого пристрою'}
+              aria-label={lang === 'en' ? 'Export a library' : 'Експорт збірки'}
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
+              <Package className="h-4 w-4" />{lang === 'en' ? 'Export' : 'Експорт'}
+            </button>
+          )}
         </div>
       )}
 

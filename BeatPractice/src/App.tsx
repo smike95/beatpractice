@@ -25,6 +25,7 @@ import { QuickTempoBar } from './components/QuickTempoBar';
 import { MetronomeStrip } from './components/MetronomeStrip';
 import { TempoMapDialog } from './components/TempoMapDialog';
 import { LoopConflictDialog } from './components/LoopConflictDialog';
+import { LibraryExportDialog } from './components/LibraryExportDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
 import { btn } from './components/ui/styles';
@@ -147,6 +148,7 @@ export default function App() {
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [packing, setPacking] = useState(false);
+  const [libraryExporting, setLibraryExporting] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   // the folded part of the mixer (stem separation) remembers whether it was open
   const [mixerOpen, setMixerOpen] = useState<boolean>(() => {
@@ -359,6 +361,7 @@ export default function App() {
             onTagView={player.setTagView}
             viewList={player.viewList}
             onReorderInTag={player.reorderInTag}
+            onExportLibrary={isDesktop ? () => setLibraryExporting(true) : undefined}
           />
 
           </aside>
@@ -763,6 +766,19 @@ export default function App() {
               <button id="btn-pack-notice-ok" className={btn.primary} onClick={player.dismissPackNotice}>{lang === 'en' ? 'I understand' : 'Розумію'}</button>
             </div>
         </Modal>
+      )}
+
+      {libraryExporting && (
+        <LibraryExportDialog
+          lang={lang}
+          playlist={player.playlist}
+          tags={player.tags}
+          listForTag={player.listForTag}
+          startTag={player.tagView}
+          activeItem={player.playlist.find((p) => p.id === player.activeId) ?? null}
+          onRestore={(item) => player.reloadTrack(item)}
+          onClose={() => setLibraryExporting(false)}
+        />
       )}
 
       {player.loopChoice && (

@@ -386,6 +386,125 @@ fn core_snap_to_bar(state: State<AppState>, seconds: f64) -> Result<f64, String>
 #[tauri::command]
 fn core_snap_to_beat(state: State<AppState>, seconds: f64) -> Result<f64, String> { with_core(&state, |c| c.snap_to_beat(seconds)) }
 
+// ---- library pack (.beatlib): many .beatpack files in one file -------------------------------------------------
+// Layout: "BPLIB001" | u64 manifest length | manifest (JSON text) | u32 count | count x (u64 length | the .beatpack bytes)
+const LIB_MAGIC: &[u8; 8] = b"BPLIB001";
+const LIB_MAX_MANIFEST: u64 = 64 * 1024 * 1024;
+const LIB_MAX_FILES: u32 = 20000;
+
+#[derive(Serialize)]
+struct LibraryRead {
+    manifest: String,
+    files: Vec<String>,
+}
+
+fn millis_now() -> u128 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0)
+}
+
+/// A fresh temporary folder where the packs of a library are made one by one.
+#[tauri::command]
+fn library_temp_dir() -> Result<String, String> {
+    let dir = std::env::temp_dir().join(format!("beatpractice-lib-{}", millis_now()));
+    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
+    Ok(dir.to_string_lossy().to_string())
+}
+
+fn write_library(files: &[String], manifest: &str, out: &str) -> std::io::Result<()> {
+    use std::io::Write;
+    let part = format!("{}.part", out);
+    {
+        let mut w = std::io::BufWriter::new(std::fs::File::create(&part)?);
+        w.write_all(LIB_MAGIC)?;
+        w.write_all(&(manifest.len() as u64).to_le_bytes())?;
+        w.write_all(manifest.as_bytes())?;
+        w.write_all(&(files.len() as u32).to_le_bytes())?;
+        for f in files {
+            let len = std::fs::metadata(f)?.len();
+            w.write_all(&len.to_le_bytes())?;
+            let mut r = std::fs::File::open(f)?;
+            let copied = std::io::copy(&mut r, &mut w)?;
+            if copied != len {
+                return Err(std::io::Error::new(std::io::ErrorKind::Other, "a pack changed while it was being written"));
+            }
+        }
+        w.flush()?;
+    }
+    let _ = std::fs::remove_file(out);
+    std::fs::rename(&part, out)
+}
+
+/// Writes the library file and removes the temporary folder (only a folder made by library_temp_dir).
+#[tauri::command]
+fn library_write(files: Vec<String>, manifest: String, out: String, temp_dir: Option<String>) -> Result<(), String> {
+    let r = write_library(&files, &manifest, &out).map_err(|e| e.to_string());
+    if let Some(d) = temp_dir {
+        let is_ours = std::path::Path::new(&d)
+            .file_name()
+            .map_or(false, |n| n.to_string_lossy().starts_with("beatpractice-lib-"));
+        if is_ours {
+            let _ = std::fs::remove_dir_all(&d);
+        }
+    }
+    if r.is_err() {
+        let _ = std::fs::remove_file(format!("{}.part", out));
+    }
+    r
+}
+
+fn read_library(base: &std::path::Path, path: &str) -> std::io::Result<LibraryRead> {
+    use std::io::Read;
+    let bad = |m: &str| std::io::Error::new(std::io::ErrorKind::InvalidData, m.to_string());
+    let mut r = std::io::BufReader::new(std::fs::File::open(path)?);
+    let mut magic = [0u8; 8];
+    r.read_exact(&mut magic)?;
+    if &magic != LIB_MAGIC {
+        return Err(bad("this is not a BeatPractice library file"));
+    }
+    let mut b8 = [0u8; 8];
+    r.read_exact(&mut b8)?;
+    let mlen = u64::from_le_bytes(b8);
+    if mlen > LIB_MAX_MANIFEST {
+        return Err(bad("the library file is damaged"));
+    }
+    let mut mbytes = vec![0u8; mlen as usize];
+    r.read_exact(&mut mbytes)?;
+    let manifest = String::from_utf8(mbytes).map_err(|_| bad("the library file is damaged"))?;
+    let mut b4 = [0u8; 4];
+    r.read_exact(&mut b4)?;
+    let count = u32::from_le_bytes(b4);
+    if count > LIB_MAX_FILES {
+        return Err(bad("the library file is damaged"));
+    }
+    let dir = base.join(format!("lib-{}", millis_now()));
+    std::fs::create_dir_all(&dir)?;
+    let mut files = Vec::new();
+    for i in 0..count {
+        r.read_exact(&mut b8)?;
+        let len = u64::from_le_bytes(b8);
+        let p = dir.join(format!("{:03}.beatpack", i + 1));
+        let mut out = std::io::BufWriter::new(std::fs::File::create(&p)?);
+        let copied = std::io::copy(&mut (&mut r).take(len), &mut out)?;
+        if copied != len {
+            return Err(bad("the library file is incomplete"));
+        }
+        std::io::Write::flush(&mut out)?;
+        files.push(p.to_string_lossy().to_string());
+    }
+    Ok(LibraryRead { manifest, files })
+}
+
+/// Unpacks a library file into the data folder of the app (the tracks stay there) and returns the manifest and the paths of the packs.
+#[tauri::command]
+fn library_read(app: AppHandle, path: String) -> Result<LibraryRead, String> {
+    let base = app.path().app_data_dir().map_err(|e| e.to_string())?.join("libraries");
+    std::fs::create_dir_all(&base).map_err(|e| e.to_string())?;
+    read_library(&base, &path).map_err(|e| e.to_string())
+}
+
 /// macOS: the app has just been dragged to Applications from the installer disk image and started: eject the disk image,
 /// its Finder window closes with it. Only when the app runs from Applications and a mounted volume holds a copy of this very app.
 #[cfg(target_os = "macos")]
@@ -474,6 +593,9 @@ pub fn run() {
             core_click_set,
             core_pack_info,
             core_pack_save,
+            library_temp_dir,
+            library_write,
+            library_read,
             core_export_status,
             core_export_cancel,
             core_stems_cancel,

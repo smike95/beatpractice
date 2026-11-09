@@ -133,6 +133,9 @@ export const core = {
     try { return JSON.parse(await invoke<string>("core_pack_info")) as PackInfo; } catch { return { isPack: false }; }
   },
   packSave: (o: PackOptions) => invoke<boolean>("core_pack_save", { options: o }),
+  libraryTempDir: () => invoke<string>("library_temp_dir"),
+  libraryWrite: (files: string[], manifest: string, out: string, tempDir: string | null) => invoke<void>("library_write", { files, manifest, out, tempDir }),
+  libraryRead: (path: string) => invoke<{ manifest: string; files: string[] }>("library_read", { path }),
   exportStatus: () => invoke<ExportStatus>("core_export_status"),
   exportCancel: () => invoke<void>("core_export_cancel"),
   stemsStart: () => invoke<boolean>("core_stems_start"),

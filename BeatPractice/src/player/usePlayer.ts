@@ -5,7 +5,7 @@ import { AudioTrackInfo, LoopRange, LoopSlot, MetronomeConfig, PlayMode, Playlis
 import { getOwnerId } from "../utils/license";
 import { barStartTimes, computeSections, TempoSection, tempoVaries } from "../utils/sections";
 
-const AUDIO_EXTS = ["mp3", "wav", "flac", "ogg", "beatpack"];
+const AUDIO_EXTS = ["mp3", "wav", "flac", "ogg", "beatpack", "beatlib"];
 const STORE_KEY = "rt_playlist_v1";
 const NO_LOOP: LoopRange = { active: false, start: 0, end: 0 };
 export const MAX_LOOPS = 3;
@@ -315,8 +315,17 @@ export function usePlayer() {
     const rank = (id: string) => { const k = order.indexOf(id); return k < 0 ? Number.MAX_SAFE_INTEGER : k; };
     return own.map((it, i) => ({ it, i })).sort((x, y) => rank(x.it.id) - rank(y.it.id) || x.i - y.i).map((x) => x.it);   // tracks without a place keep the playlist order, after the placed ones
   }, [playlist, tagOrder, activeTagView]);
+  const tagOrderRef = useRef(tagOrder);
+  tagOrderRef.current = tagOrder;
   const viewListRef = useRef<PlaylistItem[]>(viewList);
   viewListRef.current = viewList;
+  /** The tracks that have the tag, in the order they have inside it. */
+  const listForTag = useCallback((tagId: string): PlaylistItem[] => {
+    const own = playlistRef.current.filter((it) => (it.tags ?? []).includes(tagId));
+    const order = tagOrderRef.current[tagId] ?? [];
+    const rank = (id: string) => { const k = order.indexOf(id); return k < 0 ? Number.MAX_SAFE_INTEGER : k; };
+    return own.map((it, i) => ({ it, i })).sort((x, y) => rank(x.it.id) - rank(y.it.id) || x.i - y.i).map((x) => x.it);
+  }, []);
   const setTagView = useCallback((id: string | null) => setTagViewState(id), []);
   /** Moves a track inside the list of the chosen tag (the order of the whole playlist stays as it is). */
   const reorderInTag = useCallback((from: number, to: number) => {
@@ -744,6 +753,16 @@ export function usePlayer() {
     [activeId, songReady, openTrack],
   );
 
+  /** Opens the track in the core again even if it is the active one (after the core was used for something else, e.g. the export of a library). */
+  const reloadTrack = useCallback(
+    (item: PlaylistItem) => {
+      core.pause().catch(() => {});
+      setActiveId(item.id);
+      void openTrack(item);
+    },
+    [openTrack],
+  );
+
   const reorderTracks = useCallback((from: number, to: number) => {
     setPlaylist((prev) => {
       if (from < 0 || from >= prev.length || to < 0 || to >= prev.length || from === to) return prev;
@@ -778,8 +797,65 @@ export function usePlayer() {
     [activeId, openTrack],
   );
 
+  /** A library file (.beatlib): its packs are unpacked into the data folder of the app and added to the playlist with their tags and order. */
+  const importLibrary = useCallback(
+    async (path: string) => {
+      try {
+        const { manifest, files } = await core.libraryRead(path);
+        let m: { tags?: { id: string; name: string }[]; tracks?: { name?: string; artist?: string; title?: string; speed?: number; meterMode?: number; tags?: string[] }[]; tagOrder?: Record<string, number[]> } = {};
+        try { m = JSON.parse(manifest); } catch { /* a library without a manifest: only the packs */ }
+        const tagMap: Record<string, string> = {};
+        for (const t of m.tags ?? []) { const id = createTag(t.name); if (id) tagMap[t.id] = id; }
+        const stamp = Date.now();
+        const items: PlaylistItem[] = files.map((p, i) => {
+          const t = m.tracks?.[i] ?? {};
+          const nm = t.name || fileName(p);
+          return {
+            id: `${stamp}_${i}_${Math.random().toString(36).slice(2, 7)}`,
+            name: nm,
+            path: p,
+            trackInfo: { name: nm, duration: 0, originalBpm: 0, currentBpm: 0, timeSignature: "4/4" },
+            speed: typeof t.speed === "number" ? t.speed : 1,
+            loops: [],
+            activeLoop: null,
+            ...(typeof t.meterMode === "number" ? { meterMode: t.meterMode } : {}),
+            ...(t.artist ? { artist: t.artist } : {}),
+            ...(t.title ? { title: t.title } : {}),
+            ...((t.tags ?? []).map((x) => tagMap[x]).filter(Boolean).length ? { tags: (t.tags ?? []).map((x) => tagMap[x]).filter(Boolean) } : {}),
+            addedAt: stamp + i,
+          } as PlaylistItem;
+        });
+        if (items.length === 0) return;
+        setPlaylist((prev) => [...prev, ...items]);
+        // the order inside every tag as it was in the library: after the tracks that were already placed there
+        setTagOrder((o) => {
+          const next = { ...o };
+          for (const [oldTag, idx] of Object.entries(m.tagOrder ?? {})) {
+            const local = tagMap[oldTag];
+            if (!local) continue;
+            const ids = idx.map((k) => items[k]?.id).filter((x): x is string => !!x);
+            next[local] = [...(next[local] ?? []), ...ids];
+          }
+          return next;
+        });
+        setMessage(`Із збірки додано треків: ${items.length}. Аналіз уже в пакетах, чекати не треба.`);
+        if (!activeId || !playlistRef.current.some((p) => p.id === activeId)) {
+          setActiveId(items[0].id);
+          void openTrack(items[0]);
+        }
+      } catch (e) {
+        setMessage(`Не вдалося відкрити збірку: ${String(e)}`);
+      }
+    },
+    [activeId, openTrack, createTag],
+  );
+
   const addFiles = useCallback(
-    (paths: string[]) => {
+    (allPaths: string[]) => {
+      const libs = allPaths.filter((p) => /\.beatlib$/i.test(p));
+      libs.forEach((p) => { void importLibrary(p); });
+      const paths = allPaths.filter((p) => !/\.beatlib$/i.test(p));
+      if (libs.length > 0 && paths.length === 0) return;
       const good = paths.filter(isAudio);
       if (good.length === 0) {
         if (paths.length > 0) setMessage("Підтримуються файли mp3, wav, flac, ogg і пакети beatpack.");
@@ -805,7 +881,7 @@ export function usePlayer() {
         void openTrack(items[0]);
       }
     },
-    [activeId, openTrack],
+    [activeId, openTrack, importLibrary],
   );
 
   const openFilesDialog = useCallback(async () => {
@@ -1126,6 +1202,8 @@ export function usePlayer() {
     tagView: activeTagView,
     setTagView,
     reorderInTag,
+    listForTag,
+    reloadTrack,
     tags,
     createTag,
     renameTag,
