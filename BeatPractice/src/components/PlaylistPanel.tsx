@@ -1,13 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { PlaylistItem } from '../types';
-import { ChevronRight, Pin, PinOff, Plus, Search, Trash2, Music, GripVertical, X } from 'lucide-react';
+import { PlaylistItem, PlaylistTag } from '../types';
+import { ChevronRight, Pin, PinOff, Plus, Search, Trash2, Music, GripVertical, Tag, X } from 'lucide-react';
 import { BeatPracticeLogo } from './BeatPracticeLogo';
 import { CoverPlaceholder } from './CoverPlaceholder';
 import { Language, translations } from '../i18n';
 import { displayName } from '../player/usePlayer';
 import { Modal } from './ui/Modal';
 import { btn } from './ui/styles';
+import { ManageTagsDialog, TrackTagsDialog } from './TagDialogs';
 
 interface PlaylistPanelProps {
   playlist: PlaylistItem[];
@@ -25,6 +26,13 @@ interface PlaylistPanelProps {
   pinned?: boolean;
   onTogglePin?: () => void;
   onExpand?: () => void;
+  /** tags of the tracks (all optional: without `tags` the panel has no tag controls) */
+  tags?: PlaylistTag[];
+  onToggleTag?: (itemId: string, tagId: string) => void;
+  onAddTagToItem?: (itemId: string, name: string) => void;
+  onCreateTag?: (name: string) => void;
+  onRenameTag?: (id: string, name: string) => boolean;
+  onDeleteTag?: (id: string) => void;
 }
 
 const formatDuration = (seconds: number): string => {
@@ -60,6 +68,12 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   pinned = false,
   onTogglePin,
   onExpand,
+  tags,
+  onToggleTag,
+  onAddTagToItem,
+  onCreateTag,
+  onRenameTag,
+  onDeleteTag,
 }) => {
   const t = (key: keyof typeof translations.uk) => (translations[lang] || translations.uk)[key] || key;
   const containerClasses = isSidebar
@@ -109,9 +123,21 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   // ---- search: the list is filtered while typing; Enter / the button opens the first track found ----
   const [query, setQuery] = useState('');
   const q = query.trim().toLowerCase();
+  // ---- tags: filter chips (a track must have all the chosen tags), the dialogs ----
+  const hasTags = !!tags && !!onToggleTag && !!onAddTagToItem && !!onCreateTag && !!onRenameTag && !!onDeleteTag;
+  const [chosenTags, setChosenTags] = useState<string[]>([]);
+  const [tagItemId, setTagItemId] = useState<string | null>(null);
+  const [manageTags, setManageTags] = useState(false);
+  const allTags = tags ?? [];
+  const activeTags = chosenTags.filter((id) => allTags.some((t) => t.id === id));   // a deleted tag drops out of the filter
+  const tagName = (id: string) => allTags.find((t) => t.id === id)?.name;
+  const tagCounts: Record<string, number> = {};
+  playlist.forEach((it) => (it.tags ?? []).forEach((id) => { tagCounts[id] = (tagCounts[id] ?? 0) + 1; }));
+  const filtered = q !== '' || activeTags.length > 0;
   const visible = playlist
     .map((item, index) => ({ item, index }))
-    .filter(({ item }) => q === '' || displayName(item).toLowerCase().includes(q));
+    .filter(({ item }) => q === '' || displayName(item).toLowerCase().includes(q))
+    .filter(({ item }) => activeTags.every((id) => (item.tags ?? []).includes(id)));
   const submitSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (q !== '' && visible.length > 0) onSelectTrack(visible[0].item);
@@ -212,6 +238,23 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         </button>
       </form>
 
+      {hasTags && (playlist.length > 0 || allTags.length > 0) && (
+        <div className="mt-2 flex shrink-0 flex-wrap items-center gap-1.5" role="group" aria-label={lang === 'en' ? 'Filter by tags' : 'Фільтр за тегами'}>
+          {allTags.map((tg) => (
+            <button key={tg.id} type="button" aria-pressed={activeTags.includes(tg.id)}
+              onClick={() => setChosenTags((cur) => (cur.includes(tg.id) ? cur.filter((x) => x !== tg.id) : [...cur, tg.id]))}
+              className={`${btn.chip(activeTags.includes(tg.id))} rounded-full !min-h-7 sm:!min-h-7 px-2.5`}>
+              {tg.name}
+            </button>
+          ))}
+          <button type="button" id="btn-manage-tags" onClick={() => setManageTags(true)}
+            title={lang === 'en' ? 'Manage tags' : 'Керувати тегами'} aria-label={lang === 'en' ? 'Manage tags' : 'Керувати тегами'}
+            className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
+            <Tag className="h-4 w-4" />{lang === 'en' ? 'Tags' : 'Теги'}
+          </button>
+        </div>
+      )}
+
       {/* Track List */}
       <div ref={listRef} className="flex-1 min-h-0 overflow-y-auto mt-3 pr-1 space-y-2">
         {playlist.length === 0 ? (
@@ -235,8 +278,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             <p className="px-2 py-4 text-center text-xs text-slate-400">{lang === 'en' ? 'Nothing found' : 'Нічого не знайдено'}</p>
           ) : visible.map(({ item, index }) => {
             const isActive = item.id === activeTrackId;
-            const showLineBefore = !q && drag && drag.ins === index && drag.ins !== drag.from && drag.ins !== drag.from + 1;
-            const showLineAfter = !q && drag && index === playlist.length - 1 && drag.ins === playlist.length && drag.from !== playlist.length - 1;
+            const showLineBefore = !filtered && drag && drag.ins === index && drag.ins !== drag.from && drag.ins !== drag.from + 1;
+            const showLineAfter = !filtered && drag && index === playlist.length - 1 && drag.ins === playlist.length && drag.from !== playlist.length - 1;
             return (
               <React.Fragment key={item.id}>
               {showLineBefore && <div className="h-1 rounded-full bg-sky-500 -my-1" />}
@@ -255,7 +298,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
               >
                 <div className="flex items-center gap-1 min-w-0 flex-1">
                   {/* Grip handle: drag to move the track (not while the list is filtered) */}
-                  {!q && <button
+                  {!filtered && <button
                     type="button"
                     className="p-2.5 sm:p-1.5 -ml-2.5 sm:-ml-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-grab active:cursor-grabbing touch-none shrink-0 rounded-lg transition-colors duration-150"
                     title={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
@@ -297,8 +340,28 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                       <span>•</span>
                       <span>{item.trackInfo.timeSignature}</span>
                     </div>
+                    {hasTags && (item.tags ?? []).some((id) => tagName(id)) && (
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {(item.tags ?? []).map((id) => tagName(id) && (
+                          <span key={id} className="rounded-full bg-sky-500/15 px-2 py-px text-xs font-semibold leading-4 text-sky-500">{tagName(id)}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {hasTags && (
+                  <button
+                    type="button"
+                    id={`btn-track-tags-${item.id}`}
+                    onClick={(e) => { e.stopPropagation(); setTagItemId(item.id); }}
+                    className="p-2.5 sm:p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-500/10 rounded-lg transition-colors shrink-0 cursor-pointer"
+                    title={lang === 'en' ? 'Tags of the track' : 'Теги треку'}
+                    aria-label={lang === 'en' ? 'Tags of the track' : 'Теги треку'}
+                  >
+                    <Tag className="w-6 h-6" />
+                  </button>
+                )}
 
                 {/* Delete button */}
                 <button
@@ -325,7 +388,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       >
         <div className="flex items-center gap-1.5">
           <span>Треків:</span>
-          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{q ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
+          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{filtered ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
         </div>
 
         <div className="flex items-center gap-1.5">
@@ -339,6 +402,17 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       </div>
 
       {footer && <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 shrink-0">{footer}</div>}
+
+      {hasTags && tagItemId && playlist.find((it) => it.id === tagItemId) && createPortal(
+        <TrackTagsDialog lang={lang === 'en' ? 'en' : 'uk'} item={playlist.find((it) => it.id === tagItemId)!} tags={allTags}
+          onToggle={onToggleTag!} onCreateForItem={onAddTagToItem!} onClose={() => setTagItemId(null)} />,
+        document.body
+      )}
+      {hasTags && manageTags && createPortal(
+        <ManageTagsDialog lang={lang === 'en' ? 'en' : 'uk'} tags={allTags} counts={tagCounts}
+          onCreate={(n) => { onCreateTag!(n); }} onRename={onRenameTag!} onDelete={onDeleteTag!} onClose={() => setManageTags(false)} />,
+        document.body
+      )}
 
       {pendingDelete && createPortal(
         <Modal id="confirm-delete-track" role="alertdialog" width="md" layer="z-[100]" onClose={() => setPendingDelete(null)}>

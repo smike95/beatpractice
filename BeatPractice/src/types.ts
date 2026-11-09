@@ -53,7 +53,14 @@ export interface PlaylistItem {
   cover?: string; // small picture as a data URL
   stemMix?: StemMix; // levels of the separated parts for this track
   stemsOn?: boolean; // the separated parts are what is played
+  tags?: string[]; // ids of the tags of this track (see PlaylistTag)
   addedAt: number;
+}
+
+/** A tag that can be given to tracks of the playlist; deleting it removes it from every track. */
+export interface PlaylistTag {
+  id: string;
+  name: string;
 }
 
 export type ThemeMode = "dark" | "light" | "system";

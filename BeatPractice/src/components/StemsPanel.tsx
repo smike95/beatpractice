@@ -25,6 +25,18 @@ function mmss(sec: number): string {
   return `${m}:${s < 10 ? "0" : ""}${s}`;
 }
 
+/** "Beta" plate: the stem separation is a work in progress. `onFill` = on a filled (accent) button. */
+export function BetaBadge({ onFill = false, lang = "uk" }: { onFill?: boolean; lang?: Lang }) {
+  return (
+    <span
+      title={lang === "en" ? "Beta: this feature is not perfect yet" : "Beta: ця функція ще не досконала"}
+      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-xs font-bold uppercase leading-4 tracking-wide ${onFill ? "bg-white/25 text-white" : "bg-sky-500/15 text-sky-500"}`}
+    >
+      Beta
+    </span>
+  );
+}
+
 export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   // lives inside the folded part of the mixer: a light block, not a separate card
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
@@ -90,10 +102,17 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
         {state === 3 && <p className="text-sm text-rose-400">{info?.error || L("Не вдалося розділити пісню.", "Separation failed.")}</p>}
         <div>
           <button id="btn-split-song" className={primary} onClick={player.startStems}>
-            {info?.cached ? L("Завантажити готові партії", "Load the finished stems") : L("Розділити пісню на партії", "Split the song into stems")}
+            <span className="inline-flex items-center gap-2">
+              {info?.cached ? L("Завантажити готові партії", "Load the finished stems") : L("Розділити пісню на партії", "Split the song into stems")}
+              <BetaBadge onFill lang={lang} />
+            </span>
           </button>
         </div>
         {neuralNote}
+        <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+        <BetaBadge lang={lang} />
+        <span>{L("Бета-функція: розділення ще не досконале, у партіях можуть лунати відгомони інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
+        </p>
         <p className="text-xs text-slate-400">
           {info?.cached
             ? L("Для цієї пісні партії вже пораховані, це займе кілька секунд.", "The stems of this song are already computed, this takes a few seconds.")
@@ -122,6 +141,10 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
           <p className="text-xs text-slate-400">{L("Пісню можна слухати як зазвичай, поки йде розділення.", "You can keep listening to the song while it runs.")}</p>
         </div>
         {neuralNote}
+      <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+        <BetaBadge lang={lang} />
+        <span>{L("Бета-функція: розділення ще не досконале, у партіях можуть лунати відгомони інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
+      </p>
       </section>
     );
   }
@@ -133,6 +156,10 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   const onlyList = [...ORDER.filter((n) => names.includes(n)), ...names.filter((n) => !ORDER.includes(n) && n !== "rest")];
   return (
     <section className={card}>
+      <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+        <BetaBadge lang={lang} />
+        <span>{L("Бета-функція: розділення ще не досконале, у партіях можуть лунати відгомони інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
+      </p>
       <div className="flex flex-wrap gap-2">
         {onlyList.map((n) => (
           <button key={n} className={btn} onClick={() => player.stemPreset({ only: n })}>{L(`Тільки ${label(n).toLowerCase()}`, `${label(n)} only`)}</button>

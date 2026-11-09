@@ -349,6 +349,12 @@ export default function App() {
             pinned={pinned}
             onTogglePin={wide ? togglePin : undefined}
             onExpand={() => setPlaylistOpen(true)}
+            tags={player.tags}
+            onToggleTag={player.toggleItemTag}
+            onAddTagToItem={player.addTagToItem}
+            onCreateTag={player.createTag}
+            onRenameTag={player.renameTag}
+            onDeleteTag={player.deleteTag}
           />
 
           </aside>

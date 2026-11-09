@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { onFilesOpened, pickAudioFiles, pickFolder } from "../platform";
 import { BC, Caps, core, InitInfo, Snapshot, SongData, StemsInfo } from "../core";
-import { AudioTrackInfo, LoopRange, LoopSlot, MetronomeConfig, PlayMode, PlaylistItem, StemMix } from "../types";
+import { AudioTrackInfo, LoopRange, LoopSlot, MetronomeConfig, PlayMode, PlaylistItem, PlaylistTag, StemMix } from "../types";
 import { getOwnerId } from "../utils/license";
 import { barStartTimes, computeSections, TempoSection, tempoVaries } from "../utils/sections";
 
@@ -24,6 +24,16 @@ function effectiveGain(mix: StemMix, i: number): number {
 }
 const MODE_KEY = "rt_playmode_v1";
 const SOUND_KEY = "rt_clicksound_v1";
+const TAGS_KEY = "rt_tags_v1";
+
+function loadTags(): PlaylistTag[] {
+  try {
+    const j = JSON.parse(localStorage.getItem(TAGS_KEY) || "[]");
+    if (Array.isArray(j)) return j.filter((t) => t && typeof t.id === "string" && typeof t.name === "string");
+  } catch { /* ignore */ }
+  return [];
+}
+const sameTag = (a: string, b: string) => a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase();
 
 function loadStored(): { items: PlaylistItem[]; activeId: string | null } {
   try {
@@ -226,6 +236,51 @@ export function usePlayer() {
 
   // a pack from another owner: shown until the user confirms
   const [packNotice, setPackNotice] = useState<{ owner: string; title: string } | null>(null);
+
+  // ---- tags of the tracks -----------------------------------------------------------------------
+  const [tags, setTags] = useState<PlaylistTag[]>(loadTags);
+  const tagsRef = useRef<PlaylistTag[]>(tags);
+  useEffect(() => {
+    tagsRef.current = tags;
+    try { localStorage.setItem(TAGS_KEY, JSON.stringify(tags)); } catch { /* ignore */ }
+  }, [tags]);
+
+  /** Makes a tag (or finds the one with the same name) and returns its id; null for an empty name. */
+  const createTag = useCallback((name: string): string | null => {
+    const n = name.trim().slice(0, 32);
+    if (!n) return null;
+    const found = tagsRef.current.find((t) => sameTag(t.name, n));
+    if (found) return found.id;
+    const tag: PlaylistTag = { id: `tag_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name: n };
+    tagsRef.current = [...tagsRef.current, tag];
+    setTags(tagsRef.current);
+    return tag.id;
+  }, []);
+  const renameTag = useCallback((id: string, name: string): boolean => {
+    const n = name.trim().slice(0, 32);
+    if (!n || tagsRef.current.some((t) => t.id !== id && sameTag(t.name, n))) return false;
+    tagsRef.current = tagsRef.current.map((t) => (t.id === id ? { ...t, name: n } : t));
+    setTags(tagsRef.current);
+    return true;
+  }, []);
+  /** Deletes the tag and takes it off every track that had it. */
+  const deleteTag = useCallback((id: string) => {
+    tagsRef.current = tagsRef.current.filter((t) => t.id !== id);
+    setTags(tagsRef.current);
+    setPlaylist((prev) => prev.map((it) => (it.tags?.includes(id) ? { ...it, tags: it.tags.filter((x) => x !== id) } : it)));
+  }, []);
+  const toggleItemTag = useCallback((itemId: string, tagId: string) => {
+    setPlaylist((prev) => prev.map((it) => {
+      if (it.id !== itemId) return it;
+      const cur = it.tags ?? [];
+      return { ...it, tags: cur.includes(tagId) ? cur.filter((x) => x !== tagId) : [...cur, tagId] };
+    }));
+  }, []);
+  const addTagToItem = useCallback((itemId: string, name: string) => {
+    const id = createTag(name);
+    if (!id) return;
+    setPlaylist((prev) => prev.map((it) => (it.id === itemId && !(it.tags ?? []).includes(id) ? { ...it, tags: [...(it.tags ?? []), id] } : it)));
+  }, [createTag]);
 
   const patchItem = useCallback((id: string, patch: (it: PlaylistItem) => PlaylistItem) => {
     setPlaylist((prev) => prev.map((it) => (it.id === id ? patch(it) : it)));
@@ -1018,6 +1073,12 @@ export function usePlayer() {
     selectTrack,
     removeTrack,
     reorderTracks,
+    tags,
+    createTag,
+    renameTag,
+    deleteTag,
+    toggleItemTag,
+    addTagToItem,
     openFilesDialog,
   };
 }
