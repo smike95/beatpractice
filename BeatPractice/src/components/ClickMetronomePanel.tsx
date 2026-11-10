@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, SlidersHorizontal, Square } from "lucide-react";
+import { Play, SlidersHorizontal, Square, Volume2 } from "lucide-react";
 import { core } from "../core";
 import { Slider } from "./Slider";
 import { MetronomeSettingsForm } from "./MetronomeSettingsForm";
@@ -90,7 +90,6 @@ export function ClickMetronomePanel(props: {
         <div className={`${plain} gap-3`}>
           <MetronomeIcon className={`h-6 w-6 shrink-0 ${running ? "text-slate-200" : "text-slate-400"}`} />
           <span className="text-sm font-bold text-slate-100 whitespace-nowrap">{L("Вільний метроном", "Free metronome")}</span>
-          <RunButton running={running} onToggle={() => (running ? stop() : start())} L={L} />
         </div>
 
         {/* 2: tempo and the settings button */}
@@ -139,12 +138,16 @@ export function ClickMetronomePanel(props: {
         {/* volume: the same channel as the metronome in the mixer of the song; only while the mixer's slider is out of sight */}
         {props.showVolume && (
         <div className={`${plain} min-w-[220px] flex-1 gap-2`}>
-          <MetronomeIcon className="h-6 w-6 shrink-0 text-slate-300 mixer-icon" />
-          <span className="mixer-label shrink-0 text-xs font-semibold text-slate-300">{L("Клік", "Click")}</span>
+          <Volume2 className="h-6 w-6 shrink-0 text-slate-300 mixer-icon" aria-hidden="true" />
+          <span className="mixer-label shrink-0 text-xs font-semibold text-slate-300">{L("Гучність", "Volume")}</span>
           <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={setVolume} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
           <span className="mixer-value w-11 shrink-0 text-right font-mono text-xs font-bold text-slate-200">{pct}%</span>
         </div>
         )}
+        {/* start / stop: always the rightmost block */}
+        <div className="ml-auto flex h-12 items-center">
+          <RunButton running={running} onToggle={() => (running ? stop() : start())} L={L} />
+        </div>
       </div>
     </section>
   );

@@ -205,7 +205,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             aria-label={pinned ? (lang === 'en' ? 'Unpin the playlist' : 'Відкріпити плейліст') : (lang === 'en' ? 'Pin the playlist' : 'Закріпити плейліст')}
             className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md cursor-pointer transition-colors ${pinned ? 'text-slate-100' : 'text-slate-400 hover:text-slate-100'}`}
           >
-            {pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
+            {pinned ? <Pin className="icon-xs" /> : <PinOff className="icon-xs" />}
           </button>
         )}
       </div>
@@ -223,11 +223,11 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             aria-label={lang === 'en' ? 'Search the playlist' : 'Пошук у плейлісті'}
             className={`h-10 w-full rounded-lg border border-slate-700 bg-slate-950 pr-8 text-sm text-slate-100 placeholder:text-slate-500 ${query === '' ? 'pl-9' : 'pl-3'}`}
           />
-          {query === '' && <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />}
+          {query === '' && <Search className="icon-sm pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />}
           {query !== '' && (
             <button type="button" onClick={() => setQuery('')} title={lang === 'en' ? 'Clear' : 'Очистити'} aria-label={lang === 'en' ? 'Clear' : 'Очистити'}
               className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-100 cursor-pointer">
-              <X className="w-4 h-4" />
+              <X className="icon-sm" />
             </button>
           )}
         </div>
@@ -255,14 +255,14 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
           <button type="button" id="btn-manage-tags" onClick={() => setManageTags(true)}
             title={lang === 'en' ? 'Manage tags' : 'Керувати тегами'} aria-label={lang === 'en' ? 'Manage tags' : 'Керувати тегами'}
             className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
-            <Tag className="h-4 w-4" />{lang === 'en' ? 'Tags' : 'Теги'}
+            <Tag className="icon-sm" />{lang === 'en' ? 'Tags' : 'Теги'}
           </button>
           {onExportLibrary && playlist.length > 0 && (
             <button type="button" id="btn-export-library" onClick={onExportLibrary}
               title={lang === 'en' ? 'Save the playlist or a tag as one file for another device' : 'Зберегти плейліст або тег одним файлом для іншого пристрою'}
               aria-label={lang === 'en' ? 'Export a library' : 'Експорт збірки'}
               className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
-              <Package className="h-4 w-4" />{lang === 'en' ? 'Export' : 'Експорт'}
+              <Package className="icon-sm" />{lang === 'en' ? 'Export' : 'Експорт'}
             </button>
           )}
         </div>

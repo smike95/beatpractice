@@ -49,7 +49,7 @@ export function TrackTagsDialog(props: {
         <div className="flex flex-wrap gap-2" role="group" aria-label={L("Теги", "Tags")}>
           {tags.map((t) => (
             <button key={t.id} type="button" aria-pressed={on.has(t.id)} onClick={() => onToggle(item.id, t.id)} className={`${btn.chip(on.has(t.id))} rounded-full`}>
-              {on.has(t.id) && <Check className="h-4 w-4" />}{t.name}
+              {on.has(t.id) && <Check className="icon-sm" />}{t.name}
             </button>
           ))}
         </div>

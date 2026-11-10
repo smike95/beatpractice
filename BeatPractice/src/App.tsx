@@ -40,7 +40,10 @@ const formatTime = (seconds: number): string => {
 };
 
 const isMac = isDesktop && typeof navigator !== 'undefined' && /Mac/i.test(navigator.userAgent);
+// the gap between the top of the window and the track bar: on Windows the window buttons live there
+const BAR_GAP_WIN = 40;
 const isWindows = isDesktop && typeof navigator !== 'undefined' && /Windows/i.test(navigator.userAgent);
+const BAR_GAP = isWindows ? BAR_GAP_WIN : 8;
 
 function formatPreviewTime(sec: number): string {
   const s = Math.max(0, Math.floor(sec));
@@ -121,7 +124,7 @@ export default function App() {
       io?.disconnect();
       const el = document.getElementById('range-mixer-metronome-volume');
       if (!el) { setMixerVolumeVisible(false); return; }
-      const bar = document.getElementById('track-bar');
+      const bar = document.getElementById('track-bar-wrap');
       const top = bar && getComputedStyle(bar).position === 'sticky' ? Math.round(bar.getBoundingClientRect().height) : 0;
       io = new IntersectionObserver(([e]) => setMixerVolumeVisible(!!e && e.isIntersecting), { rootMargin: `-${top}px 0px 0px 0px`, threshold: 0.9 });
       io.observe(el);
@@ -132,24 +135,14 @@ export default function App() {
   }, [activeTrackId]);
 
   // The track bar is the top of the card at first; when the page scrolls under it, it becomes a separate rounded tile that stays at the top.
+  // It lies in a full-width band of the colour of the page that reaches from the top of the window to the bottom edge of the tile:
+  // the scroll "ends" at the tile, nothing shows above it or around its rounded corners (on Windows the band also holds the window buttons).
   const barSentinel = useRef<HTMLDivElement>(null);
   const [barStuck, setBarStuck] = useState(false);
-  const [barH, setBarH] = useState(0);
-  // while the tile is stuck, everything between the top of the window and its bottom edge is covered: the scroll 'ends' there, nothing shows around the rounded corners
-  useEffect(() => {
-    if (!barStuck) return;
-    const bar = document.getElementById('track-bar');
-    if (!bar) return;
-    const measure = () => setBarH(Math.round(bar.getBoundingClientRect().height));
-    measure();
-    const ro = new ResizeObserver(measure);
-    ro.observe(bar);
-    return () => ro.disconnect();
-  }, [barStuck]);
   useEffect(() => {
     const el = barSentinel.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => setBarStuck(!!e && !e.isIntersecting && window.innerWidth >= 640 && e.boundingClientRect.top < 8), { rootMargin: '-8px 0px 0px 0px' });
+    const io = new IntersectionObserver(([e]) => setBarStuck(!!e && !e.isIntersecting && window.innerWidth >= 640 && e.boundingClientRect.top < BAR_GAP), { rootMargin: `-${BAR_GAP}px 0px 0px 0px` });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -381,7 +374,7 @@ export default function App() {
         </div>
 
         {/* MAIN INTERACTIVE CONTENT */}
-        <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 space-y-4 pb-28 md:pb-8">
+        <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 space-y-4 pb-28 md:pb-8" style={isWindows ? { paddingTop: BAR_GAP_WIN + 8 } : undefined}>
           {/* Loading Overlay */}
           {isLoadingAudio && (
             <div className="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-slate-200 space-y-2">
@@ -419,13 +412,17 @@ export default function App() {
 
           {/* Master Playback Transport Bar */}
           {/* Track bar: the top of the card with the track; when the page scrolls it stays under the top edge of the window and casts a shadow */}
-          {barStuck && <div aria-hidden="true" className="page-mask fixed inset-x-0 top-0 z-[19] pointer-events-none" style={{ height: 8 + barH }} />}
           <div ref={barSentinel} aria-hidden="true" className="!m-0 h-px -mb-px pointer-events-none" />
+          <div
+            id="track-bar-wrap"
+            data-tauri-drag-region
+            className={`sm:sticky z-20 ${barStuck ? 'page-mask -mx-4 sm:-mx-6 px-4 sm:px-6' : 'pointer-events-none'}`}
+            style={{ top: 0, marginTop: -BAR_GAP, paddingTop: BAR_GAP }}
+          >
           <div
             id="track-bar"
             data-tauri-drag-region
-            className={`sm:sticky z-20 !mt-0 bg-slate-900 py-3 px-4 sm:px-5 border border-slate-800 transition-shadow ${barStuck ? 'is-stuck rounded-2xl' : 'border-b-0 rounded-t-2xl'}`}
-            style={{ top: 8, ...(isWindows ? { paddingRight: '9.5rem' } : {}) }}
+            className={`pointer-events-auto bg-slate-900 py-3 px-4 sm:px-5 border border-slate-800 transition-shadow ${barStuck ? 'is-stuck rounded-2xl' : 'border-b-0 rounded-t-2xl'}`}
           >
             <div data-tauri-drag-region className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
               <div data-tauri-drag-region className="flex items-center gap-3 min-w-0 flex-1 basis-64">
@@ -444,7 +441,7 @@ export default function App() {
                         title={lang === 'en' ? 'Edit artist, title and cover' : 'Змінити виконавця, назву та обкладинку'}
                         className="p-1 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0"
                       >
-                        <Pencil className="w-4 h-4" />
+                        <Pencil className="icon-sm" />
                       </button>
                     )}
                   </div>
@@ -551,6 +548,7 @@ export default function App() {
               </div>
               </div>
             </div>
+          </div>
           </div>
 
           <section id="master-transport-bar" className="bg-slate-900 border border-slate-800 border-t-0 rounded-2xl rounded-t-none !mt-0 p-4 sm:p-5 pt-1 sm:pt-1 shadow-xl">

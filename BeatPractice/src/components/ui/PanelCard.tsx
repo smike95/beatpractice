@@ -23,7 +23,7 @@ export function PanelCard(props: { id?: string; icon: ReactNode; title: string; 
               title="Info"
               className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full cursor-pointer transition-colors normal-case ${infoOpen ? "seg-on" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`}
             >
-              <Info className="h-4 w-4" />
+              <Info className="icon-sm" />
             </button>
           )}
         </h2>

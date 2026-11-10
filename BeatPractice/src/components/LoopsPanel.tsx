@@ -58,7 +58,7 @@ function NameEditor(props: { value: string; shown: string; label: string; onComm
         <button type="button" aria-label={label} title={label}
           onClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}
           className="p-3 -m-3 sm:p-0.5 sm:m-0 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0 transition-colors duration-150">
-          <Pencil className="w-3.5 h-3.5" />
+          <Pencil className="icon-xs" />
         </button>
       </span>
     );
@@ -113,7 +113,8 @@ export function LoopsPanel(props: Props) {
       }
     >
 
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-slate-800 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-800 px-3 py-2">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-xs font-semibold text-slate-300">{L("Відлік перед стартом", "Count-in before the start")}</span>
         <Segmented
           id="select-countin-bars-loops-tab"
@@ -122,9 +123,8 @@ export function LoopsPanel(props: Props) {
           onChange={props.onCountInBars}
           options={[{ value: 0, label: L("Вимк", "Off") }, { value: 1, label: L("1 такт", "1 bar") }, { value: 2, label: L("2 такти", "2 bars") }]}
         />
-      </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 rounded-xl border border-slate-800 px-3 py-2">
+        </div>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <span className="text-xs font-semibold text-slate-300">{L("Відлік перед кожним повтором циклу", "Count-in before every loop repeat")}</span>
         <Segmented
           id="switch-countin-on-loop-loops-tab"
@@ -134,6 +134,7 @@ export function LoopsPanel(props: Props) {
           disabled={!props.countInOn}
           options={[{ value: false, label: L("Вимк", "Off") }, { value: true, label: L("Увімк", "On"), title: props.countInOn ? undefined : L("Спершу увімкніть відлік у налаштуваннях метронома", "Turn the count-in on first in the metronome settings") }]}
         />
+        </div>
       </div>
 
       {loops.length === 0 && (
