@@ -313,7 +313,7 @@ export default function App() {
               title={lang === 'uk' ? 'Switch to English' : 'Перемкнути на українську'}
             >
               <Languages className="w-6 h-6 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
-              <span className="hidden sm:inline font-bold text-xs">{lang === 'uk' ? 'УКР' : 'ENG'}</span>
+              <span className="hidden sm:inline font-medium">{lang === 'uk' ? 'УКР' : 'ENG'}</span>
             </button>
 
     </>
@@ -407,6 +407,7 @@ export default function App() {
 
           {/* Master Playback Transport Bar */}
           {/* Track bar: the top of the card with the track; when the page scrolls it stays under the top edge of the window and casts a shadow */}
+          {barStuck && <div aria-hidden="true" className="page-mask fixed inset-x-0 top-0 z-[19] pointer-events-none" style={{ height: 8 }} />}
           <div ref={barSentinel} aria-hidden="true" className="!m-0 h-px -mb-px pointer-events-none" />
           <div
             id="track-bar"
@@ -429,9 +430,9 @@ export default function App() {
                         id="btn-edit-track"
                         onClick={() => setEditing(true)}
                         title={lang === 'en' ? 'Edit artist, title and cover' : 'Змінити виконавця, назву та обкладинку'}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0"
+                        className="p-1 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0"
                       >
-                        <Pencil className="w-6 h-6" />
+                        <Pencil className="w-4 h-4" />
                       </button>
                     )}
                   </div>
@@ -651,6 +652,8 @@ export default function App() {
                 isDark={isDark}
                 currentBar={currentBarNumber}
                 countInOn={isCountInOn}
+                countInBars={metronomeConfig.countInBars}
+                onCountInBars={(n) => setMetronomeConfig((prev) => ({ ...prev, countInBars: n }))}
                 countInOnLoop={metronomeConfig.countInOnLoop}
                 onCountInOnLoop={(v) => setMetronomeConfig((prev) => ({ ...prev, countInOnLoop: v }))}
                 onSelect={player.setSelectedLoop}

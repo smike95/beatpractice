@@ -99,6 +99,7 @@ export function RampPanel(props: {
 
   return (
     <PanelCard
+      info={<>{L("Темп збільшується з кожним проходом із зазначеним кроком.", "The tempo goes up with every pass by the chosen step.")}</>}
       id="ramp-panel"
       className="h-full"
       icon={<TrendingUp className="w-6 h-6" />}
@@ -117,9 +118,6 @@ export function RampPanel(props: {
         </button>
       }
     >
-      <p className="text-xs text-slate-400">
-        {L("Темп збільшується з кожним проходом із зазначеним кроком.", "The tempo goes up with every pass by the chosen step.")}
-      </p>
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         <Field label={<>{L("Старт, BPM", "Start, BPM")} {startOv === null && <span className="text-slate-500">({L("поточний", "current")})</span>}</>}>

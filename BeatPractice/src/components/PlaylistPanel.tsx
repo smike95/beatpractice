@@ -166,7 +166,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     return (
       <div id="playlist-panel" className="flex h-full w-full flex-col items-center">
         <div className="mac-top-space" data-tauri-drag-region />
-        <div className="shrink-0 pb-3 pointer-events-none" data-tauri-drag-region><BeatPracticeLogo className="w-9 h-9" /></div>
+        <div className="shrink-0 pb-3 -mt-2 pointer-events-none" data-tauri-drag-region><BeatPracticeLogo className="w-9 h-9" /></div>
         <div className="flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center gap-2 py-1">
           {base.map((item) => (
             <button key={item.id} type="button" onClick={() => onSelectTrack(item)} title={displayName(item)} aria-label={displayName(item)} className="shrink-0 rounded-lg cursor-pointer">
@@ -192,7 +192,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     <div id="playlist-panel" className={containerClasses}>
       {/* Emblem and name (left), the pin (right) */}
       <div className="mac-top-space" data-tauri-drag-region />
-      <div className="flex items-center gap-2 shrink-0" data-tauri-drag-region>
+      <div className="flex items-center gap-2 shrink-0 -mt-2" data-tauri-drag-region>
         <BeatPracticeLogo className="w-9 h-9 shrink-0 pointer-events-none" />
         <span className="flex-1 min-w-0 truncate text-left text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 pointer-events-none">BeatPractice</span>
         {onTogglePin && (
@@ -203,7 +203,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             aria-pressed={pinned}
             title={pinned ? (lang === 'en' ? 'Unpin: the playlist folds into a strip' : 'Відкріпити: плейліст згортається у смугу') : (lang === 'en' ? 'Pin: keep the playlist open' : 'Закріпити: плейліст завжди відкритий')}
             aria-label={pinned ? (lang === 'en' ? 'Unpin the playlist' : 'Відкріпити плейліст') : (lang === 'en' ? 'Pin the playlist' : 'Закріпити плейліст')}
-            className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md cursor-pointer transition-colors ${pinned ? 'seg-on' : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800'}`}
+            className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md cursor-pointer transition-colors ${pinned ? 'text-sky-500 hover:text-sky-400' : 'text-slate-400 hover:text-slate-100'}`}
           >
             {pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
           </button>

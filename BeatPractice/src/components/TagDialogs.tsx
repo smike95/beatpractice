@@ -6,26 +6,46 @@ import type { PlaylistItem, PlaylistTag } from "../types";
 import { displayName } from "../player/usePlayer";
 
 type Lang = "uk" | "en";
-const field = "h-10 min-w-0 flex-1 rounded-lg border border-slate-700 bg-slate-950 px-3 text-sm text-slate-100 placeholder:text-slate-500";
+const field = "track-edit-field w-full px-3 py-2 rounded-lg border text-base focus:outline-none focus:ring-2";
+const cancelBtn = "track-edit-btn min-h-11 sm:min-h-9 px-3 text-xs font-bold rounded-lg border cursor-pointer transition-colors duration-150 inline-flex items-center justify-center gap-2 whitespace-nowrap";
 
-/** A line to type a new tag into. */
+/** The window for a new tag, made like the window of the track details: a labelled field, Cancel / Create; Enter creates. */
+function NewTagDialog(props: { lang: Lang; onCreate: (name: string) => void; onClose: () => void }) {
+  const { lang, onCreate, onClose } = props;
+  const L = (uk: string, en: string) => (lang === "en" ? en : uk);
+  const [name, setName] = useState("");
+  const save = () => { if (name.trim()) { onCreate(name); onClose(); } };
+  return (
+    <Modal id="new-tag-dialog" width="md" onClose={onClose} closeOnEscape layer="z-[100]">
+      <ModalHeader title={L("Новий тег", "New tag")} onClose={onClose} closeLabel={L("Закрити", "Close")} />
+      <label className="block space-y-1">
+        <span className="track-edit-label text-xs font-semibold">{L("Назва тегу", "Name of the tag")}</span>
+        <input
+          id="new-tag-name" type="text" className={field} value={name} maxLength={32} autoFocus
+          onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); save(); } }}
+        />
+      </label>
+      <div className="flex justify-end gap-2 pt-1">
+        <button type="button" className={cancelBtn} onClick={onClose}>{L("Скасувати", "Cancel")}</button>
+        <button type="button" id="btn-create-tag" className={btn.primary} disabled={!name.trim()} onClick={save}>{L("Створити", "Create")}</button>
+      </div>
+    </Modal>
+  );
+}
+
+/** The button that opens the window for a new tag. */
 function NewTag(props: { lang: Lang; onCreate: (name: string) => void }) {
   const { lang, onCreate } = props;
-  const [name, setName] = useState("");
+  const [open, setOpen] = useState(false);
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   return (
-    <form
-      className="flex items-center gap-2"
-      onSubmit={(e) => { e.preventDefault(); if (name.trim()) { onCreate(name); setName(""); } }}
-    >
-      <input
-        value={name} onChange={(e) => setName(e.target.value)} maxLength={32}
-        placeholder={L("Новий тег", "New tag")} aria-label={L("Новий тег", "New tag")} className={field}
-      />
-      <button type="submit" disabled={!name.trim()} className={btn.secondary} title={L("Додати тег", "Add the tag")}>
-        <Plus className="h-5 w-5" />{L("Додати", "Add")}
+    <>
+      <button type="button" id="btn-new-tag" className={`${btn.secondary} self-start`} onClick={() => setOpen(true)}>
+        <Plus className="h-5 w-5" />{L("Новий тег", "New tag")}
       </button>
-    </form>
+      {open && <NewTagDialog lang={lang} onCreate={onCreate} onClose={() => setOpen(false)} />}
+    </>
   );
 }
 

@@ -21,6 +21,10 @@ export function QuietBarsPanel(props: {
   const cont = config.quietContinue ?? false;
   return (
     <PanelCard
+      info={<>{L(
+          "Метроном лунає кілька тактів, потім кілька тактів мовчить, і так по колу. Грайте ці такти самі й перевіряйте, чи не втекли від темпу.",
+          "The metronome sounds for some bars, then is silent for some bars, over and over. Play through the silent bars on your own and check that you kept the tempo.",
+        )}</>}
       id="quiet-bars-panel"
       className="h-full"
       icon={<Volume2 className="w-6 h-6" />}
@@ -32,12 +36,6 @@ export function QuietBarsPanel(props: {
         </div>
       }
     >
-      <p className="text-xs text-slate-400">
-        {L(
-          "Метроном лунає кілька тактів, потім кілька тактів мовчить, і так по колу. Грайте ці такти самі й перевіряйте, чи не втекли від темпу.",
-          "The metronome sounds for some bars, then is silent for some bars, over and over. Play through the silent bars on your own and check that you kept the tempo.",
-        )}
-      </p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
         <Field label={L("З метрономом, тактів", "With the metronome, bars")}>
           <SpinField id="quiet-click-bars" value={cb} min={1} max={16} label={L("Тактів із метрономом", "Bars with the metronome")} onChange={(v) => onChange({ quietClickBars: v })} />
