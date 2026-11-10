@@ -203,7 +203,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             aria-pressed={pinned}
             title={pinned ? (lang === 'en' ? 'Unpin: the playlist folds into a strip' : 'Відкріпити: плейліст згортається у смугу') : (lang === 'en' ? 'Pin: keep the playlist open' : 'Закріпити: плейліст завжди відкритий')}
             aria-label={pinned ? (lang === 'en' ? 'Unpin the playlist' : 'Відкріпити плейліст') : (lang === 'en' ? 'Pin the playlist' : 'Закріпити плейліст')}
-            className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md cursor-pointer transition-colors ${pinned ? 'text-sky-500 hover:text-sky-400' : 'text-slate-400 hover:text-slate-100'}`}
+            className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md cursor-pointer transition-colors ${pinned ? 'text-slate-100' : 'text-slate-400 hover:text-slate-100'}`}
           >
             {pinned ? <Pin className="w-3.5 h-3.5" /> : <PinOff className="w-3.5 h-3.5" />}
           </button>
@@ -221,8 +221,9 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             onKeyDown={(e) => { if (e.key === 'Escape') setQuery(''); }}
             placeholder={lang === 'en' ? 'Search the playlist' : 'Пошук у плейлісті'}
             aria-label={lang === 'en' ? 'Search the playlist' : 'Пошук у плейлісті'}
-            className="h-10 w-full rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-8 text-sm text-slate-100 placeholder:text-slate-500"
+            className={`h-10 w-full rounded-lg border border-slate-700 bg-slate-950 pr-8 text-sm text-slate-100 placeholder:text-slate-500 ${query === '' ? 'pl-9' : 'pl-3'}`}
           />
+          {query === '' && <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500" aria-hidden="true" />}
           {query !== '' && (
             <button type="button" onClick={() => setQuery('')} title={lang === 'en' ? 'Clear' : 'Очистити'} aria-label={lang === 'en' ? 'Clear' : 'Очистити'}
               className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-100 cursor-pointer">
@@ -230,15 +231,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             </button>
           )}
         </div>
-        <button
-          type="submit"
-          id="btn-playlist-search"
-          title={lang === 'en' ? 'Open the first track found' : 'Відкрити перший знайдений трек'}
-          aria-label={lang === 'en' ? 'Open the first track found' : 'Відкрити перший знайдений трек'}
-          className="h-10 w-10 shrink-0 flex items-center justify-center rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
-        >
-          <Search className="w-5 h-5" />
-        </button>
         <button
           type="button"
           id="btn-add-more-tracks"

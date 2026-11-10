@@ -134,6 +134,18 @@ export default function App() {
   // The track bar is the top of the card at first; when the page scrolls under it, it becomes a separate rounded tile that stays at the top.
   const barSentinel = useRef<HTMLDivElement>(null);
   const [barStuck, setBarStuck] = useState(false);
+  const [barH, setBarH] = useState(0);
+  // while the tile is stuck, everything between the top of the window and its bottom edge is covered: the scroll 'ends' there, nothing shows around the rounded corners
+  useEffect(() => {
+    if (!barStuck) return;
+    const bar = document.getElementById('track-bar');
+    if (!bar) return;
+    const measure = () => setBarH(Math.round(bar.getBoundingClientRect().height));
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(bar);
+    return () => ro.disconnect();
+  }, [barStuck]);
   useEffect(() => {
     const el = barSentinel.current;
     if (!el) return;
@@ -407,7 +419,7 @@ export default function App() {
 
           {/* Master Playback Transport Bar */}
           {/* Track bar: the top of the card with the track; when the page scrolls it stays under the top edge of the window and casts a shadow */}
-          {barStuck && <div aria-hidden="true" className="page-mask fixed inset-x-0 top-0 z-[19] pointer-events-none" style={{ height: 8 }} />}
+          {barStuck && <div aria-hidden="true" className="page-mask fixed inset-x-0 top-0 z-[19] pointer-events-none" style={{ height: 8 + barH }} />}
           <div ref={barSentinel} aria-hidden="true" className="!m-0 h-px -mb-px pointer-events-none" />
           <div
             id="track-bar"
