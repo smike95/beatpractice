@@ -1,5 +1,6 @@
 // Tests for the metronome sound bank, the count-in progress API and end-of-song behaviour (no audio device needed).
 #include "../src/playback_engine.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <vector>

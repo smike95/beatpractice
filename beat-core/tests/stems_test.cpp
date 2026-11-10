@@ -3,6 +3,7 @@
 // choosing which parts to keep or in the cache file shows up as a numerical error.
 //   ./stems_test <folder with fake_*.onnx>
 #include "../src/stem_separator.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <random>

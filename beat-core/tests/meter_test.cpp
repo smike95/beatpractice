@@ -1,6 +1,7 @@
 // Tests of bar-structure and tempo recognition on saved network output (tests/data/meter/*.act), made from synthetic songs
 // with known structure. No network and no audio needed.   ./meter_test tests/data/meter
 #include "../src/beat_analyzer.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <map>

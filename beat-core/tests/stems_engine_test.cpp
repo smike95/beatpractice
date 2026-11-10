@@ -2,6 +2,7 @@
 // the "stems" are those tones separately. Checks levels per stem, muting, live gain changes, speed changes
 // (time stretching of every stem), switching on and off while playing, and swapping stems in while the audio thread runs.
 #include "../src/playback_engine.h"
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cmath>

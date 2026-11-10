@@ -2,6 +2,7 @@
 // Checks that every metronome click lands at the exact output sample where its original beat is heard,
 // at several speeds, after a speed change in the middle, and after a seek.
 #include "../src/playback_engine.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <vector>

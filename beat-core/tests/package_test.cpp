@@ -1,5 +1,6 @@
 // BeatPack: write -> read gives the same sound and beat map; damaged and cut files are refused; the file is much smaller than raw PCM.
 #include "../src/package.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <filesystem>

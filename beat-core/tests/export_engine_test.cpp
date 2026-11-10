@@ -1,6 +1,7 @@
 // Tests of what the export relies on in PlaybackEngine (no audio device, no model):
 // stop-at (sample-exact end of an exported part), lastRenderFrames (no trailing silence), silent count-in (parts of equal length).
 #include "../src/playback_engine.h"
+#include <algorithm>
 #include <cmath>
 #include <cstdio>
 #include <vector>
