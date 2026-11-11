@@ -1,5 +1,6 @@
+import { InfoTip } from "./ui/InfoTip";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, Info, ZoomIn, ZoomOut, LocateFixed, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, LocateFixed, Trash2 } from "lucide-react";
 import { SongData } from "../core";
 import { LoopRange, LoopSlot, barsText, loopColor, loopLabel } from "../types";
 import { TempoSection } from "../utils/sections";
@@ -536,7 +537,6 @@ export function Waveform(props: Props) {
   // ---- derived numbers for the header -------------------------------------------------------------
   const barIdx = barTimes.length > 0 ? Math.max(0, lastLE(barTimes, position)) : 0;
   const totalBars = barTimes.length;
-  const [helpOpen, setHelpOpen] = useState(false);
   const btn =
     "h-8 px-2.5 inline-flex items-center justify-center text-center text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
 
@@ -687,11 +687,9 @@ export function Waveform(props: Props) {
         </div>
       )}
       <div className="flex flex-wrap items-center justify-end gap-2 -mt-1">
-        <button
-          type="button" onClick={() => setHelpOpen((v) => !v)} aria-expanded={helpOpen}
-          title={L("Підказка", "Hint")} aria-label={L("Підказка", "Hint")}
-          className={`flex h-6 w-6 items-center justify-center rounded-full cursor-pointer transition-colors ${helpOpen ? "seg-on" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`}
-        ><Info className="icon-sm" /></button>
+        <InfoTip label={L("Підказка", "Hint")}>
+          {L("Клік – перемотати. Протягніть по хвилі – задати цикл по тактах.", "Click to seek. Drag across the waveform to set a bar loop.")}
+        </InfoTip>
         <div className="flex shrink-0 h-8 items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg px-1 select-none">
           <button
             className="h-6 w-6 flex items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
@@ -714,12 +712,6 @@ export function Waveform(props: Props) {
           ><ZoomIn className="icon-sm" /></button>
         </div>
       </div>
-      {helpOpen && (
-        <p className="text-xs text-slate-400" role="note">
-          {L("Клік – перемотати. Протягніть по хвилі – задати цикл по тактах.", "Click to seek. Drag across the waveform to set a bar loop.")}
-        </p>
-      )}
-
       {/* keep "playing" referenced so the header re-renders predictably */}
       <span className="hidden">{playing ? "▶" : "⏸"}</span>
     </div>
