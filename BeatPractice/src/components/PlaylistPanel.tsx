@@ -257,14 +257,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
             <Tag className="icon-sm" />{lang === 'en' ? 'Tags' : 'Теги'}
           </button>
-          {onExportLibrary && playlist.length > 0 && (
-            <button type="button" id="btn-export-library" onClick={onExportLibrary}
-              title={lang === 'en' ? 'Save the playlist or a tag as one file for another device' : 'Зберегти плейліст або тег одним файлом для іншого пристрою'}
-              aria-label={lang === 'en' ? 'Export a library' : 'Експорт збірки'}
-              className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
-              <Package className="icon-sm" />{lang === 'en' ? 'Export' : 'Експорт'}
-            </button>
-          )}
         </div>
       )}
 
@@ -405,20 +397,31 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       {/* Bottom Summary Divider & Track Count / Total Duration */}
       <div
         id="playlist-bottom-summary"
-        className="pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 shrink-0 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 select-none px-1"
+        className="pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center text-xs text-slate-500 dark:text-slate-400 select-none px-1"
       >
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 justify-self-start">
           <span>Треків:</span>
-          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{filtered || inTagView ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
+          {/* a tag shown: how many tracks have it (no total); a search: found / all */}
+          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{inTagView ? visible.length : filtered ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
         </div>
 
-        <div className="flex items-center gap-1.5">
+        {/* the time of the tracks that are shown */}
+        <div className="flex items-center gap-1.5 justify-self-center">
           <span>Час:</span>
           <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">
-            {formatTotalDuration(
-              playlist.reduce((acc, curr) => acc + (curr.trackInfo?.duration || 0), 0)
-            )}
+            {formatTotalDuration(visible.reduce((acc, { item }) => acc + (item.trackInfo?.duration || 0), 0))}
           </span>
+        </div>
+
+        <div className="justify-self-end">
+          {onExportLibrary && playlist.length > 0 && (
+            <button type="button" id="btn-export-library" onClick={onExportLibrary}
+              title={lang === 'en' ? 'Save the playlist or a tag as one file for another device' : 'Зберегти плейліст або тег одним файлом для іншого пристрою'}
+              aria-label={lang === 'en' ? 'Export a library' : 'Експорт збірки'}
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
+              <Package className="icon-sm" />{lang === 'en' ? 'Export' : 'Експорт'}
+            </button>
+          )}
         </div>
       </div>
 

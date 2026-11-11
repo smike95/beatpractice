@@ -113,22 +113,22 @@ export function LoopsPanel(props: Props) {
       }
     >
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl border border-slate-800 px-3 py-2">
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="text-xs font-semibold text-slate-300">{L("Відлік перед стартом", "Count-in before the start")}</span>
+        <span className="text-xs font-semibold text-slate-300">{L("Відлік", "Count-in")}</span>
         <Segmented
           id="select-countin-bars-loops-tab"
-          ariaLabel={L("Відлік перед стартом", "Count-in before the start")}
+          ariaLabel={L("Відлік", "Count-in")}
           value={props.countInBars}
           onChange={props.onCountInBars}
           options={[{ value: 0, label: L("Вимк", "Off") }, { value: 1, label: L("1 такт", "1 bar") }, { value: 2, label: L("2 такти", "2 bars") }]}
         />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="text-xs font-semibold text-slate-300">{L("Відлік перед кожним повтором циклу", "Count-in before every loop repeat")}</span>
+        <span className="text-xs font-semibold text-slate-300">{L("Перед кожним циклом", "Before every loop")}</span>
         <Segmented
           id="switch-countin-on-loop-loops-tab"
-          ariaLabel={L("Відлік перед кожним повтором циклу", "Count-in before every loop repeat")}
+          ariaLabel={L("Перед кожним циклом", "Before every loop")}
           value={props.countInOnLoop}
           onChange={props.onCountInOnLoop}
           disabled={!props.countInOn}

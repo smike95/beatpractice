@@ -137,14 +137,20 @@ export default function App() {
   // The track bar is the top of the card at first; when the page scrolls under it, it becomes a separate rounded tile that stays at the top.
   // It lies in a full-width band of the colour of the page that reaches from the top of the window to the bottom edge of the tile:
   // the scroll "ends" at the tile, nothing shows above it or around its rounded corners (on Windows the band also holds the window buttons).
-  const barSentinel = useRef<HTMLDivElement>(null);
   const [barStuck, setBarStuck] = useState(false);
   useEffect(() => {
-    const el = barSentinel.current;
-    if (!el) return;
-    const io = new IntersectionObserver(([e]) => setBarStuck(!!e && !e.isIntersecting && window.innerWidth >= 640 && e.boundingClientRect.top < BAR_GAP), { rootMargin: `-${BAR_GAP}px 0px 0px 0px` });
-    io.observe(el);
-    return () => io.disconnect();
+    // the band is "stuck" when it sits at the very top of the window (it is sticky there); checked on every scroll / resize,
+    // so it does not matter when the track bar appears in the page
+    const check = () => {
+      const w = document.getElementById('track-bar-wrap');
+      setBarStuck(!!w && window.innerWidth >= 640 && window.scrollY > 0 && w.getBoundingClientRect().top <= 0.5);
+      // the scroll (also by keyboard / focus) treats the bottom edge of the sticky band as the top of the window
+      document.documentElement.style.scrollPaddingTop = w && getComputedStyle(w).position === 'sticky' ? `${w.offsetHeight}px` : '';
+    };
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => { window.removeEventListener('scroll', check); window.removeEventListener('resize', check); };
   }, []);
   const handleSelectTrackFromPlaylist = (item: PlaylistItem) => {
     player.selectTrack(item);
@@ -412,11 +418,12 @@ export default function App() {
 
           {/* Master Playback Transport Bar */}
           {/* Track bar: the top of the card with the track; when the page scrolls it stays under the top edge of the window and casts a shadow */}
-          <div ref={barSentinel} aria-hidden="true" className="!m-0 h-px -mb-px pointer-events-none" />
+          {/* before a track is open the main part has only the add-file field and the free metronome */}
+          {track && (
           <div
             id="track-bar-wrap"
             data-tauri-drag-region
-            className={`sm:sticky z-20 ${barStuck ? 'page-mask -mx-4 sm:-mx-6 px-4 sm:px-6' : 'pointer-events-none'}`}
+            className={`sm:sticky z-30 ${barStuck ? 'page-mask -mx-4 sm:-mx-6 px-4 sm:px-6' : 'pointer-events-none'}`}
             style={{ top: 0, marginTop: -BAR_GAP, paddingTop: BAR_GAP }}
           >
           <div
@@ -468,32 +475,32 @@ export default function App() {
                         aria-label={lang === 'en' ? 'Tempo map and sections' : 'Карта темпу та секцій'}
                         className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150"
                       >
-                        <Wrench className="h-5 w-5" />
+                        <Wrench className="icon-sm" />
                       </button>
                       <button
                         id="btn-export-track"
                         onClick={() => setExporting(true)}
                         disabled={!(track && player.ready)}
                         title={lang === 'en' ? 'Export the track with the current tempo and parts' : 'Експортувати трек із поточним темпом і партіями'}
-                        className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <Download className="h-5 w-5" />
+                        <Download className="icon-sm" />
                       </button>
                       <button
                         id="btn-save-pack"
                         onClick={() => setPacking(true)}
                         disabled={!(track && player.ready) || player.caps?.packs === false}
                         title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
-                        className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
-                        <Package className="h-5 w-5" />
+                        <Package className="icon-sm" />
                       </button>
                     </div>)}
                   </div>
                 </div>
               </div>
 
-              <div data-tauri-drag-region className="flex-1 basis-auto flex justify-end">
+              <div data-tauri-drag-region className="ml-auto flex justify-end">
               <div id="transport-cluster" data-tauri-drag-region className="flex flex-wrap items-center justify-end gap-2 shrink-0">
                 <button
                   id="btn-restart-playback"
@@ -550,8 +557,10 @@ export default function App() {
             </div>
           </div>
           </div>
+          )}
 
-          <section id="master-transport-bar" className="bg-slate-900 border border-slate-800 border-t-0 rounded-2xl rounded-t-none !mt-0 p-4 sm:p-5 pt-1 sm:pt-1 shadow-xl">
+          <section id="master-transport-bar" className={track ? "bg-slate-900 border border-slate-800 border-t-0 rounded-2xl rounded-t-none !mt-0 p-4 sm:p-5 pt-1 sm:pt-1 shadow-xl" : ""}>
+            {track && (<>
             {/* Row 2: tempo, metronome switches, visual beats (they wrap instead of overflowing) */}
             <div className="flex flex-wrap items-center gap-2 max-w-full">
                 <QuickTempoBar
@@ -601,7 +610,7 @@ export default function App() {
                 <StemsPanel player={player} lang={lang} />
               </TrackMetronomeMixer>
             </div>
-
+            </>)}
 
             {/* Waveform, bar navigation, zoom, sections, loop (or the empty state) */}
             {track ? (
@@ -634,7 +643,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={openFilesDialog}
-                className="mt-4 w-full border-2 border-dashed border-slate-800 hover:border-slate-600 rounded-xl p-8 text-center cursor-pointer transition-colors bg-slate-950/40 hover:bg-slate-900/40 group block select-none"
+                className="w-full border-2 border-dashed border-slate-800 hover:border-slate-600 rounded-xl p-8 text-center cursor-pointer transition-colors bg-slate-950/40 hover:bg-slate-900/40 group block select-none"
               >
                 <div className="mx-auto w-12 h-12 rounded-full bg-slate-800/80 group-hover:bg-slate-700 text-slate-400 group-hover:text-slate-200 flex items-center justify-center mb-2.5 transition-colors">
                   <Upload className="w-6 h-6" />

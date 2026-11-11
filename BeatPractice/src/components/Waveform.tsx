@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, Bookmark, LocateFixed, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Info, ZoomIn, ZoomOut, LocateFixed, Trash2 } from "lucide-react";
 import { SongData } from "../core";
 import { LoopRange, LoopSlot, barsText, loopColor, loopLabel } from "../types";
 import { TempoSection } from "../utils/sections";
@@ -536,8 +536,9 @@ export function Waveform(props: Props) {
   // ---- derived numbers for the header -------------------------------------------------------------
   const barIdx = barTimes.length > 0 ? Math.max(0, lastLE(barTimes, position)) : 0;
   const totalBars = barTimes.length;
+  const [helpOpen, setHelpOpen] = useState(false);
   const btn =
-    "h-8 w-24 inline-flex items-center justify-center text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
+    "h-8 px-2.5 inline-flex items-center justify-center text-center text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
 
   return (
     <div className="mt-3.5 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4 space-y-3">
@@ -548,52 +549,19 @@ export function Waveform(props: Props) {
           <span className="text-xs font-mono text-slate-400">/ {fmt(duration / sp)}</span>
         </div>
 
-        <div className="flex shrink-0 h-10 items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-1 select-none">
+        <div className="ml-auto flex shrink-0 h-10 items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-1 select-none">
           <button className={btn} disabled={!song} onClick={() => onJumpBar(-1)} title={L("Такт назад (←)", "Previous bar (←)")}>
-            <span className="inline-flex items-center gap-1"><ChevronLeft className="w-6 h-6" />{L("Такт", "Bar")}</span>
+            <span className="inline-flex items-center justify-center gap-0.5"><ChevronLeft className="icon-sm" />{L("Такт", "Bar")}</span>
           </button>
           <span className="px-2 text-xs text-slate-300 inline-flex items-center gap-1.5 whitespace-nowrap">
-            <Bookmark className="w-6 h-6 text-slate-400" />
             {L("Такт", "Bar")} <strong className="font-mono text-slate-100">{totalBars ? barIdx + 1 : "—"}</strong>
             <span className="text-slate-500">/ {totalBars || "—"}</span>
             <span className="text-slate-500">•</span>
             <strong className="font-mono text-emerald-500">{song ? `${currentBeat + 1}/${beatsPerBar}` : "—"}</strong>
           </span>
           <button className={btn} disabled={!song} onClick={() => onJumpBar(1)} title={L("Такт вперед (→)", "Next bar (→)")}>
-            <span className="inline-flex items-center gap-1">{L("Такт", "Bar")}<ChevronRight className="w-6 h-6" /></span>
+            <span className="inline-flex items-center justify-center gap-0.5">{L("Такт", "Bar")}<ChevronRight className="icon-sm" /></span>
           </button>
-        </div>
-
-        <div className="flex shrink-0 h-10 items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-1 select-none">
-          <button
-            className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
-            disabled={!song || zoom <= 1}
-            onClick={() => zoomStep(-1)}
-            title={L("Зменшити масштаб (Ctrl + колесо вниз)", "Zoom out (Ctrl + wheel down)")}
-            aria-label={L("Зменшити масштаб", "Zoom out")}
-          ><ZoomOut className="w-6 h-6" /></button>
-          <span className="text-xs text-slate-400 mr-1 whitespace-nowrap">{L("Масштаб", "Zoom")} <strong className="font-mono text-slate-100 inline-block w-10 text-left">×{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}</strong></span>
-          {PRESET_ZOOMS.map((z) => (
-            <button
-              key={z}
-              disabled={!song}
-              onClick={() => changeZoom(z)}
-              className={`h-8 min-w-[3rem] px-2 inline-flex items-center justify-center text-xs font-bold rounded-lg border transition-colors cursor-pointer ${
-                Math.abs(zoom - z) < 0.01
-                  ? "bg-slate-700 text-white border-slate-500"
-                  : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
-              }`}
-            >
-              ×{z}
-            </button>
-          ))}
-          <button
-            className="h-8 w-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
-            disabled={!song || zoom >= ZOOM_MAX}
-            onClick={() => zoomStep(1)}
-            title={L("Збільшити масштаб (Ctrl + колесо вгору)", "Zoom in (Ctrl + wheel up)")}
-            aria-label={L("Збільшити масштаб", "Zoom in")}
-          ><ZoomIn className="w-6 h-6" /></button>
         </div>
       </div>
 
@@ -718,9 +686,39 @@ export function Waveform(props: Props) {
           <div style={{ width: `${zoom * 100}%`, height: 1 }} />
         </div>
       )}
-      <div className="text-xs text-slate-500 -mt-1.5">
-        {L("Клік — перемотати. Протягніть по хвилі — задати цикл по тактах. Краї циклу можна тягнути за ручки.", "Click to seek. Drag across the waveform to set a bar loop. Drag the handles on its edges to adjust it.")}
+      <div className="flex flex-wrap items-center justify-end gap-2 -mt-1">
+        <button
+          type="button" onClick={() => setHelpOpen((v) => !v)} aria-expanded={helpOpen}
+          title={L("Підказка", "Hint")} aria-label={L("Підказка", "Hint")}
+          className={`flex h-6 w-6 items-center justify-center rounded-full cursor-pointer transition-colors ${helpOpen ? "seg-on" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"}`}
+        ><Info className="icon-sm" /></button>
+        <div className="flex shrink-0 h-8 items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg px-1 select-none">
+          <button
+            className="h-6 w-6 flex items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            disabled={!song || zoom <= 1} onClick={() => zoomStep(-1)}
+            title={L("Зменшити масштаб (Ctrl + колесо вниз)", "Zoom out (Ctrl + wheel down)")} aria-label={L("Зменшити масштаб", "Zoom out")}
+          ><ZoomOut className="icon-sm" /></button>
+          <span className="text-xs text-slate-400 mx-0.5 whitespace-nowrap">{L("Масштаб", "Zoom")} <strong className="font-mono text-slate-100 inline-block w-9 text-left">×{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}</strong></span>
+          {PRESET_ZOOMS.map((z) => (
+            <button
+              key={z} disabled={!song} onClick={() => changeZoom(z)}
+              className={`h-6 min-w-[2.25rem] px-1.5 inline-flex items-center justify-center text-xs font-bold rounded-md border transition-colors cursor-pointer ${
+                Math.abs(zoom - z) < 0.01 ? "bg-slate-700 text-white border-slate-500" : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+              }`}
+            >×{z}</button>
+          ))}
+          <button
+            className="h-6 w-6 flex items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            disabled={!song || zoom >= ZOOM_MAX} onClick={() => zoomStep(1)}
+            title={L("Збільшити масштаб (Ctrl + колесо вгору)", "Zoom in (Ctrl + wheel up)")} aria-label={L("Збільшити масштаб", "Zoom in")}
+          ><ZoomIn className="icon-sm" /></button>
+        </div>
       </div>
+      {helpOpen && (
+        <p className="text-xs text-slate-400" role="note">
+          {L("Клік – перемотати. Протягніть по хвилі – задати цикл по тактах.", "Click to seek. Drag across the waveform to set a bar loop.")}
+        </p>
+      )}
 
       {/* keep "playing" referenced so the header re-renders predictably */}
       <span className="hidden">{playing ? "▶" : "⏸"}</span>

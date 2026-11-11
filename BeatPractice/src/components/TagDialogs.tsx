@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Check, Plus, Trash2 } from "lucide-react";
+import { Check, Plus, Trash2, X } from "lucide-react";
 import { Modal, ModalHeader } from "./ui/Modal";
 import { btn } from "./ui/styles";
 import type { PlaylistItem, PlaylistTag } from "../types";
@@ -8,21 +8,32 @@ import { displayName } from "../player/usePlayer";
 type Lang = "uk" | "en";
 const field = "track-edit-field w-full px-3 py-2 rounded-lg border text-base focus:outline-none focus:ring-2";
 
-/** A line to type a new tag into (the field looks like the song-title field of the track details). */
-function NewTag(props: { lang: Lang; onCreate: (name: string) => void }) {
-  const { lang, onCreate } = props;
-  const [name, setName] = useState("");
+/** A line to type a new tag into: the field looks like the song-title field of the track details; Esc and the cross clear it. */
+function NewTag(props: { lang: Lang; value: string; onValue: (v: string) => void; onCreate: (name: string) => void; autoFocus?: boolean }) {
+  const { lang, value, onValue, onCreate, autoFocus = false } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   return (
     <form
       className="flex items-center gap-2"
-      onSubmit={(e) => { e.preventDefault(); if (name.trim()) { onCreate(name); setName(""); } }}
+      onSubmit={(e) => { e.preventDefault(); if (value.trim()) onCreate(value); }}
     >
-      <input
-        value={name} onChange={(e) => setName(e.target.value)} maxLength={32}
-        placeholder={L("Новий тег", "New tag")} aria-label={L("Новий тег", "New tag")} className={`${field} min-w-0 flex-1`}
-      />
-      <button type="submit" disabled={!name.trim()} className={btn.secondary} title={L("Додати тег", "Add the tag")}>
+      <div className="relative min-w-0 flex-1">
+        <input
+          value={value} onChange={(e) => onValue(e.target.value)} maxLength={32} autoFocus={autoFocus}
+          onKeyDown={(e) => {
+            // Esc clears a filled field; the window closes on Esc only when the field is empty
+            if (e.key === "Escape" && value !== "") { e.preventDefault(); e.stopPropagation(); e.nativeEvent.stopImmediatePropagation(); onValue(""); }
+          }}
+          placeholder={L("Новий тег", "New tag")} aria-label={L("Новий тег", "New tag")} className={`${field} pr-9`}
+        />
+        {value !== "" && (
+          <button type="button" onClick={() => onValue("")} title={L("Очистити", "Clear")} aria-label={L("Очистити", "Clear")}
+            className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:text-slate-100 cursor-pointer">
+            <X className="icon-sm" />
+          </button>
+        )}
+      </div>
+      <button type="submit" disabled={!value.trim()} className={btn.secondary} title={L("Додати тег", "Add the tag")}>
         <Plus className="h-5 w-5" />{L("Додати", "Add")}
       </button>
     </form>
@@ -39,6 +50,8 @@ export function TrackTagsDialog(props: {
   const { lang, item, tags, onToggle, onCreateForItem, onClose } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const on = new Set(item.tags ?? []);
+  const [draft, setDraft] = useState("");
+  const done = () => { if (draft.trim()) onCreateForItem(item.id, draft); onClose(); };   // "Done" takes the typed text as a new tag
   return (
     <Modal id="track-tags-dialog" width="md" onClose={onClose} layer="z-[100]">
       <ModalHeader title={L("Теги треку", "Tags of the track")} onClose={onClose} closeLabel={L("Закрити", "Close")} />
@@ -54,8 +67,9 @@ export function TrackTagsDialog(props: {
           ))}
         </div>
       )}
-      <NewTag lang={lang} onCreate={(name) => onCreateForItem(item.id, name)} />
-      <div className="flex justify-end"><button type="button" className={btn.cta} onClick={onClose}>{L("Готово", "Done")}</button></div>
+      <NewTag lang={lang} value={draft} onValue={setDraft} autoFocus={(item.tags ?? []).length === 0}
+        onCreate={(name) => { onCreateForItem(item.id, name); setDraft(""); }} />
+      <div className="flex justify-end"><button type="button" className={btn.cta} onClick={done}>{L("Готово", "Done")}</button></div>
     </Modal>
   );
 }
@@ -71,6 +85,7 @@ export function ManageTagsDialog(props: {
   const { lang, tags, counts, onCreate, onRename, onDelete, onClose } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [pending, setPending] = useState<string | null>(null);
+  const [newName, setNewName] = useState("");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const commit = (t: PlaylistTag) => {
     const v = drafts[t.id];
@@ -109,8 +124,8 @@ export function ManageTagsDialog(props: {
           </div>
         </div>
       )}
-      <NewTag lang={lang} onCreate={onCreate} />
-      <div className="flex justify-end"><button type="button" className={btn.cta} onClick={onClose}>{L("Готово", "Done")}</button></div>
+      <NewTag lang={lang} value={newName} onValue={setNewName} onCreate={(n) => { onCreate(n); setNewName(""); }} />
+      <div className="flex justify-end"><button type="button" className={btn.cta} onClick={() => { if (newName.trim()) onCreate(newName); onClose(); }}>{L("Готово", "Done")}</button></div>
     </Modal>
   );
 }

@@ -84,14 +84,15 @@ export function ClickMetronomePanel(props: {
   const setBpm = (v: number) => setOwn((o) => ({ ...o, bpm: clampBpm(v) }));
 
   return (
-    <section id="click-metronome-panel" className="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm">
-      <div className="flex flex-wrap items-center gap-2">
+    <section id="click-metronome-panel" className="fm-card bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+      <div className="fm-grid">
         {/* 1: emblem, name, start / stop */}
         <div className={`${plain} gap-3`}>
           <MetronomeIcon className={`h-6 w-6 shrink-0 ${running ? "text-slate-200" : "text-slate-400"}`} />
           <span className="text-sm font-bold text-slate-100 whitespace-nowrap">{L("Вільний метроном", "Free metronome")}</span>
         </div>
 
+        <div className="fm-rest">
         {/* 2: tempo and the settings button */}
         <div ref={settingsBox} className="relative flex items-center gap-2">
           <QuickTempoBar
@@ -136,16 +137,19 @@ export function ClickMetronomePanel(props: {
         </div>
 
         {/* volume: the same channel as the metronome in the mixer of the song; only while the mixer's slider is out of sight */}
+        <div className="fm-vol">
         {props.showVolume && (
-        <div className={`${plain} min-w-[220px] flex-1 gap-2`}>
+        <div className={`${plain} min-w-[220px] gap-2`}>
           <Volume2 className="h-6 w-6 shrink-0 text-slate-300 mixer-icon" aria-hidden="true" />
           <span className="mixer-label shrink-0 text-xs font-semibold text-slate-300">{L("Гучність", "Volume")}</span>
           <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={setVolume} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
           <span className="mixer-value w-11 shrink-0 text-right font-mono text-xs font-bold text-slate-200">{pct}%</span>
         </div>
         )}
+        </div>
+        </div>
         {/* start / stop: always the rightmost block */}
-        <div className="ml-auto flex h-12 items-center">
+        <div className="fm-start flex h-12 items-center">
           <RunButton running={running} onToggle={() => (running ? stop() : start())} L={L} />
         </div>
       </div>
