@@ -21,14 +21,13 @@ export function TempoMapDialog(props: {
   onHalveTempo: (on: boolean) => void;
   meterPreset: number;                 // 0 auto, 1 sensitive, 2 strict ("coarse")
   onMeterPreset: (preset: number) => void;
-  meterModesSupported: boolean;
   ready: boolean;
   sections: TempoSection[];
   speed: number;                       // the sections are shown at the tempo that is playing now
   onGoTo: (seconds: number) => void;
   onClose: () => void;
 }) {
-  const { lang, halveTempo, onHalveTempo, meterPreset, onMeterPreset, meterModesSupported, ready, sections, speed, onGoTo, onClose } = props;
+  const { lang, halveTempo, onHalveTempo, meterPreset, onMeterPreset, ready, sections, speed, onGoTo, onClose } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const disabled = !ready;
   const th = "py-1.5 pr-3 font-semibold";
@@ -49,16 +48,14 @@ export function TempoMapDialog(props: {
 
       <div className="space-y-1.5">
         <div className="text-xs font-semibold text-slate-300">{L("Розпізнавання розміру", "Meter recognition")}</div>
-        <Segmented ariaLabel={L("Розпізнавання розміру", "Meter recognition")} value={meterPreset} onChange={onMeterPreset} disabled={disabled || !meterModesSupported}
+        <Segmented ariaLabel={L("Розпізнавання розміру", "Meter recognition")} value={meterPreset} onChange={onMeterPreset} disabled={disabled}
           options={[
             { value: 0, label: L("Авто", "Auto"), title: L("Збалансовано: такти з 3–7 долей, зміни розміру за чітких ознак", "Balanced: bars of 3 to 7 beats, changes need clear evidence") },
             { value: 1, label: L("Чутливо", "Sensitive"), title: L("Ближче до нейромережі: легше знаходить непарні й змінні розміри", "Follows the neural network more closely: finds odd and changing meters more readily") },
             { value: 2, label: L("Грубо", "Coarse"), title: L("Лише 3/4 і 4/4, зміни розміру лише за дуже чітких ознак", "Only 3/4 and 4/4, changes need strong evidence") },
           ]} />
         <p className="text-xs text-slate-400">
-          {meterModesSupported
-            ? L("Якщо складний трек показано з хибним розміром, спробуйте «Чутливо» або «Грубо».", "If a complex song is shown with the wrong meter, try “Sensitive” or “Coarse”.")
-            : L("Щоб обирати режим розпізнавання, оновіть ядро (beat-core).", "Update the core (beat-core) to choose the recognition mode.")}
+          {L("Якщо складний трек показано з хибним розміром, спробуйте «Чутливо» або «Грубо».", "If a complex song is shown with the wrong meter, try “Sensitive” or “Coarse”.")}
         </p>
         <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-500">
           <AlertTriangle className="h-4 w-4 shrink-0" />

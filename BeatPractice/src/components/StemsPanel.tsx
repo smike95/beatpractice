@@ -40,7 +40,7 @@ export function BetaBadge({ onFill = false, lang = "uk" }: { onFill?: boolean; l
 export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   // lives inside the folded part of the mixer: a light block, not a separate card
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
-  const { caps, stemsInfo: info, stemsState: state, stemsProgress: progress, stemMix, ready } = player;
+  const { stemsInfo: info, stemsState: state, stemsProgress: progress, stemMix, ready } = player;
   const names = info?.names ?? [];
   
   // a clock for the elapsed / remaining time while separating
@@ -63,19 +63,6 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
     </p>
   );
 
-  // ---- the core cannot do it / the model is missing ------------------------------------------------
-  if (!caps.stems) {
-    return (
-      <section className={card}>
-        <p className="text-sm text-sky-500">
-          {L(
-            "У вашій збірці ядра ще немає розділення на партії: перезберіть beat-core з оновленими файлами (див. README).",
-            "Your build of the core cannot separate stems yet: rebuild beat-core with the updated files (see README).",
-          )}
-        </p>
-      </section>
-    );
-  }
   if (!ready) {
     return (
       <section className={card}>

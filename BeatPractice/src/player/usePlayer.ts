@@ -136,6 +136,23 @@ function overlappingLoops(loops: LoopSlot[], start: number, end: number): number
   return out;
 }
 
+const sleep = (ms: number) => new Promise<void>((r) => window.setTimeout(r, ms));
+
+/**
+ * The snapshot of the core once it is READY again. After a meter mode is applied the core re-reads the saved analysis, and the tempo it reports
+ * changes (the halved or doubled tempo), so the numbers of the track must be taken from here and not from the snapshot that came before.
+ */
+async function readySnapshot(isStale: () => boolean): Promise<Snapshot | null> {
+  for (let i = 0; i < 600; i++) {
+    if (isStale()) return null;
+    const x = await core.snapshot();
+    if (x.state === BC.READY) return x;
+    if (x.state === BC.ERROR) return null;
+    await sleep(100);
+  }
+  return null;
+}
+
 export function usePlayer() {
   const [init, setInit] = useState<InitInfo | null>(null);
   const [snap, setSnap] = useState<Snapshot | null>(null);
@@ -363,14 +380,23 @@ export function usePlayer() {
     setActiveLoop(null);
     setLoopChoice(null);
     setMessage("");
+    const gen = openGen.current;
     try {
-      const ok = await core.openFile(item.path);
-      if (!ok) setMessage("Не вдалося відкрити файл (ядро зайняте або файл недоступний).");
+      // the core may still be finishing the previous file: ask again for a while instead of reporting a failure at once
+      let ok = false;
+      for (let attempt = 0; attempt < 12 && !ok; attempt++) {
+        if (openGen.current !== gen) return;          // another track was chosen: that call takes over
+        ok = await core.openFile(item.path);
+        if (!ok) await sleep(300);
+      }
+      if (!ok && openGen.current === gen) setMessage("Не вдалося відкрити файл. Перевірте, що він існує і не пошкоджений.");
     } catch (e) {
-      setMessage(String(e));
+      if (openGen.current === gen) setMessage(String(e));
     } finally {
-      freshFrom.current = pollSeq.current + 1;       // only requests started from now on describe this track
-      opening.current = false;
+      if (openGen.current === gen) {
+        freshFrom.current = pollSeq.current + 1;       // only requests started from now on describe this track
+        opening.current = false;
+      }
     }
   }, []);
 
@@ -390,14 +416,17 @@ export function usePlayer() {
     if (!id || opening.current || handledId.current === id) return;
     if (snapSeq.current < freshFrom.current) return;   // still the previous track's READY snapshot
     handledId.current = id;
-    const s = snap;
     const gen = openGen.current;
     const stale = () => requestedId.current !== id || openGen.current !== gen;   // the user has switched tracks meanwhile
     (async () => {
       try {
         const item = playlistRef.current.find((p) => p.id === id);
+        setMessage((m) => (m.startsWith("Не вдалося відкрити файл") ? "" : m));   // it opened after all
         await core.setMeterMode(item?.meterMode ?? 0).catch(() => false);   // re-reads the saved analysis: fast
         if (stale()) return;
+        // the core keeps the meter mode of the previous track until now: the tempo has to be read after the mode of THIS track is applied
+        const sNow = await readySnapshot(stale);
+        if (!sNow || stale()) return;
         const data = await core.songData();
         if (stale()) return;
         const speed = item?.speed ?? 1;
@@ -442,10 +471,10 @@ export function usePlayer() {
             ...it,
             trackInfo: {
               ...it.trackInfo,
-              duration: s.duration,
-              originalBpm: Math.round(s.songBpm),
-              originalBpmExact: Math.round(s.songBpm * 10) / 10,
-              currentBpm: Math.round(s.songBpm * speed),
+              duration: sNow.duration,
+              originalBpm: Math.round(sNow.songBpm),
+              originalBpmExact: Math.round(sNow.songBpm * 10) / 10,
+              currentBpm: Math.round(sNow.songBpm * speed),
               timeSignature: `${len}/4`,
             },
           }));
@@ -611,7 +640,7 @@ export function usePlayer() {
       if (!slot) return;
       const ok = await core.setLoop(slot.start, slot.end);
       if (!ok) {
-        setMessage("Ядро не прийняло цикл (завеликий або замалий).");
+        setMessage("Цикл завеликий або замалий.");
         return;
       }
       setActiveLoop(idx);
@@ -629,7 +658,7 @@ export function usePlayer() {
       setLoops(next);
       if (activeLoop === idx) {
         const ok = await core.setLoop(slot.start, slot.end);
-        if (!ok) setMessage("Ядро не прийняло цикл (завеликий або замалий).");
+        if (!ok) setMessage("Цикл завеликий або замалий.");
       }
       persistLoops(next, activeLoop);
     },
@@ -649,7 +678,7 @@ export function usePlayer() {
       setSelectedLoop(idx);
       if (activeLoop === idx) {
         const ok = await core.setLoop(put.start, put.end);
-        if (!ok) setMessage("Ядро не прийняло цикл (завеликий або замалий).");
+        if (!ok) setMessage("Цикл завеликий або замалий.");
       }
       persistLoops(next, activeLoop);
     },
@@ -696,7 +725,7 @@ export function usePlayer() {
       const slot: LoopSlot = makeNew ? { start, end } : { start, end, ...(loops[idx]?.name ? { name: loops[idx].name } : {}) };   // a replaced loop keeps its name
       const ok = await core.setLoop(start, end);
       if (!ok) {
-        setMessage("Ядро не прийняло цикл (завеликий або замалий).");
+        setMessage("Цикл завеликий або замалий.");
         return;
       }
       const next = makeNew ? [...loops, slot] : loops.map((l, i) => (i === idx ? slot : l));
@@ -1098,10 +1127,18 @@ export function usePlayer() {
       await core.clearLoop().catch(() => {});
       const ok = await core.setMeterMode(mode).catch(() => false);
       if (!ok) { setMessage("Не вдалося перерахувати розмір для цього треку."); return; }
+      const fresh = await readySnapshot(() => false);   // the tempo is halved / doubled together with the mode
       const data = await core.songData();
       setSong(data);
       const len = mostCommonBarLength(data);
-      patchItem(activeId, (it) => ({ ...it, trackInfo: { ...it.trackInfo, timeSignature: `${len}/4` } }));
+      patchItem(activeId, (it) => ({
+        ...it,
+        trackInfo: {
+          ...it.trackInfo,
+          timeSignature: `${len}/4`,
+          ...(fresh ? { originalBpm: Math.round(fresh.songBpm), originalBpmExact: Math.round(fresh.songBpm * 10) / 10, currentBpm: Math.round(fresh.songBpm * it.speed) } : {}),
+        },
+      }));
     },
     [ready, activeId, patchItem],
   );

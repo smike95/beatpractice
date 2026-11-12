@@ -1,3 +1,15 @@
+/* ==========================================================================
+   Vertical centring of the text. Segoe UI (Windows) has a tall ascent and a short descent, so a line of text that is centred by the box sits
+   1-2 px lower than an icon centred in the same button. "BP UI" is Segoe UI with the ascent and the descent moved (their sum, and so every
+   line height, stays the same): the letters of a button are centred between its edges. On macOS the system font is already centred; the face
+   is only defined where Segoe UI exists (local()).
+   ========================================================================== */
+@font-face { font-family: "BP UI"; font-weight: 300; src: local("Segoe UI Light"), local("SegoeUI-Light"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
+@font-face { font-family: "BP UI"; font-weight: 400; src: local("Segoe UI"), local("SegoeUI"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
+@font-face { font-family: "BP UI"; font-weight: 600; src: local("Segoe UI Semibold"), local("SegoeUI-Semibold"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
+@font-face { font-family: "BP UI"; font-weight: 700; src: local("Segoe UI Bold"), local("SegoeUI-Bold"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
+@font-face { font-family: "BP UI"; font-weight: 900; src: local("Segoe UI Black"), local("SegoeUI-Black"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -733,7 +745,7 @@ html.light .seg-on { background: #0062cc; color: #ffffff; box-shadow: 0 1px 2px 
    accent focus ring, translucent toolbar, thin overlay-style scrollbars.
    ========================================================================== */
 html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-synthesis: none; }
-body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; letter-spacing: -0.003em; }
+body { font-family: "BP UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; letter-spacing: -0.003em; }
 /* HIG: only links get the pointing hand; buttons keep the arrow */
 button, [role="button"], .cursor-pointer, select, label, summary { cursor: default !important; }
 button:disabled, .cursor-not-allowed { cursor: default !important; }
@@ -769,8 +781,9 @@ html.mac header .mac-traffic-space { display: block; width: 78px; flex: none; }
 /* three ids: it has to beat html.light .bg-slate-900:not(#a):not(#b), which counts the ids inside :not() */
 html.light #track-bar#track-bar#track-bar.bg-slate-900 { background-color: #ffffff !important; }
 /* the strip above the stuck tile has the colour of the page and spans the whole window: nothing that scrolls under the tile shows above it */
-.page-mask { background-color: #1c1c1e; }
-html.light .page-mask { background-color: #f5f5f7; }
+/* the covering band ends 16 px above the bottom of the tile (its corner radius): around the rounded corners the content is seen under the tile, as under a floating card */
+.page-mask { background: linear-gradient(to bottom, #1c1c1e calc(100% - 16px), transparent calc(100% - 16px)); }
+html.light .page-mask { background: linear-gradient(to bottom, #f5f5f7 calc(100% - 16px), transparent calc(100% - 16px)); }
 #track-bar.is-stuck { box-shadow: 0 14px 28px -12px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0, 0, 0, 0.35); }
 html.light #track-bar.is-stuck { box-shadow: 0 14px 28px -12px rgba(0, 0, 0, 0.3), 0 2px 8px rgba(0, 0, 0, 0.12); }
 

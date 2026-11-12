@@ -255,22 +255,24 @@ export default function App() {
   if (!player.init.loaded) {
     return (
       <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
-        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center gap-3">
-            <BeatPracticeLogo className="w-8 h-8" />
-            <span className="text-xl font-black">BeatPractice</span>
+        <div className="max-w-md w-full space-y-4 text-center">
+          <div className="flex items-center justify-center gap-3">
+            <BeatPracticeLogo className="w-10 h-10" />
+            <span className="text-2xl font-black">BeatPractice</span>
           </div>
-          <p className="text-sm text-slate-300">
-            Оберіть теку <b>beat-core</b> (де лежать <span className="font-mono">build/</span> і <span className="font-mono">models/</span>).
-          </p>
-          {player.init.error && <p className="text-sm text-rose-400">{player.init.error}</p>}
-          {player.message && <p className="text-sm text-rose-400">{player.message}</p>}
-          <button
-            onClick={player.chooseCoreDir}
-            className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm cursor-pointer"
-          >
-            Обрати теку beat-core…
-          </button>
+          {player.init.error ? (
+            <>
+              <p className="text-sm text-rose-400">{player.init.error}</p>
+              <button
+                onClick={player.chooseCoreDir}
+                className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm cursor-pointer"
+              >
+                {lang === 'en' ? 'Choose the folder with the core…' : 'Вказати теку з ядром…'}
+              </button>
+            </>
+          ) : (
+            <p className="text-sm text-slate-400">{lang === 'en' ? 'Loading…' : 'Завантаження…'}</p>
+          )}
         </div>
       </div>
     );
@@ -340,13 +342,13 @@ export default function App() {
       <div className="flex-1 flex w-full">
         {/* DESKTOP FULL-HEIGHT PLAYLIST SIDEBAR */}
         {/* PLAYLIST COLUMN: a strip (emblem, covers, arrow) that opens above the content on hover, or pinned open */}
-        <div className="sticky top-0 h-screen shrink-0 z-40 transition-[width] duration-200 ease-out" style={{ width: pinned ? '25rem' : '4.5rem' }}>
+        <div className="relative shrink-0 transition-[width] duration-200 ease-out" style={{ width: pinned ? '25rem' : '4.5rem' }}>
           <aside
             ref={asideRef}
             id="playlist-sidebar"
             onPointerEnter={onAsideEnter}
             onPointerLeave={onAsideLeave}
-            className={`absolute inset-y-0 left-0 flex flex-col overflow-hidden bg-slate-900 border-r border-slate-800/80 transition-[width,box-shadow] duration-200 ease-out ${expanded ? 'w-[min(25rem,92vw)] p-4' : 'w-[4.5rem] p-3'} ${expanded && !pinned ? 'shadow-2xl' : ''}`}
+            className={`fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden bg-slate-900 border-r border-slate-800/80 transition-[width,box-shadow] duration-200 ease-out ${expanded ? 'w-[min(25rem,92vw)] p-4' : 'w-[4.5rem] p-3'} ${expanded && !pinned ? 'shadow-2xl' : ''}`}
           >
           <PlaylistPanel
             isSidebar
@@ -424,7 +426,7 @@ export default function App() {
             id="track-bar-wrap"
             data-tauri-drag-region
             className={`sm:sticky z-30 ${barStuck ? 'page-mask -mx-4 sm:-mx-6 px-4 sm:px-6' : 'pointer-events-none'}`}
-            style={{ top: 0, marginTop: -BAR_GAP, paddingTop: BAR_GAP }}
+            style={{ top: 0, marginTop: -BAR_GAP, paddingTop: BAR_GAP, willChange: 'transform' }}
           >
           <div
             id="track-bar"
@@ -489,7 +491,7 @@ export default function App() {
                       <button
                         id="btn-save-pack"
                         onClick={() => setPacking(true)}
-                        disabled={!(track && player.ready) || player.caps?.packs === false}
+                        disabled={!(track && player.ready)}
                         title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
                         className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
@@ -738,7 +740,6 @@ export default function App() {
           onHalveTempo={(on) => void player.setHalveTempo(on)}
           meterPreset={player.meterMode}
           onMeterPreset={(p) => void player.setMeterMode(p)}
-          meterModesSupported={player.caps.meterModes}
           ready={player.ready}
           sections={sectionRows}
           speed={speed}
