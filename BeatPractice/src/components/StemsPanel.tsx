@@ -66,22 +66,10 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   if (!ready) {
     return (
       <section className={card}>
-        <p className="text-sm text-slate-400">{L("Відкрийте трек, щоб розділити його на партії.", "Open a track to split it into stems.")}</p>
+        <p className="text-sm text-slate-400">{L("Трек завантажується…", "The track is loading…")}</p>
       </section>
     );
   }
-  if (info && !info.available) {
-    return (
-      <section className={card}>
-        <p className="text-sm text-sky-500">
-          {L("Модель розділення ще не встановлена. Завантажте її (один раз, близько 170 МБ):", "The separation model is not installed yet. Download it (once, about 170 MB):")}
-        </p>
-        <pre className="text-xs font-mono bg-slate-950 border border-slate-800 rounded-lg p-3 text-slate-200 overflow-x-auto">cd /шлях/до/beat-core{"\n"}sh scripts/fetch_stem_model.sh</pre>
-        <button className={btn} onClick={player.refreshStems}>{L("Перевірити ще раз", "Check again")}</button>
-      </section>
-    );
-  }
-
   // ---- not started ----------------------------------------------------------------------------------
   if (state === 0 || state === 3) {
     return (
@@ -90,7 +78,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
         <div>
           <button id="btn-split-song" className={primary} onClick={player.startStems}>
             <span className="inline-flex items-center gap-2">
-              {info?.cached ? L("Завантажити готові партії", "Load the finished stems") : L("Розділити пісню на партії", "Split the song into stems")}
+              {info?.cached ? L("Використати готові партії", "Use the finished stems") : L("Розділити пісню на партії", "Split the song into stems")}
               <BetaBadge onFill lang={lang} />
             </span>
           </button>
@@ -98,13 +86,13 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
         {neuralNote}
         <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
         <BetaBadge lang={lang} />
-        <span>{L("Бета-функція: розділення ще не досконале, у партіях можуть лунати відгомони інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
+        <span>{L("Бета-функція. Розділення поки не ідеальне: у партіях можуть бути чутні сліди інших інструментів.", "Beta feature. The separation is not perfect yet: the parts may contain traces of other instruments.")}</span>
         </p>
         <p className="text-xs text-slate-400">
           {info?.cached
-            ? L("Для цієї пісні партії вже пораховані, це займе кілька секунд.", "The stems of this song are already computed, this takes a few seconds.")
+            ? L("Для цієї пісні партії вже готові: підключення займе кілька секунд.", "The stems of this song are already done: connecting them takes a few seconds.")
             : L(
-                "Це робиться один раз для пісні й може тривати кілька хвилин (залежить від комп'ютера). Результат зберігається. Поки йде розділення, пісню можна слухати як зазвичай.",
+                "Це робиться один раз для пісні й може тривати кілька хвилин (залежить від комп’ютера). Результат зберігається. Поки йде розділення, пісню можна слухати як зазвичай.",
                 "This is done once per song and can take a few minutes (depends on the computer). The result is saved. You can keep listening to the song while it runs.",
               )}
         </p>
@@ -123,14 +111,14 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
           </div>
           <div className="h-2 rounded bg-slate-800 overflow-hidden"><div className="h-full bg-sky-500 transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
           <div className="text-xs text-slate-400 font-mono">
-            {L("Минуло", "Elapsed")} {mmss(elapsed)} • {L("залишилось приблизно", "about")} {mmss(eta)} {lang === "en" ? "left" : ""}
+            {L("Минуло", "Elapsed")} {mmss(elapsed)} • {L("лишилось приблизно", "about")} {mmss(eta)} {lang === "en" ? "left" : ""}
           </div>
           <p className="text-xs text-slate-400">{L("Пісню можна слухати як зазвичай, поки йде розділення.", "You can keep listening to the song while it runs.")}</p>
         </div>
         {neuralNote}
       <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
         <BetaBadge lang={lang} />
-        <span>{L("Бета-функція: розділення ще не досконале, у партіях можуть лунати відгомони інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
+        <span>{L("Бета-функція. Розділення поки не ідеальне: у партіях можуть бути чутні сліди інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
       </p>
       </section>
     );
@@ -145,7 +133,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
     <section className={card}>
       <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
         <BetaBadge lang={lang} />
-        <span>{L("Бета-функція: розділення ще не досконале, у партіях можуть лунати відгомони інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
+        <span>{L("Бета-функція. Розділення поки не ідеальне: у партіях можуть бути чутні сліди інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
       </p>
       <div className="flex flex-wrap gap-2">
         {onlyList.map((n) => (
@@ -176,14 +164,14 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
                 checked={!muted}
                 onChange={() => player.toggleStemMute(i)}
                 label={(NAMES[n] ?? [n, n])[lang === "en" ? 1 : 0]}
-                title={muted ? L("Партію вимкнено — натисніть, щоб увімкнути", "Part is off — click to turn on") : L("Партію увімкнено — натисніть, щоб вимкнути", "Part is on — click to turn off")}
+                title={muted ? L("Партію вимкнено – натисніть, щоб увімкнути", "Part is off – click to turn on") : L("Партію увімкнено – натисніть, щоб вимкнути", "Part is on – click to turn off")}
               />
             </div>
           );
         })}
       </div>
       <p className="text-xs text-slate-500">
-        {L("Гучність «Трек» вище діє й на розділені партії. Метроном і відлік працюють так само.", "The 'Track' volume above applies to the stems too. Metronome and count-in work as usual.")}
+        {L("Регулювання гучності «Трек» впливає на всі партії пропорційно.", "The “Track” volume applies to all the parts proportionally.")}
       </p>
     </section>
   );

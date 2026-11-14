@@ -36,7 +36,6 @@ export function PackDialog(props: {
   // merge mode: the group (0..3) of every part; by default the voice alone and everything else together
   const [group, setGroup] = useState<number[]>(() => stemNames.map((n) => (n === "vocals" ? 1 : 0)));
   const [groupNames, setGroupNames] = useState<string[]>(["", "", "", ""]);
-  const [withMix, setWithMix] = useState(false);
   const [raw, setSt] = useState<ExportStatus | null>(null);
   const [started, setStarted] = useState(false);
   const st = started || raw?.state === 1 ? raw : null;
@@ -66,7 +65,7 @@ export function PackDialog(props: {
     : mode === "merge" ? Array.from({ length: MAX_GROUPS }, (_, g) => stemNames.map((_, i) => i).filter((i) => group[i] === g)).filter((l) => l.length > 0)
     : [];
   const usedGroupIds = mode === "merge" ? Array.from({ length: MAX_GROUPS }, (_, g) => g).filter((g) => group.some((x, i) => x === g && i < stemNames.length)) : [];
-  const mixOn = mode === "together" || withMix;
+  const mixOn = true;   // the original track is always in the pack (its sound is exact and the pack plays "without parts" from it)
   const tracksCount = (mode === "together" ? 0 : groupLists.length) + (mixOn ? 1 : 0);
   const estMb = Math.round((tracksCount * duration * 44100 * 4 * 0.55) / 1048576);
   const bad = mode === "merge" && groupLists.length < 1;
@@ -97,7 +96,7 @@ export function PackDialog(props: {
         loops: loops.map((l) => `${l.start}|${l.end}|${(l.name ?? "").replace(/[|\n]/g, " ")}`).join("\n"),
         includeMix: mixOn,
       });
-      if (!ok) { setErr(L("Не вдалося почати збереження (триває інша операція або трек не готовий).", "Could not start (another operation is running or the track is not ready).")); return; }
+      if (!ok) { setErr(L("Не вдалося почати збереження: триває інша операція або трек ще не готовий.", "Could not start: another operation is running or the track is not ready yet.")); return; }
       startPolling();
     } catch (e) { setErr(String(e)); }
   };
@@ -112,7 +111,7 @@ export function PackDialog(props: {
       <Modal id="pack-dialog" width="lg" onClose={onClose}>
           <p className="text-base font-bold text-emerald-600">{L("Пакет збережено", "The pack was saved")}</p>
           <p className="text-sm break-all">{outPath}</p>
-          {canShareSaved && <button id="btn-pack-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.beatpack$/i, ""))}>{L("Зберегти на пристрій / надіслати", "Save to the device / send")}</button>}
+          {canShareSaved && <button id="btn-pack-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.beatpack$/i, ""))}>{L("Зберегти або надіслати", "Save or send")}</button>}
           <p className="track-edit-label text-xs">{L("Скопіюйте цей файл на інший ваш пристрій і відкрийте його в програмі: аналіз і розділення там не потрібні.", "Copy this file to your other device and open it in the program: no analysis or separation is needed there.")}</p>
           <div className="flex justify-end"><button id="btn-pack-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button></div>
       </Modal>
@@ -124,27 +123,27 @@ export function PackDialog(props: {
         <ModalHeader title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Зберегти пакет", "Save as a pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} />
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
         <p className="track-edit-label text-xs">{L(
-          "Пакет містить трек, його ритм і партії. Його можна відкрити на слабкому пристрої, де трек не доведеться аналізувати й розділяти. Призначений для ваших власних пристроїв.",
-          "The pack holds the track, its rhythm and its parts. It opens on a weak device without analysing or separating. It is meant for your own devices.")}</p>
+          "Пакет – це трек разом із розпізнаним ритмом і партіями. Відкрийте його на іншому пристрої, і нічого не доведеться аналізувати чи розділяти. Пакети призначені для ваших власних пристроїв.",
+          "A pack is the track together with its analysed rhythm and its parts. Open it on another device and nothing has to be analysed or separated. Packs are meant for your own devices.")}</p>
 
-        <div className="space-y-1.5" role="radiogroup" aria-label={L("Як упакувати партії", "How to pack the parts")}>
+        <div className="space-y-1.5" role="radiogroup" aria-label={L("Партії в пакеті", "Parts in the pack")}>
           <div className="text-xs font-bold uppercase tracking-wide track-edit-label">{L("Партії", "Parts")}</div>
           {hasStems && (
             <label className={row}><input type="radio" name="pack-mode" className={chk} checked={mode === "separate"} disabled={running} onChange={() => setMode("separate")} />
               <span className="text-sm">{L("Усі окремо", "All separate")} <span className="track-edit-label text-xs">({stemNames.map(nm).join(", ")})</span></span></label>
           )}
           <label className={row}><input type="radio" name="pack-mode" className={chk} checked={mode === "together"} disabled={running} onChange={() => setMode("together")} />
-            <span className="text-sm">{L("Усі разом (лише пісня, без партій)", "All together (the song only, no parts)")}</span></label>
+            <span className="text-sm">{L("Тільки пісня з темпом", "Only the song with its tempo")}</span></label>
           {hasStems && (
             <label className={row}><input type="radio" name="pack-mode" className={chk} checked={mode === "merge"} disabled={running} onChange={() => setMode("merge")} />
-              <span className="text-sm">{L("Об'єднати деякі", "Merge some")}</span></label>
+              <span className="text-sm">{L("Об’єднати деякі", "Merge some of them")}</span></label>
           )}
           {!hasStems && <p className="track-edit-label text-xs">{L("Трек ще не розділено на партії: розділіть його в «Мікшері», щоб класти партії в пакет.", "The track is not split into parts yet: split it in the “Mixer” to put parts into the pack.")}</p>}
         </div>
 
         {mode === "merge" && (
           <div className="space-y-2 rounded-xl border track-edit-section p-3">
-            <p className="track-edit-label text-xs">{L("Оберіть для кожної партії групу. Партії однієї групи зіллються в одну доріжку.", "Choose a group for every part. Parts of one group are merged into one track.")}</p>
+            <p className="track-edit-label text-xs">{L("Для кожної партії оберіть групу: партії однієї групи об’єднаються в одну.", "Choose a group for every part: parts of one group are merged into one.")}</p>
             {stemNames.map((n, i) => (
               <div key={n + i} className="flex items-center justify-between gap-3">
                 <span className="text-sm">{nm(n)}</span>
@@ -166,12 +165,6 @@ export function PackDialog(props: {
             </div>
           </div>
         )}
-
-        {mode !== "together" && (
-          <label className={row}><input type="checkbox" className={chk} checked={withMix} disabled={running} onChange={(e) => setWithMix(e.target.checked)} />
-            <span className="text-sm">{L("Додати й оригінальний трек", "Also include the original track")} <span className="track-edit-label text-xs">({L("точніший звук оригіналу, файл більший", "exact original sound, bigger file")})</span></span></label>
-        )}
-        {mode !== "together" && !withMix && <p className="track-edit-label text-xs">{L("Без оригіналу відтворення «без партій» складається з усіх партій разом.", "Without the original, playing “without parts” is made of all the parts together.")}</p>}
 
         <p className="track-edit-label text-xs">{L(`Приблизний розмір файлу: ${estMb} МБ`, `Approximate file size: ${estMb} MB`)}{loops.length ? L(`. Цикли (${loops.length}) і їхні назви зберігаються в пакеті.`, `. The loops (${loops.length}) and their names are saved in the pack.`) : ""}</p>
 

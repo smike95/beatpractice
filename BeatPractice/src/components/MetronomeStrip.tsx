@@ -14,7 +14,7 @@ type Lang = "uk" | "en";
 export function BeatLamps(props: { lang: Lang; beatsPerBar: number; activeBeat: number; id?: string }) {
   const { lang, beatsPerBar, activeBeat, id = "quick-metronome-visual-beats" } = props;
   return (
-    <div id={id} className="flex items-center gap-1" title={lang === "en" ? "Metronome visual clicks" : "Візуальні кліки метронома"}>
+    <div id={id} className="flex items-center gap-1" title={lang === "en" ? "Metronome visual clicks" : "Індикатор долей метронома"}>
       {Array.from({ length: beatsPerBar }).map((_, idx) => {
         const active = activeBeat === idx;
         return (
@@ -62,7 +62,7 @@ export function MetronomeStrip(props: {
       <div id="quick-metronome-strip" className="flex h-12 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 px-3 select-none">
         <MetronomeIcon className={`h-6 w-6 shrink-0 ${enabled ? "text-slate-200" : "text-slate-500"}`} />
         <Switch id="quick-switch-metronome" checked={enabled} onChange={onToggle} label={enabled ? L("Вимкнути метроном", "Turn the metronome off") : L("Увімкнути метроном", "Turn the metronome on")} />
-        <span className="font-mono text-xs font-bold text-slate-400" title={L("Тактовий розмір", "Time signature")}>{meter}</span>
+        <span className="font-mono text-xs font-bold text-slate-400" title={L("Розмір такту", "Bar size")}>{meter}</span>
         <BeatLamps lang={lang} beatsPerBar={beatsPerBar} activeBeat={activeBeat} />
         <button
           id="btn-metronome-settings"

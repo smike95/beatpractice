@@ -100,8 +100,8 @@ export function LoopsPanel(props: Props) {
   return (
     <PanelCard
       info={<>{L(
-          "Грає один цикл за раз. Протягніть по хвилі, щоб задати межі виділеного циклу. Межі завжди притискаються до початку такту.",
-          "One loop plays at a time. Drag across the waveform to set the selected loop. Edges always snap to bar starts.",
+          "Одночасно грає один цикл. Протягніть по хвилі, щоб задати цикл: його межі завжди збігаються з початком такту. Цикл можна редагувати на хвилі.",
+          "One loop plays at a time. Drag across the waveform to set a loop: its edges always snap to bar starts. A loop can be edited on the waveform.",
         )}</>}
       icon={<Repeat className="w-6 h-6" />}
       title={L("Цикли по тактах", "Bar loops")}
@@ -132,14 +132,14 @@ export function LoopsPanel(props: Props) {
           value={props.countInOnLoop}
           onChange={props.onCountInOnLoop}
           disabled={!props.countInOn}
-          options={[{ value: false, label: L("Вимк", "Off") }, { value: true, label: L("Увімк", "On"), title: props.countInOn ? undefined : L("Спершу увімкніть відлік у налаштуваннях метронома", "Turn the count-in on first in the metronome settings") }]}
+          options={[{ value: false, label: L("Вимк", "Off") }, { value: true, label: L("Увімк", "On"), title: props.countInOn ? undefined : L("Спершу оберіть тривалість відліку", "Choose the length of the count-in first") }]}
         />
         </div>
       </div>
 
       {loops.length === 0 && (
         <div className="rounded-xl border border-dashed border-slate-700 p-4 flex items-center justify-between gap-3 flex-wrap">
-          <div className="text-sm text-slate-300 font-semibold">{loopLabel(undefined, 0, lang)} <span className="text-slate-500 font-normal">— {L("ще не задано", "not set yet")}</span></div>
+          <div className="text-sm text-slate-300 font-semibold">{L("Цикл не задано", "No loop set")}</div>
           <button className={btn} disabled={!ready} onClick={props.onAdd}>{L("Створити з поточного такту", "Create from the current bar")}</button>
         </div>
       )}
@@ -196,10 +196,10 @@ export function LoopsPanel(props: Props) {
                   onCommit={(v) => props.onUpdate(i, keepName(s, slotFromBars(Math.min(fb, v), v)))} />
               </label>
               <button className={btn} disabled={!ready || total === 0} onClick={() => props.onUpdate(i, keepName(s, slotFromBars(currentBar, Math.max(currentBar, tb))))}>
-                {L("Початок = поточний такт", "Start = current bar")}
+                {L("Початок – з поточного такту", "Start = current bar")}
               </button>
               <button className={btn} disabled={!ready || total === 0} onClick={() => props.onUpdate(i, keepName(s, slotFromBars(Math.min(fb, currentBar), currentBar)))}>
-                {L("Кінець = поточний такт", "End = current bar")}
+                {L("Кінець – поточним тактом", "End = current bar")}
               </button>
               <span className="text-slate-500">/ {total || "—"}</span>
             </div>

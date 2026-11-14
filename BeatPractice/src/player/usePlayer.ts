@@ -81,10 +81,10 @@ function isAudio(path: string): boolean {
   return AUDIO_EXTS.includes(ext);
 }
 
-/** "Artist — Title" when the user filled them in, otherwise the file name */
+/** "Artist – Title" when the user filled them in, otherwise the file name */
 export function displayName(it: { name: string; artist?: string; title?: string }): string {
   const a = (it.artist ?? "").trim(), t = (it.title ?? "").trim();
-  if (a && t) return `${a} — ${t}`;
+  if (a && t) return `${a} – ${t}`;
   return t || a || it.name;
 }
 
@@ -934,7 +934,7 @@ export function usePlayer() {
           }
           return next;
         });
-        setMessage(`Із збірки: додано ${added.length}, уже були в плейлісті ${items.length - added.length}. Аналіз уже в пакетах, чекати не треба.`);
+        setMessage(`Зі збірки: додано ${added.length}, уже були в плейлісті ${items.length - added.length}.`);
         if (added.length > 0 && (!activeId || !playlistRef.current.some((p) => p.id === activeId))) {
           setActiveId(added[0].id);
           void openTrack(added[0]);
@@ -1121,8 +1121,15 @@ export function usePlayer() {
   const setMeterMode = useCallback(
     async (mode: number) => {
       if (!ready || !activeId) return;
-      patchItem(activeId, (it) => ({ ...it, meterMode: mode, loops: [], activeLoop: null }));
-      setLoops([]);
+      // the loops belong to the meter mode they were made in: they are put aside now and come back when this mode is chosen again
+      const cur = playlistRef.current.find((p) => p.id === activeId);
+      const key = String(cur?.meterMode ?? 0);
+      const saved = { ...(cur?.modeLoops ?? {}), [key]: { loops: cur?.loops ?? [], activeLoop: cur?.activeLoop ?? null } };
+      const back = saved[String(mode)];
+      const backLoops = key === String(mode) ? [] : (back?.loops ?? []);
+      const backActive = key === String(mode) ? null : (back?.activeLoop ?? null);
+      patchItem(activeId, (it) => ({ ...it, meterMode: mode, modeLoops: saved, loops: backLoops, activeLoop: backActive }));
+      setLoops(backLoops);
       setActiveLoop(null);
       await core.clearLoop().catch(() => {});
       const ok = await core.setMeterMode(mode).catch(() => false);
@@ -1130,6 +1137,10 @@ export function usePlayer() {
       const fresh = await readySnapshot(() => false);   // the tempo is halved / doubled together with the mode
       const data = await core.songData();
       setSong(data);
+      if (backActive !== null && backLoops[backActive]) {   // a loop that was playing in this mode plays again
+        const okLoop = await core.setLoop(backLoops[backActive].start, backLoops[backActive].end).catch(() => false);
+        if (okLoop) setActiveLoop(backActive);
+      }
       const len = mostCommonBarLength(data);
       patchItem(activeId, (it) => ({
         ...it,

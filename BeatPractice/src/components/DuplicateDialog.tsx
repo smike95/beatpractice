@@ -32,7 +32,7 @@ export function DuplicateDialog(props: { lang: Lang; ask: DupAsk; tags: Playlist
           {it.cover ? <img src={it.cover} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" /> : <CoverPlaceholder className="h-14 w-14" rounded="rounded-lg" />}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold" title={it.title || it.name}>{it.title || it.name}</p>
-            <p className="truncate text-xs text-slate-400">{it.artist || L("виконавець не вказаний", "no artist")}</p>
+            <p className="truncate text-xs text-slate-400">{it.artist || L("без виконавця", "no artist")}</p>
           </div>
         </div>
         <dl className="space-y-1 text-xs">
@@ -58,7 +58,7 @@ export function DuplicateDialog(props: { lang: Lang; ask: DupAsk; tags: Playlist
         {column(ask.incoming, L("Новий", "New"))}
       </div>
       <p className="text-xs text-slate-400">
-        {L("«Обʼєднати» залишає один трек, у якому поєднано найкраще з обох: виконавець, назва й обкладинка беруться з того, де вони є; звук — з того, де є партії або розпізнавання; теги й цикли додаються з обох.", "“Merge” keeps one track that has the best of both: artist, title and cover come from the one that has them; the sound comes from the one with separated parts or analysis; tags and loops are added from both.")}
+        {L("«Об’єднати» залишає один трек із найкращим з обох: виконавець, назва й обкладинка – з того, де вони є; звук – з того, де є партії чи розпізнавання; теги й цикли – з обох.", "“Merge” keeps one track that has the best of both: artist, title and cover come from the one that has them; the sound comes from the one with separated parts or analysis; tags and loops are added from both.")}
       </p>
       {left > 0 && (
         <label className="flex cursor-pointer select-none items-center gap-3">
@@ -69,7 +69,7 @@ export function DuplicateDialog(props: { lang: Lang; ask: DupAsk; tags: Playlist
       <div className="flex flex-wrap justify-end gap-2">
         <button type="button" id="btn-dup-keep-existing" className={btn.neutral} onClick={() => onAnswer("keep-existing", all)}>{L("Залишити наявний", "Keep the existing")}</button>
         <button type="button" id="btn-dup-keep-new" className={btn.neutral} onClick={() => onAnswer("keep-new", all)}>{L("Залишити новий", "Keep the new")}</button>
-        <button type="button" id="btn-dup-merge" className={btn.cta} onClick={() => onAnswer("merge", all)}>{L("Обʼєднати", "Merge")}</button>
+        <button type="button" id="btn-dup-merge" className={btn.cta} onClick={() => onAnswer("merge", all)}>{L("Об’єднати", "Merge")}</button>
       </div>
     </Modal>
   );

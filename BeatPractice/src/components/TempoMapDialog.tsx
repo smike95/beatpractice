@@ -41,8 +41,8 @@ export function TempoMapDialog(props: {
 
       <div className="space-y-1.5">
         <div className="text-xs font-semibold text-slate-300">{L("Темп", "Tempo")}</div>
-        <Segmented ariaLabel={L("Ділення темпу навпіл", "Divide the tempo by two")} value={halveTempo} onChange={onHalveTempo} disabled={disabled}
-          options={[{ value: false, label: L("Як визначено", "As detected") }, { value: true, label: "÷ 2", title: L("Темп усього треку ділиться навпіл", "The tempo of the whole track is divided by two") }]} />
+        <Segmented ariaLabel={L("Темп", "Tempo")} value={halveTempo} onChange={onHalveTempo} disabled={disabled}
+          options={[{ value: false, label: L("Як визначено", "As detected") }, { value: true, label: L("Вдвічі повільніше", "Half speed"), title: L("Темп усього треку ділиться навпіл", "The tempo of the whole track is divided by two") }]} />
         <p className="text-xs text-slate-400">{L("Для швидких пісень, темп яких визначено вдвічі завищеним (наприклад, 210 замість 105).", "For fast songs whose tempo was found twice too high (for example 210 instead of 105).")}</p>
       </div>
 
@@ -52,14 +52,14 @@ export function TempoMapDialog(props: {
           options={[
             { value: 0, label: L("Авто", "Auto"), title: L("Збалансовано: такти з 3–7 долей, зміни розміру за чітких ознак", "Balanced: bars of 3 to 7 beats, changes need clear evidence") },
             { value: 1, label: L("Чутливо", "Sensitive"), title: L("Ближче до нейромережі: легше знаходить непарні й змінні розміри", "Follows the neural network more closely: finds odd and changing meters more readily") },
-            { value: 2, label: L("Грубо", "Coarse"), title: L("Лише 3/4 і 4/4, зміни розміру лише за дуже чітких ознак", "Only 3/4 and 4/4, changes need strong evidence") },
+            { value: 2, label: L("Спрощено", "Simplified"), title: L("Лише 3/4 і 4/4, зміни розміру лише за дуже чітких ознак", "Only 3/4 and 4/4, changes need strong evidence") },
           ]} />
         <p className="text-xs text-slate-400">
-          {L("Якщо складний трек показано з хибним розміром, спробуйте «Чутливо» або «Грубо».", "If a complex song is shown with the wrong meter, try “Sensitive” or “Coarse”.")}
+          {L("Якщо складний трек показано з хибним розміром, спробуйте «Чутливо» або «Спрощено».", "If a complex song is shown with the wrong meter, try “Sensitive” or “Simplified”.")}
         </p>
         <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-500">
           <AlertTriangle className="h-4 w-4 shrink-0" />
-          {L("Під час зміни режиму цикли цього треку скидаються.", "Changing the mode clears the loops of this track.")}
+          {L("Зміна режиму скидає цикли цього треку.", "Changing the mode clears the loops of this track (they come back when you return to the mode).")}
         </p>
       </div>
 

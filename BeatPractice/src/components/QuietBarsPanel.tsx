@@ -1,5 +1,5 @@
 import { Volume2 } from "lucide-react";
-import { MetronomeConfig } from "../types";
+import { MetronomeConfig, barsText } from "../types";
 import { Switch } from "./Switch";
 import { PanelCard } from "./ui/PanelCard";
 import { Field } from "./ui/Field";
@@ -32,15 +32,15 @@ export function QuietBarsPanel(props: {
       actions={
         <div className="flex items-center gap-3">
           <span className="text-xs font-semibold text-slate-400"><StableLabel align="text-right" active={on ? 1 : 0} labels={[L("Вимкнено", "Off"), L("Увімкнено", "On")]} /></span>
-          <Switch checked={on} onChange={() => onChange({ quietEnabled: !on })} label={on ? L("Вимкнути тихі такти", "Turn quiet bars off") : L("Увімкнути тихі такти", "Turn quiet bars on")} />
+          <Switch checked={on} onChange={() => onChange({ quietEnabled: !on, ...(!on && !config.enabled ? { enabled: true } : {}) })   /* quiet bars need the metronome: turning them on turns it on */} label={on ? L("Вимкнути тихі такти", "Turn quiet bars off") : L("Увімкнути тихі такти", "Turn quiet bars on")} />
         </div>
       }
     >
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <Field label={L("З метрономом, тактів", "With the metronome, bars")}>
+        <Field label={L("Тактів з метрономом", "Bars with the metronome")}>
           <SpinField id="quiet-click-bars" value={cb} min={1} max={16} label={L("Тактів із метрономом", "Bars with the metronome")} onChange={(v) => onChange({ quietClickBars: v })} />
         </Field>
-        <Field label={L("Без метронома, тактів", "Without it, bars")}>
+        <Field label={L("Тактів без метронома", "Bars without the metronome")}>
           <SpinField id="quiet-silent-bars" value={qb} min={1} max={16} label={L("Тактів без метронома", "Silent bars")} onChange={(v) => onChange({ quietBars: v })} />
         </Field>
       </div>
@@ -51,14 +51,14 @@ export function QuietBarsPanel(props: {
           value={cont}
           onChange={(v) => onChange({ quietContinue: v })}
           options={[
-            { value: false, label: L("Заново в циклі", "Restart"), title: L("У кожному проході циклу схема починається спочатку", "Every pass of the loop starts the pattern again") },
+            { value: false, label: L("Спочатку", "From the start"), title: L("У кожному проході циклу схема починається спочатку", "Every pass of the loop starts the pattern again") },
             { value: true, label: L("Продовжувати", "Continue"), title: L("При повторі циклу схема йде далі, не починаючись спочатку", "On a loop repeat the pattern goes on instead of starting again") },
           ]}
         />
       </Field>
       <p className="text-xs text-slate-500">
-        {L(`Схема: ${cb} з кліком, ${qb} без.`, `Pattern: ${cb} with clicks, ${qb} silent.`)}
-        {!config.enabled && ` ${L("Метроном зараз вимкнений: схема не буде чутна.", "The metronome is off: the pattern will not be heard.")}`}
+        {L(`Схема: ${barsText(cb, "uk")} з метрономом, ${barsText(qb, "uk")} без метронома.`, `Pattern: ${barsText(cb, "en")} with the metronome, ${barsText(qb, "en")} without it.`)}
+        {!config.enabled && ` ${L("Метроном вимкнено: тихі такти не буде чути.", "The metronome is off: the quiet bars will not be heard.")}`}
       </p>
     </PanelCard>
   );

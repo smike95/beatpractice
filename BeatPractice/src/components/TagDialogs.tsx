@@ -57,7 +57,7 @@ export function TrackTagsDialog(props: {
       <ModalHeader title={L("Теги треку", "Tags of the track")} onClose={onClose} closeLabel={L("Закрити", "Close")} />
       <p className="truncate text-xs text-slate-400">{displayName(item)}</p>
       {tags.length === 0 ? (
-        <p className="text-sm text-slate-400">{L("Тегів ще немає. Створіть перший нижче.", "There are no tags yet. Make the first one below.")}</p>
+        <p className="text-sm text-slate-400">{L("Тегів ще немає. Введіть назву нижче, щоб створити перший.", "There are no tags yet. Type a name below to make the first one.")}</p>
       ) : (
         <div className="flex flex-wrap gap-2" role="group" aria-label={L("Теги", "Tags")}>
           {tags.map((t) => (
@@ -116,7 +116,7 @@ export function ManageTagsDialog(props: {
       {doomed && (
         <div className="space-y-2 rounded-xl border border-rose-500/40 p-3" role="alert">
           <p className="text-sm">
-            {L(`Видалити тег «${doomed.name}»? Він зникне з усіх треків, де був (${counts[doomed.id] ?? 0}).`, `Delete the tag “${doomed.name}”? It will disappear from every track that has it (${counts[doomed.id] ?? 0}).`)}
+            {L(`Видалити тег «${doomed.name}»? Його буде знято з усіх треків (${counts[doomed.id] ?? 0}).`, `Delete the tag “${doomed.name}”? It will be removed from all tracks (${counts[doomed.id] ?? 0}).`)}
           </p>
           <div className="flex justify-end gap-2">
             <button type="button" className={btn.neutral} onClick={() => setPending(null)}>{L("Скасувати", "Cancel")}</button>

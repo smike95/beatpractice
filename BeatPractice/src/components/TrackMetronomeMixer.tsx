@@ -49,7 +49,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
         onClick={onExpandedToggle}
         aria-expanded={expanded}
         aria-controls="mixer-details"
-        title={expanded ? (lang === 'en' ? 'Fold the mixer' : 'Згорнути мікшер') : (lang === 'en' ? 'Unfold the mixer: stem separation' : 'Розгорнути мікшер: розділення на партії')}
+        title={expanded ? (lang === 'en' ? 'Fold the mixer' : 'Згорнути мікшер') : (lang === 'en' ? 'Unfold the mixer' : 'Розгорнути мікшер')}
         className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider shrink-0 cursor-pointer rounded-lg px-2.5 mr-2 min-h-11 sm:min-h-9 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
       >
         <Sliders className="w-6 h-6 text-slate-700 dark:text-slate-300" />
@@ -99,7 +99,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
             title={isMetronomeEnabled ? 'Вимкнути метроном' : 'Увімкнути метроном'}
           >
             <MetronomeIcon className={`w-6 h-6 mixer-icon ${isMetronomeEnabled ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
-            <span className="mixer-label">Клік</span>
+            <span className="mixer-label">{lang === 'en' ? 'Metronome' : 'Метроном'}</span>
           </button>
 
           <Slider

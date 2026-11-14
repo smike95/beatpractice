@@ -23,8 +23,8 @@ export function LoopConflictDialog(props: {
   const many = hits.length > 1;
   const names = hits.map((i) => `«${loopLabel(loops[i], i, lang)}»`).join(", ");
   const title = many
-    ? L("Новий цикл зачіпає кілька існуючих", "The new loop touches several loops")
-    : L("Новий цикл накладається на існуючий", "The new loop overlaps an existing loop");
+    ? L("Новий цикл зачіпає кілька наявних", "The new loop touches several existing loops")
+    : L("Новий цикл накладається на наявний", "The new loop overlaps an existing loop");
   const text = many
     ? L(`Він має спільні такти з: ${names}. Створити новий цикл чи змінити один із них?`, `It shares bars with: ${names}. Create a new loop, or change one of them?`)
     : L(`Він має спільні такти з ${names}. Створити новий цикл чи змінити цей?`, `It shares bars with ${names}. Create a new loop, or change that one?`);
@@ -34,7 +34,7 @@ export function LoopConflictDialog(props: {
       <h3 className="text-base font-bold">{title}</h3>
       <p className="text-sm text-slate-300">{text}</p>
       {!canCreate && (
-        <p className="text-xs text-slate-400">{L("Усі місця для циклів зайняті, тож можна лише змінити існуючий.", "All loop places are taken, so you can only change an existing loop.")}</p>
+        <p className="text-xs text-slate-400">{L("Усі три місця для циклів зайняті, тому можна лише змінити наявний цикл.", "All three loop places are taken, so you can only change an existing loop.")}</p>
       )}
       <div className="flex flex-col gap-2">
         {canCreate && (

@@ -38,14 +38,14 @@ export function MetronomeSettingsForm(props: {
           options={[{ value: false, label: L("Вимк", "Off") }, { value: true, label: L("Увімк", "On") }]} />
       </Row>
       {beats && (
-        <Row label={L("Тактовий розмір", "Time signature")}>
+        <Row label={L("Розмір такту", "Bar size")}>
           <Segmented fill ariaLabel={L("Долей у такті", "Beats per bar")} value={beats.value} onChange={beats.onChange}
             options={[2, 3, 4, 5, 6, 7].map((n) => ({ value: n, label: String(n) }))} />
         </Row>
       )}
       {countIn && (
         <Row label={L("Відлік", "Count-in")}>
-          <Segmented fill ariaLabel={L("Відлік перед стартом", "Count-in before the start")} value={countIn.bars} onChange={countIn.onBars}
+          <Segmented fill ariaLabel={L("Відлік", "Count-in")} value={countIn.bars} onChange={countIn.onBars}
             options={[{ value: 0, label: L("Вимк", "Off") }, { value: 1, label: L("1 такт", "1 bar") }, { value: 2, label: L("2 такти", "2 bars") }]} />
         </Row>
       )}
@@ -56,7 +56,7 @@ export function MetronomeSettingsForm(props: {
       {countIn && (
         <Row label={L("Коли звучить відлік", "When the count-in sounds")}>
           <Segmented fill ariaLabel={L("Коли звучить відлік", "When the count-in sounds")} value={countIn.onlyAtStart} onChange={countIn.onMode} disabled={countIn.bars === 0}
-            options={[{ value: true, label: L("Тільки на початку", "Only at the start") }, { value: false, label: L("Перед кожним «плей»", "Before every play") }]} />
+            options={[{ value: true, label: L("Тільки на початку", "Only at the start") }, { value: false, label: L("Перед кожним запуском", "Before every play") }]} />
         </Row>
       )}
     </div>

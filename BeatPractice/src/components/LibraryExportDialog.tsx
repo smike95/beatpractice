@@ -7,6 +7,7 @@ import { displayName } from "../player/usePlayer";
 import type { PlaylistItem, PlaylistTag } from "../types";
 import { Modal, ModalHeader } from "./ui/Modal";
 import { btn } from "./ui/styles";
+import { Segmented } from "./ui/Segmented";
 
 type Lang = "uk" | "en";
 type Phase = "idle" | "running" | "done" | "error";
@@ -30,7 +31,10 @@ export function LibraryExportDialog(props: {
   const { lang, playlist, tags, listForTag, startTag, activeItem, onRestore, onClose } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [scope, setScope] = useState<string>(startTag ?? "all");
-  const [withStems, setWithStems] = useState(true);
+  const [stemsMode, setStemsMode] = useState<"none" | "picked" | "all">("none");   // the parts in the library: for no track / the chosen ones / every track
+  const [pickedStems, setPickedStems] = useState<Set<string>>(new Set());
+  const [separateMissing, setSeparateMissing] = useState(false);                    // separate the song where it is not separated yet
+  const [stemPct, setStemPct] = useState(0);
   const [phase, setPhase] = useState<Phase>("idle");
   const [stage, setStage] = useState("");
   const [cur, setCur] = useState({ i: 0, name: "" });
@@ -53,17 +57,18 @@ export function LibraryExportDialog(props: {
       await sleep(300);
     }
   };
-  const waitStems = async (): Promise<boolean> => {
-    for (let n = 0; n < 1200; n++) {
-      if (cancelled.current) return false;
+  const waitStems = async (separating: boolean): Promise<boolean> => {
+    for (;;) {
+      if (cancelled.current) { if (separating) { try { await core.stemsCancel(); } catch { /* ignore */ } } return false; }
       const s = await core.snapshot();
       const st = s.stems?.state ?? 0;
       if (st === 2) return true;
       if (st >= 3) return false;
-      setStage(L("завантаження партій", "loading the parts"));
-      await sleep(250);
+      if (st === 0 && separating) return false;
+      setStemPct(Math.round((s.stems?.progress ?? 0) * 100));
+      setStage(separating ? L("розділення на партії", "separating into parts") : L("завантаження партій", "loading the parts"));
+      await sleep(300);
     }
-    return false;
   };
   const waitPack = async (): Promise<boolean> => {
     for (;;) {
@@ -111,11 +116,19 @@ export function LibraryExportDialog(props: {
         await core.setMeterMode(it.meterMode ?? 0).catch(() => false);
         let groups = "";
         let mix = true;
-        if (withStems) {
+        const wantStems = stemsMode === "all" || (stemsMode === "picked" && pickedStems.has(it.id));
+        if (wantStems) {
           const info = await core.stemsInfo().catch(() => null);
-          if (info?.supported && info.cached) {
-            await core.stemsStart().catch(() => false);
-            if (await waitStems()) {
+          if (info?.cached) {
+            await core.stemsStart().catch(() => false);          // the finished parts are loaded
+            if (await waitStems(false)) {
+              const names = (await core.stemsInfo()).names;
+              if (names.length > 0) { groups = names.map((_, k) => String(k)).join(";"); mix = false; }
+            }
+          } else if (separateMissing && info?.available) {
+            setStemPct(0);
+            const startedSplit = await core.stemsStart().catch(() => false);   // not separated yet: it is separated now (takes minutes)
+            if (startedSplit && (await waitStems(true))) {
               const names = (await core.stemsInfo()).names;
               if (names.length > 0) { groups = names.map((_, k) => String(k)).join(";"); mix = false; }
             }
@@ -184,7 +197,7 @@ export function LibraryExportDialog(props: {
         {result.skipped.length > 0 && (
           <p className="text-sm text-sky-500">{L("Не вдалося додати: ", "Could not add: ")}{result.skipped.join(", ")}</p>
         )}
-        <p className="text-xs text-slate-400">{L("Скопіюйте цей файл на інший пристрій і відкрийте його в програмі (або перетягніть у вікно): усі треки з'являться в плейлісті з тегами та порядком, а розпізнавати нічого не треба.", "Copy this file to another device and open it in the app (or drop it on the window): all the tracks appear in the playlist with their tags and order, and nothing has to be analysed.")}</p>
+        <p className="text-xs text-slate-400">{L("Скопіюйте цей файл на інший пристрій і відкрийте його в програмі (або перетягніть у вікно): усі треки з’являться в плейлісті з тегами та порядком, а розпізнавати нічого не треба.", "Copy this file to another device and open it in the app (or drop it on the window): all the tracks appear in the playlist with their tags and order, and nothing has to be analysed.")}</p>
         <div className="flex justify-end"><button className={btn.cta} onClick={onClose}>{L("Закрити", "Close")}</button></div>
       </Modal>
     );
@@ -208,11 +221,32 @@ export function LibraryExportDialog(props: {
               </label>
             ))}
           </div>
-          <label className={radio}>
-            <input type="checkbox" className="h-5 w-5" checked={withStems} onChange={(e) => setWithStems(e.target.checked)} />
-            <span>{L("Додати розділені партії, якщо вони вже є", "Include the separated parts when they exist")}</span>
-          </label>
-          <p className="text-xs text-slate-400">{L("Треки без розпізнавання буде розпізнано зараз: це може зайняти час. Партії самі не розділяються, беруться лише готові (файл з ними значно більший).", "Tracks that have not been analysed are analysed now, which can take a while. Parts are not separated for this, only the finished ones are taken (the file is much larger with them).")}</p>
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">{L("Партії у збірці", "Parts in the library")}</div>
+            <Segmented id="lib-stems-mode" ariaLabel={L("Партії у збірці", "Parts in the library")} value={stemsMode} onChange={setStemsMode}
+              options={[{ value: "none", label: L("Без партій", "No parts") }, { value: "picked", label: L("Для обраних", "For chosen") }, { value: "all", label: L("Для всіх", "For all") }]} />
+            {stemsMode === "picked" && (
+              <ul className="max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-slate-700/70 p-1.5">
+                {list.map((it) => (
+                  <li key={it.id}>
+                    <label className={radio}>
+                      <input type="checkbox" className="h-5 w-5" checked={pickedStems.has(it.id)}
+                        onChange={() => setPickedStems((p) => { const n = new Set(p); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; })} />
+                      <span className="min-w-0 flex-1 truncate">{displayName(it)}</span>
+                      <span className={`shrink-0 text-xs ${it.hasStems ? "text-emerald-600" : "text-slate-400"}`}>{it.hasStems ? L("партії є", "has parts") : L("партій немає", "no parts")}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {stemsMode !== "none" && (
+              <label className={radio}>
+                <input type="checkbox" className="h-5 w-5" checked={separateMissing} onChange={(e) => setSeparateMissing(e.target.checked)} />
+                <span>{L("Розділити на партії треки, де їх ще немає", "Separate the tracks that have no parts yet")}</span>
+              </label>
+            )}
+          </div>
+          <p className="text-xs text-slate-400">{L("Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Tracks that have not been analysed are analysed now, which can take a while.")}{stemsMode !== "none" && L(" З партіями файл значно більший; розділення кожного треку теж триває кілька хвилин.", " The file is much larger with the parts; separating each track also takes a few minutes.")}</p>
           {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
           <div className="flex justify-end gap-2">
             <button className={btn.neutral} onClick={onClose}>{L("Скасувати", "Cancel")}</button>
@@ -224,7 +258,7 @@ export function LibraryExportDialog(props: {
         <>
           <p className="text-sm font-semibold">{L(`Трек ${cur.i} з ${list.length}`, `Track ${cur.i} of ${list.length}`)}</p>
           <p className="truncate text-sm text-slate-300" title={cur.name}>{cur.name}</p>
-          <p className="text-xs text-slate-400">{stage}</p>
+          <p className="text-xs text-slate-400">{stage}{stage.startsWith(L("розділення", "separating")) ? ` ${stemPct}%` : ""}</p>
           <div className="h-2 overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuenow={Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)} aria-valuemin={0} aria-valuemax={100}>
             <div className="h-full rounded-full bg-sky-500 transition-[width] duration-200" style={{ width: `${Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)}%` }} />
           </div>

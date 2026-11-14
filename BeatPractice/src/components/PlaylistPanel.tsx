@@ -263,8 +263,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       {inTagView && (
         <p className="mt-1.5 shrink-0 text-xs text-slate-400">
           {lang === 'en'
-            ? `Saved list of the tag “${tagName(tagView!) ?? ''}”: drag the tracks to order them here; the main playlist keeps its own order.`
-            : `Збережений список тегу «${tagName(tagView!) ?? ''}»: перетягуйте треки, щоб впорядкувати їх тут; головний плейліст зберігає свій порядок.`}
+            ? `List of the tag “${tagName(tagView!) ?? ''}”. The order of the filtered tracks does not affect the order in the main playlist.`
+            : `Список тегу «${tagName(tagView!) ?? ''}». Порядок відфільтрованих треків не впливає на порядок в основному плейлісті.`}
         </p>
       )}
 
@@ -442,6 +442,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         <Modal id="confirm-delete-track" role="alertdialog" width="md" layer="z-[100]" onClose={() => setPendingDelete(null)}>
           <p className="text-base font-bold">{lang === 'en' ? 'Remove this track from the playlist?' : 'Видалити цей трек із плейліста?'}</p>
           <p className="text-sm break-words">{displayName(pendingDelete)}</p>
+          <p className="text-xs text-slate-400">{lang === 'en' ? 'The file on the disk stays.' : 'Файл на диску залишиться.'}</p>
           <div className="flex flex-wrap justify-end gap-2">
             <button className={btn.neutral} onClick={() => setPendingDelete(null)}>
               {lang === 'en' ? 'Cancel' : 'Скасувати'}

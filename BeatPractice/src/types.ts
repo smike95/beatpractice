@@ -47,6 +47,7 @@ export interface PlaylistItem {
   speed: number; // playback ratio remembered for this track
   loops: LoopSlot[]; // up to 3 training loops
   activeLoop: number | null; // index of the loop that is switched on
+  modeLoops?: Record<string, { loops: LoopSlot[]; activeLoop: number | null }>; // the loops made under each meter mode: they come back when the mode is chosen again
   meterMode?: number; // 0 automatic, 1 sensitive, 2 strict (3 and 4 beats only)
   artist?: string; // set by the user
   title?: string;
@@ -105,6 +106,6 @@ export function loopColor(index: number, isDark: boolean): { solid: string; fill
 
 /** Names of the metronome sounds, in the order of the core: [Ukrainian, English]. */
 export const CLICK_SOUND_NAMES: Array<[string, string]> = [
-  ["Класичний", "Classic"], ["Дерев'яний блок", "Wood block"], ["Хай-хет", "Hi-hat"],
+  ["Класичний", "Classic"], ["Дерев’яний блок", "Wood block"], ["Хай-хет", "Hi-hat"],
   ["Рім-клік", "Rim click"], ["Ковбел", "Cowbell"], ["Електронний біп", "Electronic beep"],
 ];

@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { canShareSaved, pickSavePath, shareSaved } from "../platform";
 import { Download } from "lucide-react";
 import { core, type ExportStatus } from "../core";
-import { LoopSlot, loopLabel } from "../types";
+import { LoopSlot, barsText, loopLabel } from "../types";
 import { NAMES } from "./StemsPanel";
 import { NumberStepper } from "./NumberStepper";
 import { Modal, ModalHeader } from "./ui/Modal";
 import { btn } from "./ui/styles";
+import { Segmented } from "./ui/Segmented";
 
 type Lang = "uk" | "en";
 
@@ -56,8 +57,8 @@ export function ExportDialog(props: {
   const [withClick, setWithClick] = useState(metronomeOn);
   const [accent, setAccent] = useState(accentOn);
   const [quietOn, setQuietOn] = useState(quiet.enabled);
-  const [withCountIn, setWithCountIn] = useState(countInBars > 0);
-  const [ciBars, setCiBars] = useState(countInBars > 0 ? Math.min(2, countInBars) : 1);
+  const [ciBars, setCiBars] = useState(Math.min(2, countInBars));   // the count-in: 0 = off, 1 or 2 bars
+  const withCountIn = ciBars > 0;
   const [separate, setSeparate] = useState(false);
   const [clickTarget, setClickTarget] = useState(-1);               // separate files: -1 = own file, else the part that gets the clicks
   const [picked, setPicked] = useState<boolean[]>(() => stemNames.map((_, i) => !stemMuted[i]));
@@ -109,16 +110,16 @@ export function ExportDialog(props: {
     ? `${bpm.toFixed(1)} BPM · ${L("оригінал", "original")} ${originalBpm.toFixed(1)} BPM (${Math.round((bpm / originalBpm) * 100)}%)`
     : `${bpm.toFixed(1)} BPM`;
   const clickSummary = !withClick ? L("Без метронома", "No metronome") : [
-    L("Клік у файлі", "Clicks included"),
+    L("Метроном у файлі", "Metronome included"),
     accent ? L("з акцентом", "accented") : L("без акценту", "no accent"),
     quietOn ? L(`тихі такти ${quiet.clickBars}+${quiet.quietBars}`, `quiet bars ${quiet.clickBars}+${quiet.quietBars}`) : null,
-    withCountIn ? L(`відлік ${ciBars} ${ciBars === 1 ? "такт" : "такти"}`, `count-in ${ciBars} bar${ciBars === 1 ? "" : "s"}`) : null,
-    separate && hasStems ? (clickTargetValid ? L(`у доріжці «${nm(stemNames[clickTarget])}»`, `in “${nm(stemNames[clickTarget])}”`) : L("окремим файлом", "as a separate file")) : null,
+    withCountIn ? L(`відлік ${barsText(ciBars, "uk")}`, `count-in ${barsText(ciBars, "en")}`) : null,
   ].filter(Boolean).join(" · ");
   const partsSummary = !hasStems ? L("Трек не розділено на партії", "The track is not split into parts") : [
     chosen.map((i) => nm(stemNames[i])).join(", ") || L("нічого не вибрано", "nothing chosen"),
     separate ? L("кожна окремим файлом", "each as a separate file") : L("одним файлом", "one file"),
-  ].join(" · ");
+    separate && withClick ? (clickTargetValid ? L(`метроном у партії «${nm(stemNames[clickTarget])}»`, `metronome in “${nm(stemNames[clickTarget])}”`) : L("метроном окремим файлом", "metronome as a separate file")) : null,
+  ].filter(Boolean).join(" · ");
   const rangeSummary = range < 0 ? L("Весь трек", "The whole track")
     : `${L("Тільки цикл", "Only the loop")} «${loopLabel(loopSlot, range, lang)}» (${mmss(loopSlot!.start)} – ${mmss(loopSlot!.end)})`;
 
@@ -156,7 +157,7 @@ export function ExportDialog(props: {
         clickIntoStem: clickTargetValid ? clickTarget : -1,
       });
       setFileCount(hasStems && separate ? chosen.length + (withClick && !clickTargetValid ? 1 : 0) : 1);
-      if (!ok) { setErr(L("Не вдалося почати експорт (уже триває інший або трек не готовий).", "Could not start the export (another one is running or the track is not ready).")); return; }
+      if (!ok) { setErr(L("Не вдалося почати експорт: триває інший експорт або трек ще не готовий.", "Could not start the export: another export is running or the track is not ready yet.")); return; }
       startPolling();
     } catch (e) { setErr(String(e)); }
   };
@@ -173,8 +174,8 @@ export function ExportDialog(props: {
     return (
       <Modal id="export-dialog" width="lg" onClose={onClose}>
           <p className="text-base font-bold text-emerald-600">{L("Трек успішно експортовано", "The track was exported successfully")}</p>
-          {canShareSaved && <button id="btn-export-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.wav$/i, ""))}>{L("Зберегти на пристрій / надіслати", "Save to the device / send")}</button>}
-          <p className="text-sm break-all">{fileCount > 1 ? L(`Збережено файлів: ${fileCount}. Назва початку`, `Files saved: ${fileCount}. Name starts with`) : L("Файл збережено", "Saved to")}: {fileCount > 1 ? outPath.replace(/\.wav$/i, "") + " - …" : outPath}</p>
+          {canShareSaved && <button id="btn-export-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.wav$/i, ""))}>{L("Зберегти або надіслати", "Save or send")}</button>}
+          <p className="text-sm break-all">{fileCount > 1 ? L(`Збережено файлів: ${fileCount}. Назви починаються з:`, `Files saved: ${fileCount}. Names start with:`) : L("Файл збережено", "Saved to")}: {fileCount > 1 ? outPath.replace(/\.wav$/i, "") + " - …" : outPath}</p>
           <div className="flex justify-end">
             <button id="btn-export-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>
           </div>
@@ -187,7 +188,7 @@ export function ExportDialog(props: {
         <ModalHeader title={L("Експорт треку", "Export track")} onClose={close} closeLabel={L("Закрити", "Close")} />
 
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
-        <p className="track-edit-label text-xs">{L("Трек експортується так, як налаштовано зараз. Біля кожного пункту його можна змінити.", "The track is exported as it is set up now. Each item can be changed.")}</p>
+        <p className="track-edit-label text-xs">{L("Трек буде збережено з поточними налаштуваннями. Змінити їх можна нижче.", "The track is saved with the current settings. You can change them below.")}</p>
 
         <Section id="export-sec-tempo" lang={lang} disabled={running} open={openSec === "tempo"} onToggle={() => toggle("tempo")}
           title={L("Темп", "Tempo")} summary={tempoSummary}>
@@ -201,35 +202,18 @@ export function ExportDialog(props: {
 
         <Section id="export-sec-metronome" lang={lang} disabled={running} open={openSec === "metronome"} onToggle={() => toggle("metronome")}
           title={L("Метроном", "Metronome")} summary={clickSummary}>
-          <label className={row}><input type="checkbox" className={chk} checked={withClick} disabled={running} onChange={(e) => setWithClick(e.target.checked)} /><span className="text-sm">{L("Додати клік метронома", "Add the metronome clicks")}</span></label>
+          <label className={row}><input type="checkbox" className={chk} checked={withClick} disabled={running} onChange={(e) => setWithClick(e.target.checked)} /><span className="text-sm">{L("Додати звук метронома", "Add the metronome sound")}</span></label>
           {withClick && (
             <div className="pl-8 space-y-2.5">
               <label className={row}><input type="checkbox" className={chk} checked={accent} disabled={running} onChange={(e) => setAccent(e.target.checked)} /><span className="text-sm">{L("Акцент на першій долі такту", "Accent on the first beat of the bar")}</span></label>
               <label className={row}><input type="checkbox" className={chk} checked={quietOn} disabled={running} onChange={(e) => setQuietOn(e.target.checked)} />
-                <span className="text-sm">{L(`Тихі такти (${quiet.clickBars} з кліком, ${quiet.quietBars} без)`, `Quiet bars (${quiet.clickBars} with clicks, ${quiet.quietBars} silent)`)}</span></label>
-              {quietOn && <p className="track-edit-label text-xs pl-8">{L("Кількість тактів задається у вкладці «Тренування».", "The number of bars is set in the “Training” tab.")}</p>}
+                <span className="text-sm">{L(`Тихі такти (${quiet.clickBars} з метрономом, ${quiet.quietBars} без)`, `Quiet bars (${quiet.clickBars} with clicks, ${quiet.quietBars} silent)`)}</span></label>
+              {quietOn && <p className="track-edit-label text-xs pl-8">{L("Кількість тактів задається в блоці «Тихі такти».", "The number of bars is set in the “Quiet bars” block.")}</p>}
               <div className="flex flex-wrap items-center gap-3">
-                <label className={row}><input id="export-countin" type="checkbox" className={chk} checked={withCountIn} disabled={running} onChange={(e) => setWithCountIn(e.target.checked)} /><span className="text-sm">{L("Відлік перед початком", "Count-in before the start")}</span></label>
-                {withCountIn && [1, 2].map((n) => (
-                  <button key={n} type="button" disabled={running} onClick={() => setCiBars(n)}
-                    className={btn.chip(ciBars === n)}>
-                    {n} {L(n === 1 ? "такт" : "такти", n === 1 ? "bar" : "bars")}
-                  </button>
-                ))}
+                <span className="text-sm">{L("Відлік", "Count-in")}</span>
+                <Segmented id="export-countin" ariaLabel={L("Відлік", "Count-in")} value={ciBars} onChange={setCiBars} disabled={running}
+                  options={[{ value: 0, label: L("Вимк", "Off") }, { value: 1, label: L("1 такт", "1 bar") }, { value: 2, label: L("2 такти", "2 bars") }]} />
               </div>
-              {separate && hasStems && (
-                <div className="space-y-1.5" role="radiogroup" aria-label={L("Куди покласти клік", "Where to put the clicks")}>
-                  <label className={row}><input type="radio" name="export-click-target" className={chk} checked={!clickTargetValid} disabled={running} onChange={() => setClickTarget(-1)} /><span className="text-sm">{L("Клік окремим файлом", "Clicks as a separate file")}</span></label>
-                  <div className="flex flex-wrap items-center gap-3">
-                    <label className={row}><input type="radio" name="export-click-target" className={chk} checked={clickTargetValid} disabled={running || chosen.length === 0} onChange={() => setClickTarget(clickTargetValid ? clickTarget : chosen[0])} /><span className="text-sm">{L("Клік у доріжку:", "Clicks into the part:")}</span></label>
-                    <select aria-label={L("Доріжка для кліку", "Part for the clicks")} disabled={running || !clickTargetValid} value={clickTargetValid ? clickTarget : (chosen[0] ?? 0)} onChange={(e) => setClickTarget(parseInt(e.target.value, 10))}
-                      className="track-edit-btn !w-auto px-2 py-1 text-xs rounded-lg border">
-                      {chosen.map((i) => <option key={i} value={i}>{nm(stemNames[i])}</option>)}
-                    </select>
-                  </div>
-                </div>
-              )}
-              {separate && hasStems && ciOn && <p className="track-edit-label text-xs">{L("Відлік у файлах, де немає кліку, — тиша тієї ж довжини, тож усі файли збігаються за часом.", "In files without the clicks the count-in is silence of the same length, so all files line up.")}</p>}
             </div>
           )}
         </Section>
@@ -249,10 +233,24 @@ export function ExportDialog(props: {
               <label className={row}><input type="radio" name="export-parts-mode" className={chk} checked={!separate} disabled={running} onChange={() => setSeparate(false)} /><span className="text-sm">{L("Одним треком (змішати позначені)", "As one track (mix the ticked parts)")}</span></label>
               <label className={row}><input type="radio" name="export-parts-mode" className={chk} checked={separate} disabled={running} onChange={() => setSeparate(true)} /><span className="text-sm">{L("Зберегти як окремі файли", "Save as separate files")}</span></label>
             </div>
+            {separate && withClick && (
+              <div className="space-y-1.5" role="radiogroup" aria-label={L("Метроном", "Metronome")}>
+                <div className="text-xs font-semibold track-edit-label">{L("Метроном:", "Metronome:")}</div>
+                <label className={row}><input type="radio" name="export-click-target" className={chk} checked={!clickTargetValid} disabled={running} onChange={() => setClickTarget(-1)} /><span className="text-sm">{L("Окремим файлом", "As a separate file")}</span></label>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className={row}><input type="radio" name="export-click-target" className={chk} checked={clickTargetValid} disabled={running || chosen.length === 0} onChange={() => setClickTarget(clickTargetValid ? -1 : (chosen[0] ?? -1))} /><span className="text-sm">{L("У партію:", "Into the part:")}</span></label>
+                  <select aria-label={L("Партія з метрономом", "Part with the metronome")} disabled={running || !clickTargetValid} value={clickTargetValid ? clickTarget : (chosen[0] ?? 0)} onChange={(e) => setClickTarget(parseInt(e.target.value, 10))}
+                    className="track-edit-btn !w-auto px-2 py-1 text-xs rounded-lg border">
+                    {chosen.map((i) => <option key={i} value={i}>{nm(stemNames[i])}</option>)}
+                  </select>
+                </div>
+                {ciOn && <p className="track-edit-label text-xs">{L("У файлах без метронома відлік замінено тишею тієї самої довжини, тому всі файли збігаються за часом.", "In files without the metronome the count-in is replaced by silence of the same length, so all files line up.")}</p>}
+              </div>
+            )}
             <p className="track-edit-label text-xs">
               {separate
-                ? L("Партії зберігаються з оригінальною гучністю (без регуляторів мікшера), однакової довжини, щоб їх можна було зібрати в іншій програмі.", "Parts are saved at their original level (mixer faders are not applied) and with equal length, so they can be put together in another program.")
-                : L("Позначені партії змішуються з рівнями з мікшера.", "The ticked parts are mixed at the mixer levels.")}
+                ? L("Партії зберігаються без урахування гучності в мікшері, усі однакової довжини: їх можна зібрати в іншій програмі.", "Parts are saved without the mixer levels, all of the same length, so they can be put together in another program.")
+                : L("Позначені партії змішуються в один файл з тією гучністю, яку встановлено в мікшері.", "The ticked parts are mixed into one file at the levels set in the mixer.")}
             </p>
           </Section>
         ) : (

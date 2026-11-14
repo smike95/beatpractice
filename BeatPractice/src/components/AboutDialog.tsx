@@ -16,16 +16,7 @@ const strip = (s: string) => s.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
 export function AboutDialog({ lang, onClose }: { lang: "uk" | "en"; onClose: () => void }) {
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [version, setVersion] = useState("");
-  const [tab, setTab] = useState<"eula" | "notices">("eula");
   useEffect(() => { appVersion().then(setVersion).catch(() => {}); }, []);
-
-  const tabBtn = (id: "eula" | "notices", label: string) => (
-    <button
-      type="button"
-      onClick={() => setTab(id)}
-      className={btn.chip(tab === id)}
-    >{label}</button>
-  );
 
   return (
     <Modal id="about-dialog" width="2xl" layer="z-[100]" scroll={false} className="flex flex-col" onClose={onClose}>
@@ -39,13 +30,17 @@ export function AboutDialog({ lang, onClose }: { lang: "uk" | "en"; onClose: () 
           </div>
           <button className={btn.icon} onClick={onClose} title={L("Закрити", "Close")}><X className="w-6 h-6" /></button>
         </div>
-        <div className="flex gap-2">
-          {tabBtn("eula", L("Ліцензійна угода", "License agreement"))}
-          {tabBtn("notices", L("Сторонні компоненти", "Third-party components"))}
+        {/* the license agreement and the third-party components: one scrolling text, one under the other */}
+        <div className="track-edit-cover border rounded-xl p-3 overflow-y-auto min-h-0 flex-1 max-h-[55vh] space-y-4" style={{ color: "inherit" }}>
+          <section aria-labelledby="about-eula-title">
+            <h3 id="about-eula-title" className="mb-1.5 text-sm font-bold">{L("Ліцензійна угода", "License agreement")}</h3>
+            <pre className="text-xs whitespace-pre-wrap break-words font-mono">{strip(eulaRaw)}</pre>
+          </section>
+          <section aria-labelledby="about-notices-title">
+            <h3 id="about-notices-title" className="mb-1.5 text-sm font-bold">{L("Сторонні компоненти", "Third-party components")}</h3>
+            <pre className="text-xs whitespace-pre-wrap break-words font-mono">{strip(noticesRaw)}</pre>
+          </section>
         </div>
-        <pre className="track-edit-cover border rounded-xl p-3 text-xs whitespace-pre-wrap break-words overflow-y-auto min-h-0 flex-1 max-h-[55vh] font-mono" style={{ color: "inherit" }}>
-          {strip(tab === "eula" ? eulaRaw : noticesRaw)}
-        </pre>
         <div className="flex justify-end">
           <button className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>
         </div>
