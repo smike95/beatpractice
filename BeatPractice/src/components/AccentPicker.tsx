@@ -8,6 +8,11 @@ export function AccentPicker(props: { lang: "uk" | "en"; isDark: boolean; value:
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
+  const [pos, setPos] = useState<{ left: number; bottom: number } | null>(null);
+  const toggle = () => {
+    if (!open && box.current) { const r = box.current.getBoundingClientRect(); setPos({ left: Math.max(8, Math.min(r.left, window.innerWidth - 232)), bottom: window.innerHeight - r.top + 6 }); }
+    setOpen((v) => !v);
+  };
   useEffect(() => {
     if (!open) return;
     const down = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false); };
@@ -29,16 +34,15 @@ export function AccentPicker(props: { lang: "uk" | "en"; isDark: boolean; value:
         aria-haspopup="listbox"
         aria-expanded={open}
         title={L("Акцентний колір (тимчасово)", "Accent colour (temporary)")}
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold cursor-pointer select-none"
       >
         <Palette className="w-6 h-6" />
         {dot(cur ? (isDark ? cur.dark : cur.light) : null)}
-        <span className="hidden sm:inline font-medium">{cur ? (lang === "en" ? cur.en : cur.uk) : L("Акцент", "Accent")}</span>
-        <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-4 h-4" />
       </button>
       {open && (
-        <div role="listbox" aria-label={L("Акцентний колір", "Accent colour")} className="absolute right-0 z-50 mt-1 max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800 p-1 shadow-xl text-slate-100">
+        <div role="listbox" aria-label={L("Акцентний колір", "Accent colour")} style={pos ? { left: pos.left, bottom: pos.bottom } : undefined} className="fixed z-50 max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800 p-1 shadow-xl text-slate-100">
           <button type="button" role="option" aria-selected={value === "default"} className={item} onClick={() => { onChange("default"); setOpen(false); }}>
             {dot(null)}<span className="flex-1">{L("Стандартний", "Default")}</span>{value === "default" && <Check className="h-4 w-4" />}
           </button>

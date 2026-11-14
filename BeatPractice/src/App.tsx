@@ -374,7 +374,7 @@ export default function App() {
             onRemoveTrack={handleRemoveTrackFromPlaylist}
             onOpenAddFiles={openFilesDialog}
             onReorder={player.reorderTracks}
-            footer={<div className="flex items-center gap-2">{themeLangButtons('')}</div>}
+            footer={<div className="flex flex-wrap items-center gap-2">{themeLangButtons('')}</div>}
             lang={lang}
             compact={!expanded}
             pinned={pinned}
