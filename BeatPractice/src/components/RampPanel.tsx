@@ -5,6 +5,7 @@ import { PanelCard } from "./ui/PanelCard";
 import { Field } from "./ui/Field";
 import { MiniButton } from "./ui/MiniButton";
 import { StableLabel } from "./ui/StableLabel";
+import { everyPassesText } from "../types";
 
 type Lang = "uk" | "en";
 
@@ -99,8 +100,8 @@ export function RampPanel(props: {
   return (
     <PanelCard
       info={<>{L(
-          `Темп ${startShown <= targetShown ? "зростає" : "знижується"} на ${step} BPM після кожних ${every} ${unit === "проходів циклу" || loopActive ? "проходів циклу" : "проходів треку"}, доки не досягне цілі (${targetShown.toFixed(1)} BPM).`,
-          `The tempo ${startShown <= targetShown ? "goes up" : "goes down"} by ${step} BPM after every ${every} ${loopActive ? "loop passes" : "track passes"} until it reaches the target (${targetShown.toFixed(1)} BPM).`,
+          `${everyPassesText(every, loopActive ? "loop" : "track", "uk")} темп ${startShown <= targetShown ? "зростає" : "знижується"} на ${step} BPM, доки не досягне цілі (${targetShown.toFixed(1)} BPM).`,
+          `${everyPassesText(every, loopActive ? "loop" : "track", "en")} the tempo ${startShown <= targetShown ? "goes up" : "goes down"} by ${step} BPM until it reaches the target (${targetShown.toFixed(1)} BPM).`,
         )}</>}
       id="ramp-panel"
       className="h-full"

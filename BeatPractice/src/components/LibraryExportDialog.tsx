@@ -31,9 +31,8 @@ export function LibraryExportDialog(props: {
   const { lang, playlist, tags, listForTag, startTag, activeItem, onRestore, onClose } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [scope, setScope] = useState<string>(startTag ?? "all");
-  const [stemsMode, setStemsMode] = useState<"none" | "picked" | "all">("none");   // the parts in the library: for no track / the chosen ones / every track
+  const [stemsMode, setStemsMode] = useState<"none" | "ready" | "picked" | "all">("none");   // the parts in the library: none / only the already separated ones / for the chosen tracks / for every track
   const [pickedStems, setPickedStems] = useState<Set<string>>(new Set());
-  const [separateMissing, setSeparateMissing] = useState(false);                    // separate the song where it is not separated yet
   const [stemPct, setStemPct] = useState(0);
   const [phase, setPhase] = useState<Phase>("idle");
   const [stage, setStage] = useState("");
@@ -116,7 +115,8 @@ export function LibraryExportDialog(props: {
         await core.setMeterMode(it.meterMode ?? 0).catch(() => false);
         let groups = "";
         let mix = true;
-        const wantStems = stemsMode === "all" || (stemsMode === "picked" && pickedStems.has(it.id));
+        const wantStems = stemsMode === "ready" || stemsMode === "all" || (stemsMode === "picked" && pickedStems.has(it.id));
+        const separateMissing = stemsMode === "picked" || stemsMode === "all";   // "ready" never separates, the other two separate what is not separated yet
         if (wantStems) {
           const info = await core.stemsInfo().catch(() => null);
           if (info?.cached) {
@@ -224,7 +224,7 @@ export function LibraryExportDialog(props: {
           <div className="space-y-2">
             <div className="text-sm font-semibold">{L("Партії у збірці", "Parts in the library")}</div>
             <Segmented id="lib-stems-mode" ariaLabel={L("Партії у збірці", "Parts in the library")} value={stemsMode} onChange={setStemsMode}
-              options={[{ value: "none", label: L("Без партій", "No parts") }, { value: "picked", label: L("Для обраних", "For chosen") }, { value: "all", label: L("Для всіх", "For all") }]} />
+              options={[{ value: "none", label: L("Без розділених партій", "No separated parts") }, { value: "ready", label: L("Тільки готові розділені", "Only the ready ones") }, { value: "picked", label: L("Для обраних", "For chosen") }, { value: "all", label: L("Для всіх", "For all") }]} />
             {stemsMode === "picked" && (
               <ul className="max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-slate-700/70 p-1.5">
                 {list.map((it) => (
@@ -239,14 +239,8 @@ export function LibraryExportDialog(props: {
                 ))}
               </ul>
             )}
-            {stemsMode !== "none" && (
-              <label className={radio}>
-                <input type="checkbox" className="h-5 w-5" checked={separateMissing} onChange={(e) => setSeparateMissing(e.target.checked)} />
-                <span>{L("Розділити на партії треки, де їх ще немає", "Separate the tracks that have no parts yet")}</span>
-              </label>
-            )}
           </div>
-          <p className="text-xs text-slate-400">{L("Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Tracks that have not been analysed are analysed now, which can take a while.")}{stemsMode !== "none" && L(" З партіями файл значно більший; розділення кожного треку теж триває кілька хвилин.", " The file is much larger with the parts; separating each track also takes a few minutes.")}</p>
+          <p className="text-xs text-slate-400">{L("Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Tracks that have not been analysed are analysed now, which can take a while.")}{stemsMode === "ready" && L(" З партіями файл значно більший.", " The file is much larger with the parts.")}{(stemsMode === "picked" || stemsMode === "all") && L(" З партіями файл значно більший; розділення кожного треку теж триває кілька хвилин.", " The file is much larger with the parts; separating each track also takes a few minutes.")}</p>
           {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
           <div className="flex justify-end gap-2">
             <button className={btn.neutral} onClick={onClose}>{L("Скасувати", "Cancel")}</button>

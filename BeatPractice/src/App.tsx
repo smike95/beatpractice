@@ -29,6 +29,8 @@ import { LibraryExportDialog } from './components/LibraryExportDialog';
 import { DuplicateDialog } from './components/DuplicateDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
+import { AccentPicker } from './components/AccentPicker';
+import { applyAccent, loadAccent, saveAccent } from './utils/accent';
 import { btn } from './components/ui/styles';
 import { Download, Info, Languages, ListEnd, Monitor, Moon, Package, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
 
@@ -215,6 +217,17 @@ export default function App() {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [themeMode]);
 
+  // TEMPORARY accent colour (system colours of the Apple HIG); re-applied when the theme changes
+  const [accent, setAccent] = useState<string>(() => loadAccent());
+  useEffect(() => {
+    const apply = () => applyAccent(accent, document.documentElement.classList.contains('dark'));
+    apply();
+    const mo = new MutationObserver(apply);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => mo.disconnect();
+  }, [accent]);
+  const handleSetAccent = (id: string) => { setAccent(id); saveAccent(id); };
+
   // Language state
   const [lang, setLang] = useState<Language>(() => {
     try {
@@ -316,6 +329,8 @@ export default function App() {
                 {themeMode === 'light' ? t('themeLight') : themeMode === 'dark' ? t('themeDark') : t('themeSystem')}
               </span>
             </button>
+
+            <AccentPicker lang={lang} isDark={isDark} value={accent} onChange={handleSetAccent} idSuffix={sfx} />
 
             {/* Language Toggle Button */}
             <button

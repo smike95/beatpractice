@@ -809,3 +809,47 @@ svg.lucide.icon-sm { width: 16px !important; height: 16px !important; }
   .fm-vol { flex: 1 1 220px; }
   .fm-start { grid-column: 2; grid-row: 1; }
 }
+
+/* ==========================================================================
+   TEMPORARY accent colour override (html[data-accent] is set only when a colour is picked in the header;
+   "Default" removes it and everything above applies unchanged). Doubled attribute selector = beats the light-theme rules above.
+   ========================================================================== */
+html[data-accent][data-accent] .text-violet-400,
+html[data-accent][data-accent] .text-violet-300,
+html[data-accent][data-accent] .text-violet-200,
+html[data-accent][data-accent] .text-indigo-400,
+html[data-accent][data-accent] .text-indigo-300,
+html[data-accent][data-accent] .text-purple-400,
+html[data-accent][data-accent] .text-purple-300 { color: var(--accent-text) !important; }
+
+html[data-accent][data-accent] .bg-violet-600,
+html[data-accent][data-accent] .bg-violet-500,
+html[data-accent][data-accent] .bg-violet-400,
+html[data-accent][data-accent] .bg-violet-300,
+html[data-accent][data-accent] .bg-indigo-600,
+html[data-accent][data-accent] .bg-indigo-500 { background-color: var(--accent) !important; color: var(--accent-on) !important; }
+
+html[data-accent][data-accent] .hover\:bg-violet-500:hover,
+html[data-accent][data-accent] .hover\:bg-violet-600:hover { background-color: var(--accent-hover) !important; }
+
+html[data-accent][data-accent] .border-violet-500,
+html[data-accent][data-accent] .border-violet-600,
+html[data-accent][data-accent] .border-violet-400,
+html[data-accent][data-accent] .border-violet-800,
+html[data-accent][data-accent] .border-violet-800\/70,
+html[data-accent][data-accent] .border-violet-800\/60 { border-color: var(--accent) !important; }
+
+html[data-accent][data-accent] .bg-violet-950\/90,
+html[data-accent][data-accent] .bg-violet-950\/80,
+html[data-accent][data-accent] .bg-violet-950\/70,
+html[data-accent][data-accent] .bg-violet-950\/40,
+html[data-accent][data-accent] .bg-violet-950,
+html[data-accent][data-accent] .bg-violet-900,
+html[data-accent][data-accent] .bg-violet-600\/20,
+html[data-accent][data-accent] .bg-violet-600\/15,
+html[data-accent][data-accent] .bg-violet-500\/20 { background-color: var(--accent-subtle) !important; color: var(--accent-text) !important; border-color: var(--accent-border) !important; }
+
+html[data-accent][data-accent] .ring-violet-400,
+html[data-accent][data-accent] .ring-violet-500 { --tw-ring-color: var(--accent) !important; }
+html[data-accent][data-accent] .accent-violet-500 { accent-color: var(--accent) !important; }
+html[data-accent][data-accent] ::selection { background-color: var(--accent) !important; color: var(--accent-on) !important; }

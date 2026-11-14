@@ -88,6 +88,16 @@ export function barsText(n: number, lang: "uk" | "en"): string {
   return `${n} ${word}`;
 }
 
+/** "Кожен прохід", "Кожні 3 проходи", "Кожні 5 проходів" (nominative, Ukrainian plural rules); "Every pass" / "Every 3 passes". `what` is appended: "циклу" / "треку", "loop" / "track". */
+export function everyPassesText(n: number, what: "loop" | "track", lang: "uk" | "en"): string {
+  if (lang === "en") return n === 1 ? `Every ${what} pass` : `Every ${n} ${what} passes`;
+  const m10 = n % 10, m100 = n % 100;
+  const of = what === "loop" ? "циклу" : "треку";
+  if (n === 1) return `Кожен прохід ${of}`;
+  const word = m10 === 1 && m100 !== 11 ? "прохід" : m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? "проходи" : "проходів";
+  return `Кожні ${n} ${word} ${of}`;
+}
+
 /** Every loop has its own colour everywhere in the interface (list, waveform). */
 const LOOP_PALETTE = [
   { light: "#007aff", dark: "#409cff" },   // blue
