@@ -1,12 +1,12 @@
 /**
  * TEMPORARY: a switchable accent colour, to choose one shared accent for both themes.
  * Colours are the system colours of the Apple HIG for macOS (light / dark variants of the same hue).
- * Values follow macOS 26 "system colours"; edit the table to match the latest HIG / Figma "macOS 27" file.
+ * Values are taken from the Apple macOS 27 UI Kit (Sketch): swatches System Colors/Light/* and System Colors/Dark/*.
  */
 export interface AccentColor { id: string; uk: string; en: string; light: string; dark: string }
 
 export const ACCENT_COLORS: AccentColor[] = [
-  { id: "red",    uk: "Червоний",    en: "Red",    light: "#ff3d30", dark: "#ff4245" },
+  { id: "red",    uk: "Червоний",    en: "Red",    light: "#ff383c", dark: "#ff4245" },
   { id: "orange", uk: "Помаранчевий", en: "Orange", light: "#ff8d28", dark: "#ff9230" },
   { id: "yellow", uk: "Жовтий",      en: "Yellow", light: "#ffcc00", dark: "#ffd600" },
   { id: "green",  uk: "Зелений",     en: "Green",  light: "#34c759", dark: "#30d158" },
@@ -14,10 +14,11 @@ export const ACCENT_COLORS: AccentColor[] = [
   { id: "teal",   uk: "Бірюзовий",   en: "Teal",   light: "#00c3d0", dark: "#00d2e0" },
   { id: "cyan",   uk: "Блакитний",   en: "Cyan",   light: "#00c0e8", dark: "#3cd3fe" },
   { id: "blue",   uk: "Синій",       en: "Blue",   light: "#0088ff", dark: "#0091ff" },
-  { id: "indigo", uk: "Індиго",      en: "Indigo", light: "#6155f5", dark: "#6b5dff" },
+  { id: "indigo", uk: "Індиго",      en: "Indigo", light: "#6155f5", dark: "#6d7cff" },
   { id: "purple", uk: "Фіолетовий",  en: "Purple", light: "#cb30e0", dark: "#db34f2" },
   { id: "pink",   uk: "Рожевий",     en: "Pink",   light: "#ff2d55", dark: "#ff375f" },
   { id: "brown",  uk: "Коричневий",  en: "Brown",  light: "#ac7f5e", dark: "#b78a66" },
+  { id: "gray",   uk: "Графітовий",  en: "Graphite", light: "#8e8e93", dark: "#98989d" },
 ];
 
 const KEY = "beatpractice_accent";
