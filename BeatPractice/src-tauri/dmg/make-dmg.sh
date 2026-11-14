@@ -6,7 +6,8 @@ set -euo pipefail
 
 TARGET="$1"; ARCH="$2"
 BUNDLE="BeatPractice/src-tauri/target/${TARGET}/release/bundle"
-APP="$(ls -d "${BUNDLE}"/macos/*.app | head -1)"
+APP="$(find "${BUNDLE}" -maxdepth 2 -name '*.app' -type d | head -1)"
+if [ -z "${APP}" ]; then echo "No .app found under ${BUNDLE}:"; ls -R "${BUNDLE}" || true; exit 1; fi
 NAME="$(basename "${APP}" .app)"
 VER="$(node -p "require('./BeatPractice/src-tauri/tauri.conf.json').version")"
 OUT_DIR="${BUNDLE}/dmg"

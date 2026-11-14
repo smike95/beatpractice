@@ -124,7 +124,8 @@ jobs:
 
       - name: Build installer (.dmg)
         working-directory: BeatPractice
-        run: npm run tauri build -- --target ${{ matrix.rust_target }} --bundles dmg
+        # "app,dmg": with only "dmg" Tauri may not leave the .app in bundle/macos, and the next step needs it
+        run: npm run tauri build -- --target ${{ matrix.rust_target }} --bundles app,dmg
 
       # The window with two huge icons (drag the app onto Applications), fitted to the icons. If it fails, the .dmg that Tauri made stays.
       - name: Installer window with huge icons (.dmg)
