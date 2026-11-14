@@ -27,7 +27,7 @@ export function DuplicateDialog(props: { lang: Lang; ask: DupAsk; tags: Playlist
     const ext = /\.beatpack$/i.test(it.path) ? L("пакет", "pack") : L("аудіофайл", "audio file");
     return (
       <div className="min-w-0 flex-1 space-y-1.5 rounded-xl border border-slate-700/70 p-3">
-        <p className="text-xs font-bold uppercase tracking-wide text-sky-500">{heading}</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-accent-text">{heading}</p>
         <div className="flex items-center gap-3">
           {it.cover ? <img src={it.cover} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" /> : <CoverPlaceholder className="h-14 w-14" rounded="rounded-lg" />}
           <div className="min-w-0">

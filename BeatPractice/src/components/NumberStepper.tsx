@@ -48,7 +48,7 @@ export function NumberStepper(props: {
           if (e.key === "Enter") (e.target as HTMLInputElement).blur();
           if (e.key === "Escape") { setDraft(null); (e.target as HTMLInputElement).blur(); }
         }}
-        className="w-16 h-11 sm:h-9 text-center font-mono text-sm font-bold rounded-lg bg-slate-950 border border-slate-700 text-slate-100 transition-colors duration-150 focus:border-sky-500 disabled:opacity-40"
+        className="w-16 h-11 sm:h-9 text-center font-mono text-sm font-bold rounded-lg bg-slate-950 border border-slate-700 text-slate-100 transition-colors duration-150 focus:border-accent disabled:opacity-40"
       />
       <button type="button" className={btn} disabled={disabled || value >= max} aria-label={`${label} +`} onClick={() => onChange(clamp(round(value + step)))}><Plus className="w-4 h-4" /></button>
       {suffix && <span className="text-xs font-semibold text-slate-400">{suffix}</span>}

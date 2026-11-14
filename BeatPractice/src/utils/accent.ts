@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 /**
  * TEMPORARY: a switchable accent colour, to choose one shared accent for both themes.
  * Colours are the system colours of the Apple HIG for macOS (light / dark variants of the same hue).
@@ -32,32 +34,45 @@ export function loadAccent(): string {
 function rgb(hex: string): [number, number, number] {
   return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
 }
+const trip = (hex: string) => rgb(hex).join(" ");
 /** Is white text readable on this colour? (yellow, mint, cyan... need dark text) */
 function needsDarkText(hex: string): boolean {
   const [r, g, b] = rgb(hex);
   return (0.299 * r + 0.587 * g + 0.114 * b) > 160;
 }
 
-const VARS = ["--accent", "--accent-hover", "--accent-subtle", "--accent-border", "--accent-text", "--accent-on", "--brand-primary", "--brand-hover", "--brand-subtle", "--brand-border", "--brand-text"];
+const VARS = ["--accent", "--accent-hover", "--accent-text", "--accent-on"];
 
-/** Sets the accent on <html> for the given theme; "default" removes everything and the original colours come back. */
+/**
+ * Replaces the four accent tokens of index.css (rgb triplets) with one Apple system colour for the given theme.
+ * "default" removes them, so the theme's own pair (violet / blue) comes back. Everything in the interface reads only these tokens.
+ */
 export function applyAccent(id: string, isDark: boolean): void {
   const root = document.documentElement;
   const c = ACCENT_COLORS.find((x) => x.id === id);
-  if (!c) { root.removeAttribute("data-accent"); VARS.forEach((v) => root.style.removeProperty(v)); return; }
-  const base = isDark ? c.dark : c.light;
-  const [r, g, b] = rgb(base);
-  const hover = isDark ? c.darkHover : c.lightHover;   // Apple's own "Light Vibrant" / "Dark (plus lighter)" swatches
-  const text = base;                                    // the system colour itself, no derived shades
-  const set = (k: string, v: string) => root.style.setProperty(k, v);
-  set("--accent", base); set("--accent-hover", hover); set("--accent-text", text);
-  set("--accent-subtle", `rgba(${r},${g},${b},${isDark ? 0.16 : 0.10})`);
-  set("--accent-border", `rgba(${r},${g},${b},${isDark ? 0.40 : 0.30})`);
-  set("--accent-on", needsDarkText(base) ? "#1d1d1f" : "#ffffff");
-  set("--brand-primary", base); set("--brand-hover", hover); set("--brand-text", text);
-  set("--brand-subtle", `rgba(${r},${g},${b},${isDark ? 0.16 : 0.10})`);
-  set("--brand-border", `rgba(${r},${g},${b},${isDark ? 0.40 : 0.30})`);
-  root.setAttribute("data-accent", id);
+  if (!c) VARS.forEach((v) => root.style.removeProperty(v));
+  else {
+    const base = isDark ? c.dark : c.light;
+    root.style.setProperty("--accent", trip(base));
+    root.style.setProperty("--accent-hover", trip(isDark ? c.darkHover : c.lightHover));   // Apple's own "Light Vibrant" / "Dark (plus lighter)" swatches
+    root.style.setProperty("--accent-text", trip(base));
+    root.style.setProperty("--accent-on", needsDarkText(base) ? "29 29 31" : "255 255 255");
+  }
+  window.dispatchEvent(new Event("bp-accent"));   // canvases (the waveform) cannot read CSS variables by themselves
+}
+
+/** The current accent as "r g b" (what the CSS sees), for canvas drawing. Re-renders when the accent or the theme changes. */
+export function useAccentRgb(isDark: boolean): string {
+  const read = () => getComputedStyle(document.documentElement).getPropertyValue("--accent").trim() || (isDark ? "191 90 242" : "0 122 255");
+  const [v, setV] = useState(read);
+  useEffect(() => {
+    const on = () => setV(read());
+    on();
+    window.addEventListener("bp-accent", on);
+    return () => window.removeEventListener("bp-accent", on);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDark]);
+  return v;
 }
 
 export function saveAccent(id: string): void {

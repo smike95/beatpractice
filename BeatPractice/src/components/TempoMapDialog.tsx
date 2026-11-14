@@ -57,7 +57,7 @@ export function TempoMapDialog(props: {
         <p className="text-xs text-slate-400">
           {L("Якщо складний трек показано з хибним розміром, спробуйте «Чутливо» або «Спрощено».", "If a complex song is shown with the wrong meter, try “Sensitive” or “Simplified”.")}
         </p>
-        <p className="flex items-center gap-1.5 text-xs font-semibold text-sky-500">
+        <p className="flex items-center gap-1.5 text-xs font-semibold text-accent-text">
           <AlertTriangle className="h-4 w-4 shrink-0" />
           {L("Зміна режиму скидає цикли цього треку.", "Changing the mode clears the loops of this track (they come back when you return to the mode).")}
         </p>

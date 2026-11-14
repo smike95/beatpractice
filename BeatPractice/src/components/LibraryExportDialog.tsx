@@ -195,7 +195,7 @@ export function LibraryExportDialog(props: {
         <p className="text-sm">{L(`Треків у збірці: ${result.count}.`, `Tracks in the library: ${result.count}.`)}</p>
         <p className="break-all text-sm">{result.path}</p>
         {result.skipped.length > 0 && (
-          <p className="text-sm text-sky-500">{L("Не вдалося додати: ", "Could not add: ")}{result.skipped.join(", ")}</p>
+          <p className="text-sm text-accent-text">{L("Не вдалося додати: ", "Could not add: ")}{result.skipped.join(", ")}</p>
         )}
         <p className="text-xs text-slate-400">{L("Скопіюйте цей файл на інший пристрій і відкрийте його в програмі (або перетягніть у вікно): усі треки з’являться в плейлісті з тегами та порядком, а розпізнавати нічого не треба.", "Copy this file to another device and open it in the app (or drop it on the window): all the tracks appear in the playlist with their tags and order, and nothing has to be analysed.")}</p>
         <div className="flex justify-end"><button className={btn.cta} onClick={onClose}>{L("Закрити", "Close")}</button></div>
@@ -254,7 +254,7 @@ export function LibraryExportDialog(props: {
           <p className="truncate text-sm text-slate-300" title={cur.name}>{cur.name}</p>
           <p className="text-xs text-slate-400">{stage}{stage.startsWith(L("розділення", "separating")) ? ` ${stemPct}%` : ""}</p>
           <div className="h-2 overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuenow={Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)} aria-valuemin={0} aria-valuemax={100}>
-            <div className="h-full rounded-full bg-sky-500 transition-[width] duration-200" style={{ width: `${Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)}%` }} />
+            <div className="h-full rounded-full bg-accent transition-[width] duration-200" style={{ width: `${Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)}%` }} />
           </div>
           <div className="flex justify-end"><button className={btn.neutral} onClick={() => { cancelled.current = true; }}>{L("Зупинити", "Stop")}</button></div>
         </>

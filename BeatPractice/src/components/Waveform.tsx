@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ZoomIn, ZoomOut, LocateFixed, Trash2 } from "lucide-react";
 import { SongData } from "../core";
 import { LoopRange, LoopSlot, barsText, loopColor, loopLabel } from "../types";
+import { useAccentRgb } from "../utils/accent";
 import { TempoSection } from "../utils/sections";
 
 type Lang = "uk" | "en";
@@ -241,6 +242,7 @@ export function Waveform(props: Props) {
     return () => el.removeEventListener("wheel", h);
   }, []);
 
+  const accent = useAccentRgb(isDark);   // "r g b" of the chosen accent
   const colors = useMemo(
     () => ({
       wave: isDark ? "#48484a" : "#c7c7cc",
@@ -248,17 +250,17 @@ export function Waveform(props: Props) {
       // when some parts are off: the whole song is drawn dim, the parts that are heard are drawn brighter over it
       waveDim: isDark ? "#48484a" : "#e5e5ea",
       waveLive: isDark ? "#aeaeb2" : "#6e6e73",
-      bar: isDark ? "rgba(202,120,246,0.60)" : "rgba(0,122,255,0.55)",
+      bar: `rgb(${accent} / ${isDark ? 0.6 : 0.55})`,
       beat: isDark ? "rgba(148,163,184,0.25)" : "rgba(100,116,139,0.22)",
       label: isDark ? "#8e8e93" : "#48484a",
-      loop: isDark ? "rgba(202,120,246,0.32)" : "rgba(0,122,255,0.24)",
+      loop: `rgb(${accent} / ${isDark ? 0.32 : 0.24})`,
       dim: isDark ? "rgba(2,6,23,0.50)" : "rgba(15,23,42,0.16)",
       loopText: isDark ? "#1d1d1f" : "#ffffff",
-      loopEdge: isDark ? "#ca78f6" : "#007aff",
+      loopEdge: `rgb(${accent})`,
       play: "#e11d48",
       ruler: isDark ? "rgba(15,23,42,0.55)" : "rgba(241,245,249,0.9)",
     }),
-    [isDark],
+    [isDark, accent],
   );
   // The part of the song that is really heard. Peaks of a mix cannot be added exactly, so the loudness of the parts that are on is compared
   // with the loudness of all parts (as the square root of the sum of squares, a good estimate for unrelated sounds) and the real overview of the song is
@@ -577,13 +579,13 @@ export function Waveform(props: Props) {
                 onClick={() => onSeek(s.loopStart)}
                 title={`${L("Такти", "Bars")} ${s.firstBar}–${s.lastBar}, ${fmt(s.startTime / sp)}`}
                 className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2 border-[3px] cursor-pointer transition-colors bg-slate-800 text-slate-200 hover:bg-slate-700 ${
-                  active ? "border-sky-500" : "border-transparent"
+                  active ? "border-accent" : "border-transparent"
                 }`}
               >
-                <span className="w-2 h-2 rounded-full bg-sky-500" />
+                <span className="w-2 h-2 rounded-full bg-accent" />
                 <span>{sections.length === 1 ? L("Весь трек", "Whole track") : `${L("Секція", "Section")} ${i + 1}`}</span>
                 <span className="font-mono text-xs opacity-80">{s.label}</span>
-                {s.bpm > 0 && <span className="font-mono text-xs text-sky-500">{Math.round(s.bpm)}</span>}
+                {s.bpm > 0 && <span className="font-mono text-xs text-accent-text">{Math.round(s.bpm)}</span>}
               </button>
             );
           })}
@@ -669,7 +671,7 @@ export function Waveform(props: Props) {
           <button
             onClick={() => setFollow(true)}
             title={L("Повернутися до поточної позиції й стежити за нею", "Jump back to the current position and follow it")}
-            className="absolute top-2 right-2 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2 border border-sky-400 bg-sky-700 hover:bg-sky-600 text-white shadow cursor-pointer"
+            className="absolute top-2 right-2 px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2 border border-accent bg-accent hover:bg-accent-hover text-accent-on shadow cursor-pointer"
           >
             <LocateFixed className="w-6 h-6" />
             {L("Стежити", "Follow")}

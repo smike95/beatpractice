@@ -10,7 +10,7 @@ const regular = "min-h-11 sm:min-h-9 px-4";
 const compact = "min-h-11 sm:min-h-8 px-3";
 
 export const btn = {
-  primary: `${base} ${regular} bg-sky-700 hover:bg-sky-600 text-white`,
+  primary: `${base} ${regular} bg-accent hover:bg-accent-hover text-accent-on`,
   success: `${base} ${regular} bg-emerald-700 hover:bg-emerald-600 text-white`,
   danger: `${base} ${regular} bg-rose-600 hover:bg-rose-500 text-white`,
   neutral: `${base} ${regular} border track-edit-btn`,
@@ -18,14 +18,14 @@ export const btn = {
   /** the quiet dark button used inside panels (loops, stems); its colours follow the slate classes the light theme already maps */
   secondary: `${base} ${compact} border bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700`,
   /** the one big action of a panel */
-  cta: `${base} min-h-11 px-5 text-sm bg-sky-600 hover:bg-sky-500 text-white`,
+  cta: `${base} min-h-11 px-5 text-sm bg-accent hover:bg-accent-hover text-accent-on`,
   /** one of several choices; the chosen one has a sky border (count-in, sound, meter mode, beats per bar) */
   option: (active: boolean) =>
     `${base} h-11 sm:h-9 px-3 border font-bold disabled:cursor-not-allowed ${
-      active ? "bg-slate-700 text-white border-sky-500 border-2" : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+      active ? "bg-slate-700 text-white border-accent border-2" : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
     }`,
   /** a small toggle / choice button */
-  chip: (active: boolean) => `${base} ${compact} border ${active ? "bg-sky-700 text-white border-sky-700" : "track-edit-btn"}`,
+  chip: (active: boolean) => `${base} ${compact} border ${active ? "bg-accent text-accent-on border-accent" : "track-edit-btn"}`,
   /** the round × button in a dialog header */
   icon: "track-edit-close inline-flex h-11 w-11 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-lg cursor-pointer transition-colors duration-150",
 } as const;

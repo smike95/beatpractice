@@ -30,12 +30,12 @@ export function ModelsBanner({ lang }: { lang: "uk" | "en" }) {
   return (
     <div id="models-banner" role="status" aria-label={L("Підготовка моделей", "Preparing the models")} className="mx-3 mt-3 rounded-2xl border border-slate-700 bg-slate-900 p-3 space-y-2">
       <p className="text-sm">{L("Одноразова підготовка нейромереж для аналізу й розділення треків…", "One-time preparation of the neural networks for analysis and separation…")}</p>
-      {busy && <div className="h-2 rounded-full overflow-hidden bg-slate-800"><div className="h-full bg-sky-600 transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div>}
+      {busy && <div className="h-2 rounded-full overflow-hidden bg-slate-800"><div className="h-full bg-accent transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div>}
       {err && <p role="alert" className="text-sm text-rose-500 break-words">{err}</p>}
       <div className="flex gap-2">
         {busy
           ? <button id="btn-models-cancel" className="px-4 py-1.5 text-xs font-bold rounded-lg border border-slate-600 cursor-pointer" onClick={() => void modelsCancel()}>{L("Скасувати", "Cancel")} ({Math.round(progress * 100)}%)</button>
-          : <button id="btn-models-retry" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-sky-700 hover:bg-sky-600 text-white cursor-pointer" onClick={() => void run()}>{L("Спробувати знову", "Try again")}</button>}
+          : <button id="btn-models-retry" className="px-4 py-1.5 text-xs font-bold rounded-lg bg-accent hover:bg-accent-hover text-accent-on cursor-pointer" onClick={() => void run()}>{L("Спробувати знову", "Try again")}</button>}
       </div>
     </div>
   );

@@ -278,7 +278,7 @@ export default function App() {
               <p className="text-sm text-rose-400">{player.init.error}</p>
               <button
                 onClick={player.chooseCoreDir}
-                className="w-full py-2.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm cursor-pointer"
+                className="w-full py-2.5 rounded-xl bg-accent hover:bg-accent-hover text-accent-on font-bold text-sm cursor-pointer"
               >
                 {lang === 'en' ? 'Choose the folder with the core…' : 'Вказати теку з ядром…'}
               </button>
@@ -402,7 +402,7 @@ export default function App() {
           {isLoadingAudio && (
             <div className="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-slate-200 space-y-2">
               <div className="flex items-center justify-center gap-3">
-                <div className="w-4 h-4 border-2 border-sky-400 border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs font-medium">{analysisStatus || t('processingAudio')}</span>
               </div>
               {snap?.state === BC.ANALYZING && snap.duration > 0 && (
@@ -471,13 +471,13 @@ export default function App() {
                   </div>
                   <div id="track-meta-line" data-tauri-drag-region className="flex items-center gap-x-3 gap-y-0.5 text-xs text-slate-400 mt-0.5 flex-wrap">
                     <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-slate-200 font-mono">{track && track.originalBpmExact > 0 ? `${track.originalBpmExact.toFixed(1)} BPM` : '—'}</strong>
-                      {track?.variableTempo && <em title={lang === 'en' ? 'The tempo changes during the song' : 'Темп змінюється протягом пісні'} className="ml-1.5 not-italic font-bold text-sky-500">{lang === 'en' ? 'variable' : 'змінний'}</em>}
+                      {track?.variableTempo && <em title={lang === 'en' ? 'The tempo changes during the song' : 'Темп змінюється протягом пісні'} className="ml-1.5 not-italic font-bold text-accent-text">{lang === 'en' ? 'variable' : 'змінний'}</em>}
                     </span>
                     <span>•</span>
                     <span>{lang === 'en' ? 'Meter' : 'Розмір'}:{' '}
                       {track?.variableMeter ? (
                         <strong className="text-slate-300" title={lang === 'en' ? 'Meters in the song, most frequent first' : 'Розміри в пісні, від найчастішого'}>
-                          <span className="text-sky-500">{lang === 'en' ? 'Variable' : 'Змінний'}</span>: {track.meterLabels.join(', ')}
+                          <span className="text-accent-text">{lang === 'en' ? 'Variable' : 'Змінний'}</span>: {track.meterLabels.join(', ')}
                         </strong>
                       ) : (
                         <strong className="text-slate-300">{track ? (track.meterLabels[0] ?? track.timeSignature) : '4/4'}</strong>
@@ -564,7 +564,7 @@ export default function App() {
                   className={`w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${
                     player.playMode === 'stop'
                       ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-                      : 'bg-sky-600 text-white border-sky-500 hover:bg-sky-500'
+                      : 'bg-accent text-accent-on border-accent hover:bg-accent-hover'
                   }`}
                 >
                   {player.playMode === 'repeat' ? <Repeat1 className="w-6 h-6" /> : player.playMode === 'next' ? <ListEnd className="w-6 h-6" /> : <Repeat className="w-6 h-6" />}

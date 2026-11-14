@@ -45,18 +45,24 @@ html.dark {
   --text-primary: #f5f5f7;
   --text-secondary: #8e8e93;
   --text-muted: #6e6e73;
-  --brand-primary: #bf5af2;
-  --brand-hover: #af52de;
-  --brand-subtle: rgba(191, 90, 242, 0.15);
-  --brand-border: rgba(191, 90, 242, 0.35);
-  --brand-text: #dca0f9;
+  /* ACCENT: the only place where the accent exists (rgb triplets, so alpha works). The theme gives the default pair;
+     the interface (utils/accent.ts) can replace these four with one Apple system colour for both themes. */
+  --accent: 191 90 242;
+  --accent-hover: 175 82 222;
+  --accent-text: 220 160 249;
+  --accent-on: 255 255 255;
+  --brand-primary: rgb(var(--accent));
+  --brand-hover: rgb(var(--accent-hover));
+  --brand-subtle: rgb(var(--accent) / 0.15);
+  --brand-border: rgb(var(--accent) / 0.35);
+  --brand-text: rgb(var(--accent-text));
   --color-play: #30d158;
   --color-play-hover: #28b84c;
   --color-pause: #fbbf24;
   --color-pause-hover: #f59e0b;
   --color-accent-beat: #f43f5e;
-  --color-loop: #ca78f6;
-  --color-loop-subtle: rgba(202, 120, 246, 0.20);
+  --color-loop: rgb(var(--accent-text));
+  --color-loop-subtle: rgb(var(--accent) / 0.20);
 }
 
 /* Light Palette (Daylight High-Contrast Mode) */
@@ -71,18 +77,22 @@ html.light {
   --text-primary: #1d1d1f;
   --text-secondary: #48484a;
   --text-muted: #8e8e93;
-  --brand-primary: #007aff;
-  --brand-hover: #0062cc;
-  --brand-subtle: rgba(0, 122, 255, 0.08);
-  --brand-border: rgba(0, 122, 255, 0.25);
-  --brand-text: #007aff;
+  --accent: 0 122 255;
+  --accent-hover: 0 98 204;
+  --accent-text: 0 122 255;
+  --accent-on: 255 255 255;
+  --brand-primary: rgb(var(--accent));
+  --brand-hover: rgb(var(--accent-hover));
+  --brand-subtle: rgb(var(--accent) / 0.08);
+  --brand-border: rgb(var(--accent) / 0.25);
+  --brand-text: rgb(var(--accent-text));
   --color-play: #248a3d;
   --color-play-hover: #1d7233;
   --color-pause: #f59e0b;
   --color-pause-hover: #d97706;
   --color-accent-beat: #e11d48;
-  --color-loop: #007aff;
-  --color-loop-subtle: rgba(0, 122, 255, 0.12);
+  --color-loop: rgb(var(--accent));
+  --color-loop-subtle: rgb(var(--accent) / 0.12);
 }
 
 /* ==========================================================================
@@ -152,9 +162,9 @@ html.light .beat-non-accent-active,
 html.light #click-metronome-visual-beats .beat-non-accent-active,
 html.light #quick-metronome-visual-beats .beat-non-accent-active,
 html.light #mobile-metronome-stripe .beat-non-accent-active {
-  background-color: #007aff !important;
-  color: #ffffff !important;
-  box-shadow: 0 0 8px rgba(0, 122, 255, 0.7) !important;
+  background-color: rgb(var(--accent)) !important;
+  color: rgb(var(--accent-on)) !important;
+  box-shadow: 0 0 8px rgb(var(--accent) / 0.7) !important;
 }
 
 /* 3. Hairlines & Dividers */
@@ -266,9 +276,9 @@ html.light #mobile-dock-btn-play-pause.bg-amber-400:hover {
 
 /* Tempo Reset in Light Mode */
 html.light #btn-quick-tempo-reset:not(:disabled) {
-  background-color: #007aff !important;
-  color: #ffffff !important;
-  border-color: #0062cc !important;
+  background-color: rgb(var(--accent)) !important;
+  color: rgb(var(--accent-on)) !important;
+  border-color: rgb(var(--accent-hover)) !important;
 }
 html.light #btn-quick-tempo-reset:disabled {
   background-color: #e0e0e5 !important;
@@ -308,20 +318,14 @@ html.light kbd {
 }
 
 /* Loop Point A and Point B in Light Mode */
-html.light span[class*="bg-violet-950"],
-html.light span[class*="bg-sky-950"] {
-  background-color: #eaf4ff !important;
-  color: #007aff !important;
-  border-color: #b3d4ff !important;
-}
 html.light button[id="btn-set-loop-a-bar"],
 html.light button[id="btn-set-loop-b-bar"] {
-  background-color: #007aff !important;
-  color: #ffffff !important;
+  background-color: rgb(var(--accent)) !important;
+  color: rgb(var(--accent-on)) !important;
 }
 html.light button[id="btn-set-loop-a-bar"]:hover,
 html.light button[id="btn-set-loop-b-bar"]:hover {
-  background-color: #0062cc !important;
+  background-color: rgb(var(--accent-hover)) !important;
 }
 
 /* Stem Separator Presets in Light Mode */
@@ -342,12 +346,12 @@ html.light button[id^="btn-stem-"]:not(.stem-selected) p {
 
 /* Selected Stem Preset in Light Mode */
 html.light button[id^="btn-stem-"].stem-selected {
-  background-color: #eaf4ff !important;
-  border-color: #007aff !important;
-  box-shadow: 0 4px 12px rgba(0, 122, 255, 0.15) !important;
+  background-color: rgb(var(--accent) / 0.10) !important;
+  border-color: rgb(var(--accent)) !important;
+  box-shadow: 0 4px 12px rgb(var(--accent) / 0.15) !important;
 }
 html.light button[id^="btn-stem-"].stem-selected h3 {
-  color: #0062cc !important;
+  color: rgb(var(--accent-hover)) !important;
 }
 html.light button[id^="btn-stem-"].stem-selected p {
   color: #1d1d1f !important;
@@ -427,79 +431,13 @@ html.light #waveform-timeline-container .h-7 button[class*="bg-rose-500"] {
   border-color: #f43f5e !important;
   color: #e11d48 !important;
 }
-html.light #waveform-timeline-container .h-7 button[class*="bg-violet-600"] {
-  background-color: #d6e9ff !important;
-  border-color: #007aff !important;
-  color: #0062cc !important;
-}
 html.light .loop-badge-a,
 html.light .loop-badge-b {
-  background-color: #007aff !important;
-  color: #ffffff !important;
+  background-color: rgb(var(--accent)) !important;
+  color: rgb(var(--accent-on)) !important;
 }
 
-/* Universal Light Theme: Replace ALL Violet/Purple accents with Sky Blue */
-html.light .text-violet-400,
-html.light .text-violet-300,
-html.light .text-violet-200,
-html.light .text-indigo-400,
-html.light .text-indigo-300,
-html.light .text-purple-400,
-html.light .text-purple-300 {
-  color: #007aff !important;
-}
-
-html.light .bg-violet-600,
-html.light .bg-violet-500,
-html.light .bg-violet-400,
-html.light .bg-violet-300,
-html.light .bg-indigo-600,
-html.light .bg-indigo-500 {
-  background-color: #007aff !important;
-  color: #ffffff !important;
-}
-
-html.light .hover\:bg-violet-500:hover,
-html.light .hover\:bg-violet-600:hover {
-  background-color: #0062cc !important;
-}
-
-html.light .border-violet-500,
-html.light .border-violet-600,
-html.light .border-violet-400,
-html.light .border-violet-800,
-html.light .border-violet-800\/70,
-html.light .border-violet-800\/60 {
-  border-color: #007aff !important;
-}
-
-html.light .bg-violet-950\/90,
-html.light .bg-violet-950\/80,
-html.light .bg-violet-950\/70,
-html.light .bg-violet-950\/40,
-html.light .bg-violet-950,
-html.light .bg-violet-900,
-html.light .bg-violet-600\/20,
-html.light .bg-violet-600\/15,
-html.light .bg-violet-500\/20 {
-  background-color: #eaf4ff !important;
-  color: #007aff !important;
-  border-color: #b3d4ff !important;
-}
-
-html.light .ring-violet-400,
-html.light .ring-violet-500 {
-  --tw-ring-color: #007aff !important;
-}
-
-html.light .accent-violet-500 {
-  accent-color: #007aff !important;
-}
-
-html.light ::selection {
-  background-color: #007aff !important;
-  color: #ffffff !important;
-}
+::selection { background-color: rgb(var(--accent) / 0.35); }
 
 /* 6. Specific Components Light Mode Polish (Tuner, Time Signature, Sections & Tempo Map) */
 /* Tuner note buttons in Reference Tuner */
@@ -587,7 +525,7 @@ svg.lucide { width: 24px !important; height: 24px !important; flex-shrink: 0; }
 .track-edit-close:hover { background: #3a3a3c; color: #fff; }
 html.light .track-edit-dialog { background: #ffffff; border-color: #8e8e93; color: #1d1d1f; }
 html.light .track-edit-field { background: #ffffff !important; border-color: #6e6e73 !important; color: #1d1d1f !important; caret-color: #1d1d1f; }
-html.light .track-edit-field:focus { border-color: #007aff !important; --tw-ring-color: rgba(0,122,255,.35); }
+html.light .track-edit-field:focus { border-color: rgb(var(--accent)) !important; --tw-ring-color: rgb(var(--accent) / .35); }
 html.light .track-edit-label { color: #3a3a3c; }
 html.light .track-edit-cover { background: #ececec; border-color: #8e8e93; color: #48484a; }
 html.light .track-edit-btn { background: #e0e0e5 !important; border-color: #8e8e93 !important; color: #1d1d1f !important; }
@@ -598,29 +536,17 @@ html.light .track-edit-close:hover { background: #e0e0e5; color: #1d1d1f; }
 
 
 /* ==========================================================================
-   ACCENT COLOUR: every "sky" element is violet in the dark theme and blue in the light theme
-   ========================================================================== */
-:root {
-  --sky-50: 250 240 255;  --sky-100: 243 224 254; --sky-200: 232 197 252; --sky-300: 218 160 249; --sky-400: 202 120 246;
-  --sky-500: 191 90 242;  --sky-600: 175 82 222;  --sky-700: 148 60 190;  --sky-800: 112 45 145; --sky-900: 80 32 104; --sky-950: 45 18 62;
-}
-html.light {
-  --sky-50: 235 245 255;  --sky-100: 214 233 255; --sky-200: 173 213 255; --sky-300: 120 180 255; --sky-400: 64 156 255;
-  --sky-500: 10 132 255;  --sky-600: 0 122 255;   --sky-700: 0 98 204;    --sky-800: 0 72 160;    --sky-900: 0 50 115;    --sky-950: 0 30 70;
-}
-
-/* ==========================================================================
    SLIDERS (one style everywhere): coloured part to the left of the handle, neutral part to the right
    ========================================================================== */
 input[type="range"].bp-range {
-  --range-fill: #bf5af2;
+  --range-fill: rgb(var(--accent));
   --range-rest: #48484a;
   -webkit-appearance: none;
   appearance: none;
   height: 24px;
   background: transparent;
 }
-html.light input[type="range"].bp-range { --range-fill: #007aff; --range-rest: #c7c7cc; }
+html.light input[type="range"].bp-range { --range-fill: rgb(var(--accent)); --range-rest: #c7c7cc; }
 input[type="range"].bp-range::-webkit-slider-runnable-track {
   height: 8px;
   border-radius: 9999px;
@@ -656,13 +582,13 @@ input[type="range"].bp-range::-moz-range-thumb {
    a strong blue with white text in the light theme, the usual dark chip in the dark theme. */
 .tab-active { background: #2c2c2e; color: #ffffff; border-color: #48484a; }
 .cover-ph-active { background: #3a3a3c; color: #ffffff; }
-html.light .tab-active { background: #0062cc; color: #ffffff; border-color: #004a99; box-shadow: 0 1px 3px rgba(3, 105, 161, 0.45); }
-html.light .cover-ph-active { background: #0062cc; color: #ffffff; }
+html.light .tab-active { background: rgb(var(--accent-hover)); color: rgb(var(--accent-on)); border-color: rgb(var(--accent-hover)); box-shadow: 0 1px 3px rgba(3, 105, 161, 0.45); }
+html.light .cover-ph-active { background: rgb(var(--accent-hover)); color: rgb(var(--accent-on)); }
 
 /* A button that has something to do right now (for example "reset to the original tempo" when the tempo was changed): clearly lit. */
 .btn-attn { background: #9b43cf; color: #ffffff; border-color: #ca78f6; }
-.btn-attn:hover { background: #af52de; }
-html.light .btn-attn { background: #0062cc; color: #ffffff; border-color: #004a99; }
+.btn-attn:hover { background: rgb(var(--accent-hover)); }
+html.light .btn-attn { background: rgb(var(--accent-hover)); color: rgb(var(--accent-on)); border-color: rgb(var(--accent-hover)); }
 
 /* Light theme: the outlines of buttons and fields are clearly visible (the general hairlines stay light). */
 html.light button.border-slate-700,
@@ -688,7 +614,7 @@ html.light .mixer-channel-box {
 button, [role="switch"], [role="button"], a, input[type="range"], summary { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 
 :where(button, [role="switch"], a, input, select, textarea, summary):focus-visible {
-  outline: 2px solid rgb(var(--sky-500));
+  outline: 2px solid rgb(var(--accent));
   outline-offset: 2px;
 }
 /* text fields already show their state with the border, so the ring hugs them */
@@ -721,8 +647,8 @@ button, [role="switch"], [role="button"], a, input[type="range"], summary { touc
    ========================================================================== */
 .bp-range { transition: none; }
 .bp-range:focus-visible { outline: none; }
-.bp-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgb(var(--sky-500) / 0.45), 0 1px 3px rgba(0, 0, 0, 0.4); }
-.bp-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px rgb(var(--sky-500) / 0.45), 0 1px 3px rgba(0, 0, 0, 0.4); }
+.bp-range:focus-visible::-webkit-slider-thumb { box-shadow: 0 0 0 3px rgb(var(--accent) / 0.45), 0 1px 3px rgba(0, 0, 0, 0.4); }
+.bp-range:focus-visible::-moz-range-thumb { box-shadow: 0 0 0 3px rgb(var(--accent) / 0.45), 0 1px 3px rgba(0, 0, 0, 0.4); }
 .bp-range::-webkit-slider-thumb { transition: transform 120ms ease; }
 .bp-range:active::-webkit-slider-thumb { transform: scale(1.15); }
 @media (pointer: coarse) {
@@ -735,7 +661,7 @@ button, [role="switch"], [role="button"], a, input[type="range"], summary { touc
    SEGMENTED CONTROL (components/ui/Segmented.tsx) and POPOVER
    ========================================================================== */
 .seg-on { background: #3a3a3c; color: #ffffff; }
-html.light .seg-on { background: #0062cc; color: #ffffff; box-shadow: 0 1px 2px rgba(3, 105, 161, 0.4); }
+html.light .seg-on { background: rgb(var(--accent-hover)); color: rgb(var(--accent-on)); box-shadow: 0 1px 2px rgba(3, 105, 161, 0.4); }
 .bp-popover { animation: bp-pop 140ms ease-out; }
 
 
@@ -754,7 +680,7 @@ body { -webkit-user-select: none; user-select: none; }
 input, textarea, [contenteditable], .selectable { -webkit-user-select: text; user-select: text; }
 /* Keyboard focus: the system focus ring in the accent colour */
 :focus { outline: none; }
-:focus-visible { outline: 3px solid rgb(var(--sky-500) / 0.55); outline-offset: 1px; border-radius: 6px; }
+:focus-visible { outline: 3px solid rgb(var(--accent) / 0.55); outline-offset: 1px; border-radius: 6px; }
 input:focus-visible { outline-offset: 0; }
 /* Toolbar material: translucent and blurred, with a hairline separator below */
 header.sticky { -webkit-backdrop-filter: saturate(180%) blur(24px); backdrop-filter: saturate(180%) blur(24px); background-color: rgba(28, 28, 30, 0.72) !important; border-bottom: 0.5px solid rgba(255, 255, 255, 0.12) !important; }
@@ -809,47 +735,3 @@ svg.lucide.icon-sm { width: 16px !important; height: 16px !important; }
   .fm-vol { flex: 1 1 220px; }
   .fm-start { grid-column: 2; grid-row: 1; }
 }
-
-/* ==========================================================================
-   TEMPORARY accent colour override (html[data-accent] is set only when a colour is picked in the header;
-   "Default" removes it and everything above applies unchanged). Doubled attribute selector = beats the light-theme rules above.
-   ========================================================================== */
-html[data-accent][data-accent] .text-violet-400,
-html[data-accent][data-accent] .text-violet-300,
-html[data-accent][data-accent] .text-violet-200,
-html[data-accent][data-accent] .text-indigo-400,
-html[data-accent][data-accent] .text-indigo-300,
-html[data-accent][data-accent] .text-purple-400,
-html[data-accent][data-accent] .text-purple-300 { color: var(--accent-text) !important; }
-
-html[data-accent][data-accent] .bg-violet-600,
-html[data-accent][data-accent] .bg-violet-500,
-html[data-accent][data-accent] .bg-violet-400,
-html[data-accent][data-accent] .bg-violet-300,
-html[data-accent][data-accent] .bg-indigo-600,
-html[data-accent][data-accent] .bg-indigo-500 { background-color: var(--accent) !important; color: var(--accent-on) !important; }
-
-html[data-accent][data-accent] .hover\:bg-violet-500:hover,
-html[data-accent][data-accent] .hover\:bg-violet-600:hover { background-color: var(--accent-hover) !important; }
-
-html[data-accent][data-accent] .border-violet-500,
-html[data-accent][data-accent] .border-violet-600,
-html[data-accent][data-accent] .border-violet-400,
-html[data-accent][data-accent] .border-violet-800,
-html[data-accent][data-accent] .border-violet-800\/70,
-html[data-accent][data-accent] .border-violet-800\/60 { border-color: var(--accent) !important; }
-
-html[data-accent][data-accent] .bg-violet-950\/90,
-html[data-accent][data-accent] .bg-violet-950\/80,
-html[data-accent][data-accent] .bg-violet-950\/70,
-html[data-accent][data-accent] .bg-violet-950\/40,
-html[data-accent][data-accent] .bg-violet-950,
-html[data-accent][data-accent] .bg-violet-900,
-html[data-accent][data-accent] .bg-violet-600\/20,
-html[data-accent][data-accent] .bg-violet-600\/15,
-html[data-accent][data-accent] .bg-violet-500\/20 { background-color: var(--accent-subtle) !important; color: var(--accent-text) !important; border-color: var(--accent-border) !important; }
-
-html[data-accent][data-accent] .ring-violet-400,
-html[data-accent][data-accent] .ring-violet-500 { --tw-ring-color: var(--accent) !important; }
-html[data-accent][data-accent] .accent-violet-500 { accent-color: var(--accent) !important; }
-html[data-accent][data-accent] ::selection { background-color: var(--accent) !important; color: var(--accent-on) !important; }

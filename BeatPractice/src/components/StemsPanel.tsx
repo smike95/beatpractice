@@ -30,7 +30,7 @@ export function BetaBadge({ onFill = false, lang = "uk" }: { onFill?: boolean; l
   return (
     <span
       title={lang === "en" ? "Beta: this feature is not perfect yet" : "Beta: ця функція ще не досконала"}
-      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-xs font-bold uppercase leading-4 tracking-wide ${onFill ? "bg-white/25 text-white" : "bg-sky-500/15 text-sky-500"}`}
+      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-xs font-bold uppercase leading-4 tracking-wide ${onFill ? "bg-white/25 text-white" : "bg-accent/15 text-accent-text"}`}
     >
       Beta
     </span>
@@ -109,7 +109,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
             <span className="inline-flex items-center gap-2"><Loader2 className="w-6 h-6 animate-spin" />{L("Розділення…", "Separating…")} {Math.round(progress * 100)}%</span>
             <button className={btn} onClick={player.cancelStems}>{L("Скасувати", "Cancel")}</button>
           </div>
-          <div className="h-2 rounded bg-slate-800 overflow-hidden"><div className="h-full bg-sky-500 transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
+          <div className="h-2 rounded bg-slate-800 overflow-hidden"><div className="h-full bg-accent transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
           <div className="text-xs text-slate-400 font-mono">
             {L("Минуло", "Elapsed")} {mmss(elapsed)} • {L("лишилось приблизно", "about")} {mmss(eta)} {lang === "en" ? "left" : ""}
           </div>

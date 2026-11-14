@@ -273,7 +273,7 @@ export function ExportDialog(props: {
 
         {running && (
           <div className="space-y-1.5">
-            <div className="h-3 rounded-full overflow-hidden track-edit-cover"><div className="h-full bg-sky-600 transition-all" style={{ width: `${pct}%` }} /></div>
+            <div className="h-3 rounded-full overflow-hidden track-edit-cover"><div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} /></div>
             <div className="track-edit-label text-xs">{L("Експорт", "Exporting")}: {pct}%</div>
           </div>
         )}

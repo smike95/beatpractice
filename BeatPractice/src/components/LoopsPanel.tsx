@@ -75,7 +75,7 @@ function NameEditor(props: { value: string; shown: string; label: string; onComm
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         if (e.key === "Escape") { setDraft(value); setEditing(false); }
       }}
-      className="min-w-0 w-40 sm:w-56 h-11 sm:h-8 px-2 rounded-lg bg-slate-950 border border-sky-500 text-sm font-bold text-slate-100"
+      className="min-w-0 w-40 sm:w-56 h-11 sm:h-8 px-2 rounded-lg bg-slate-950 border border-accent text-sm font-bold text-slate-100"
     />
   );
 }

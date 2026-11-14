@@ -18,7 +18,7 @@ export function SelectField(props: {
         disabled={disabled}
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-9 text-sm font-semibold text-slate-100 transition-colors duration-150 hover:bg-slate-900 focus:border-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-10 w-full cursor-pointer appearance-none rounded-lg border border-slate-700 bg-slate-950 pl-3 pr-9 text-sm font-semibold text-slate-100 transition-colors duration-150 hover:bg-slate-900 focus:border-accent disabled:cursor-not-allowed disabled:opacity-50"
       >
         {options.map((o) => <option key={o.value} value={o.value} disabled={o.disabled}>{o.label}</option>)}
       </select>

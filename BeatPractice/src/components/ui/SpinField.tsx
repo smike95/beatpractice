@@ -31,7 +31,7 @@ export function SpinField(props: {
   const nudge = (d: number) => { setDraft(null); onChange(round(clamp(value + d * step))); };
   const arrow = "flex min-h-0 w-full items-center justify-center overflow-hidden p-0 leading-none text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent";
   return (
-    <div className={`inline-flex h-10 shrink-0 items-stretch overflow-hidden rounded-lg border border-slate-700 bg-slate-950 transition-colors duration-150 focus-within:border-sky-500 ${disabled ? "opacity-50" : ""}`}>
+    <div className={`inline-flex h-10 shrink-0 items-stretch overflow-hidden rounded-lg border border-slate-700 bg-slate-950 transition-colors duration-150 focus-within:border-accent ${disabled ? "opacity-50" : ""}`}>
       <input
         id={id}
         type="text"

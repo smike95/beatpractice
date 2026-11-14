@@ -157,7 +157,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   };
   const coverOf = (item: PlaylistItem, isActive: boolean, size: string) =>
     item.cover ? (
-      <img src={item.cover} alt="" className={`${size} rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-sky-500' : ''}`} />
+      <img src={item.cover} alt="" className={`${size} rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-accent' : ''}`} />
     ) : (
       <CoverPlaceholder className={size} active={isActive} />
     );
@@ -295,7 +295,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             const showLineAfter = !filtered && drag && index === base.length - 1 && drag.ins === base.length && drag.from !== base.length - 1;
             return (
               <React.Fragment key={item.id}>
-              {showLineBefore && <div className="h-1 rounded-full bg-sky-500 -my-1" />}
+              {showLineBefore && <div className="h-1 rounded-full bg-accent -my-1" />}
               <div
                 ref={(el) => { itemRefs.current[item.id] = el; }}
                 id={`playlist-item-${item.id}`}
@@ -326,7 +326,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                   </button>}
                   {/* Play or active animated icon */}
                   {item.cover ? (
-                    <img src={item.cover} alt="" className={`w-10 h-10 rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-sky-500' : ''}`} />
+                    <img src={item.cover} alt="" className={`w-10 h-10 rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-accent' : ''}`} />
                   ) : (
                   <CoverPlaceholder className="w-10 h-10" active={isActive}>
                     {isActive && isPlaying ? (
@@ -356,7 +356,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     {hasTags && (item.tags ?? []).some((id) => tagName(id)) && (
                       <div className="mt-1 flex flex-wrap gap-1">
                         {(item.tags ?? []).map((id) => tagName(id) && (
-                          <span key={id} className="rounded-full bg-sky-500/15 px-2 py-px text-xs font-semibold leading-4 text-sky-500">{tagName(id)}</span>
+                          <span key={id} className="rounded-full bg-accent/15 px-2 py-px text-xs font-semibold leading-4 text-accent-text">{tagName(id)}</span>
                         ))}
                       </div>
                     )}
@@ -368,7 +368,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     type="button"
                     id={`btn-track-tags-${item.id}`}
                     onClick={(e) => { e.stopPropagation(); setTagItemId(item.id); }}
-                    className="p-2.5 sm:p-1.5 text-slate-400 hover:text-sky-500 hover:bg-sky-500/10 rounded-lg transition-colors shrink-0 cursor-pointer"
+                    className="p-2.5 sm:p-1.5 text-slate-400 hover:text-accent-text hover:bg-accent/10 rounded-lg transition-colors shrink-0 cursor-pointer"
                     title={lang === 'en' ? 'Tags of the track' : 'Теги треку'}
                     aria-label={lang === 'en' ? 'Tags of the track' : 'Теги треку'}
                   >
@@ -387,7 +387,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                   <Trash2 className="w-6 h-6" />
                 </button>
               </div>
-              {showLineAfter && <div className="h-1 rounded-full bg-sky-500 -my-1" />}
+              {showLineAfter && <div className="h-1 rounded-full bg-accent -my-1" />}
               </React.Fragment>
             );
           })

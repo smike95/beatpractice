@@ -171,7 +171,7 @@ export function PackDialog(props: {
         {running && (
           <div className="space-y-1">
             <div className="track-edit-label text-xs">{L("Збереження", "Saving")}: {pct}%</div>
-            <div className="h-2 rounded-full overflow-hidden track-edit-cover"><div className="h-full bg-sky-600 transition-all" style={{ width: `${pct}%` }} /></div>
+            <div className="h-2 rounded-full overflow-hidden track-edit-cover"><div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} /></div>
           </div>
         )}
         {(st?.state === 3 || err) && <p role="alert" className="text-sm text-rose-600 break-words">{err || st?.error}</p>}

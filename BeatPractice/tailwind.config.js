@@ -21,7 +21,7 @@ export default {
         sans: ['"BP UI"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro"', '"Segoe UI Variable"', '"Segoe UI"', 'system-ui', 'sans-serif'],
         mono: ['"SF Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
-      // accent colour: blue in the light theme, violet in the dark theme (see :root and html.light in index.css)
+      // accent colour: by default blue in the light theme and violet in the dark theme (see :root and html.light in index.css)
       colors: {
         // neutral greys of the Apple system (no blue tint): dark windows use 950..700, light ones are remapped in index.css
         slate: {
@@ -30,18 +30,13 @@ export default {
         },
         // system green: every Play button
         emerald: { 400: "#5fe07f", 500: "#30d158", 600: "#248a3d", 700: "#1d7233" },
-        sky: {
-        50: "rgb(var(--sky-50) / <alpha-value>)",
-        100: "rgb(var(--sky-100) / <alpha-value>)",
-        200: "rgb(var(--sky-200) / <alpha-value>)",
-        300: "rgb(var(--sky-300) / <alpha-value>)",
-        400: "rgb(var(--sky-400) / <alpha-value>)",
-        500: "rgb(var(--sky-500) / <alpha-value>)",
-        600: "rgb(var(--sky-600) / <alpha-value>)",
-        700: "rgb(var(--sky-700) / <alpha-value>)",
-        800: "rgb(var(--sky-800) / <alpha-value>)",
-        900: "rgb(var(--sky-900) / <alpha-value>)",
-        950: "rgb(var(--sky-950) / <alpha-value>)"
+        // the ONE accent of the interface (bg-accent, text-accent-text, border-accent, bg-accent/15 ...):
+        // its values come from --accent* in index.css and are replaced when the accent is chosen in the interface
+        accent: {
+          DEFAULT: "rgb(var(--accent) / <alpha-value>)",
+          hover: "rgb(var(--accent-hover) / <alpha-value>)",
+          text: "rgb(var(--accent-text) / <alpha-value>)",
+          on: "rgb(var(--accent-on) / <alpha-value>)",
         },
       },
       // corner radii are half of the Tailwind defaults (switches use rounded-full and stay round)
