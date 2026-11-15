@@ -416,8 +416,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         <div className="justify-self-end">
           {onExportLibrary && playlist.length > 0 && (
             <button type="button" id="btn-export-library" onClick={onExportLibrary}
-              title={lang === 'en' ? 'Save the playlist or a tag as one file for another device' : 'Зберегти плейліст або тег одним файлом для іншого пристрою'}
-              aria-label={lang === 'en' ? 'Export a library' : 'Експорт збірки'}
+              title={lang === 'en' ? 'Export a song, a tag or the playlist' : 'Експортувати пісню, тег або плейліст'}
+              aria-label={lang === 'en' ? 'Export' : 'Експорт'}
               className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold cursor-pointer text-ink-3 hover:bg-control hover:text-ink">
               <Package className="icon-sm" />{lang === 'en' ? 'Export' : 'Експорт'}
             </button>

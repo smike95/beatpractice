@@ -26,13 +26,15 @@ import { MetronomeStrip } from './components/MetronomeStrip';
 import { TempoMapDialog } from './components/TempoMapDialog';
 import { LoopConflictDialog } from './components/LoopConflictDialog';
 import { LibraryExportDialog } from './components/LibraryExportDialog';
+import { ExportChooserDialog } from './components/ExportChooserDialog';
+import { BatchAudioExportDialog } from './components/BatchAudioExportDialog';
 import { DuplicateDialog } from './components/DuplicateDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
 import { AccentPicker } from './components/AccentPicker';
 import { applyAccent, loadAccent, saveAccent } from './utils/accent';
 import { btn } from './components/ui/styles';
-import { Download, Info, Languages, ListEnd, Monitor, Moon, Package, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
+import { Info, Languages, ListEnd, Monitor, Moon, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
 
 const formatTime = (seconds: number): string => {
   if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -162,7 +164,9 @@ export default function App() {
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [packing, setPacking] = useState(false);
-  const [libraryExporting, setLibraryExporting] = useState(false);
+  const [exportChooser, setExportChooser] = useState(false);                        // the first step of every export
+  const [libraryExporting, setLibraryExporting] = useState<{ startTag: string | null } | null>(null);   // pack of a tag / of the playlist
+  const [batchAudio, setBatchAudio] = useState<{ startTag: string | null } | null>(null);          // audio files of a tag / of the playlist
   const [aboutOpen, setAboutOpen] = useState(false);
   // the folded part of the mixer (stem separation) remembers whether it was open
   const [mixerOpen, setMixerOpen] = useState<boolean>(() => {
@@ -390,7 +394,7 @@ export default function App() {
             onTagView={player.setTagView}
             viewList={player.viewList}
             onReorderInTag={player.reorderInTag}
-            onExportLibrary={isDesktop ? () => setLibraryExporting(true) : undefined}
+            onExportLibrary={isDesktop ? () => setExportChooser(true) : undefined}
           />
 
           </aside>
@@ -483,36 +487,18 @@ export default function App() {
                         <strong className="text-ink-2">{track ? (track.meterLabels[0] ?? track.timeSignature) : '4/4'}</strong>
                       )}
                     </span>
-                    {track && (<div className="flex items-center gap-x-3 shrink-0">
+                    {track && (
                       <button
                         id="btn-tempo-map"
                         type="button"
                         onClick={() => setTempoMapOpen(true)}
                         title={lang === 'en' ? 'Tempo map and sections' : 'Карта темпу та секцій'}
                         aria-label={lang === 'en' ? 'Tempo map and sections' : 'Карта темпу та секцій'}
-                        className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-outline bg-control text-ink-2 hover:bg-control-hover cursor-pointer transition-colors duration-150"
+                        className="-my-1 p-1 rounded-md text-ink-3 hover:text-ink hover:bg-control cursor-pointer shrink-0"
                       >
                         <Wrench className="icon-sm" />
                       </button>
-                      <button
-                        id="btn-export-track"
-                        onClick={() => setExporting(true)}
-                        disabled={!(track && player.ready)}
-                        title={lang === 'en' ? 'Export the track with the current tempo and parts' : 'Експортувати трек із поточним темпом і партіями'}
-                        className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-outline bg-control text-ink-2 hover:bg-control-hover cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Download className="icon-sm" />
-                      </button>
-                      <button
-                        id="btn-save-pack"
-                        onClick={() => setPacking(true)}
-                        disabled={!(track && player.ready)}
-                        title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
-                        className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-outline bg-control text-ink-2 hover:bg-control-hover cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <Package className="icon-sm" />
-                      </button>
-                    </div>)}
+                    )}
                   </div>
                 </div>
               </div>
@@ -811,16 +797,46 @@ export default function App() {
         <DuplicateDialog lang={lang} ask={player.dupAsk} tags={player.tags} onAnswer={player.answerDup} />
       )}
 
+      {exportChooser && (
+        <ExportChooserDialog
+          lang={lang}
+          canSong={!!(track && player.ready)}
+          hasTags={player.tags.some((t) => player.listForTag(t.id).length > 0)}
+          onClose={() => setExportChooser(false)}
+          onChoose={(c) => {
+            setExportChooser(false);
+            // for "a tag": the tag that is shown now, else the first one that has tracks (the dialog lets the person switch)
+            const tagId = player.tagView ?? player.tags.find((t) => player.listForTag(t.id).length > 0)?.id ?? null;
+            const startTag = c.scope === 'tag' ? tagId : null;
+            if (c.kind === 'audio') { if (c.scope === 'song') setExporting(true); else setBatchAudio({ startTag }); }
+            else { if (c.scope === 'song') setPacking(true); else setLibraryExporting({ startTag }); }
+          }}
+        />
+      )}
+
       {libraryExporting && (
         <LibraryExportDialog
           lang={lang}
           playlist={player.playlist}
           tags={player.tags}
           listForTag={player.listForTag}
-          startTag={player.tagView}
+          startTag={libraryExporting.startTag}
           activeItem={player.playlist.find((p) => p.id === player.activeId) ?? null}
           onRestore={(item) => player.reloadTrack(item)}
-          onClose={() => setLibraryExporting(false)}
+          onClose={() => setLibraryExporting(null)}
+        />
+      )}
+
+      {batchAudio && (
+        <BatchAudioExportDialog
+          lang={lang}
+          playlist={player.playlist}
+          tags={player.tags}
+          listForTag={player.listForTag}
+          startTag={batchAudio.startTag}
+          activeItem={player.playlist.find((p) => p.id === player.activeId) ?? null}
+          onRestore={(item) => player.reloadTrack(item)}
+          onClose={() => setBatchAudio(null)}
         />
       )}
 
