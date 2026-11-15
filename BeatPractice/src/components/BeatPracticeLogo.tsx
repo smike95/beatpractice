@@ -6,11 +6,11 @@ interface BeatPracticeLogoProps {
   color?: string;
 }
 
-/** The emblem of the application: the letter "b" whose bowl is a metronome dial. */
+/** The emblem of the application: the letter "b" whose bowl is a metronome dial. It has the colour of the text and does not depend on the accent. */
 export const BeatPracticeLogo: React.FC<BeatPracticeLogoProps> = ({
   className = 'w-7 h-7',
   size,
-  color = 'var(--brand-primary)'
+  color = 'rgb(var(--c-ink))'   // the colour of the text (the name next to it), not of the accent
 }) => {
   return (
     <svg
