@@ -100,6 +100,8 @@ html.light {
 }
 
 body { background-color: rgb(var(--c-canvas)); color: rgb(var(--c-ink)); }
+/* native radios, checkboxes and progress bars follow the accent too */
+:root { accent-color: rgb(var(--accent)); }
 
 ::selection { background-color: rgb(var(--accent) / 0.35); }
 

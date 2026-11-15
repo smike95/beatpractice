@@ -223,7 +223,7 @@ export function LibraryExportDialog(props: {
           </div>
           <div className="space-y-2">
             <div className="text-sm font-semibold">{L("Партії у збірці", "Parts in the library")}</div>
-            <Segmented id="lib-stems-mode" ariaLabel={L("Партії у збірці", "Parts in the library")} value={stemsMode} onChange={setStemsMode}
+            <Segmented grid id="lib-stems-mode" ariaLabel={L("Партії у збірці", "Parts in the library")} value={stemsMode} onChange={setStemsMode}
               options={[{ value: "none", label: L("Без розділених партій", "No separated parts") }, { value: "ready", label: L("Тільки готові розділені", "Only the ready ones") }, { value: "picked", label: L("Для обраних", "For chosen") }, { value: "all", label: L("Для всіх", "For all") }]} />
             {stemsMode === "picked" && (
               <ul className="max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-outline/70 p-1.5">

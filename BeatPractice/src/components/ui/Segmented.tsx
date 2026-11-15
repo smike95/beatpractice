@@ -4,7 +4,7 @@ export type SegmentedOption<T> = { value: T; label: ReactNode; title?: string };
 
 /**
  * Segmented control: one of a few choices, all visible at once (a radio group that looks like a switch).
- * `fill` makes the segments share the whole width. The chosen segment uses `.seg-on`, which has a light-theme variant in index.css.
+ * `fill` makes the segments share the whole width; `grid` lays them out in two columns (for long labels). The chosen segment uses `.seg-on` (the accent).
  */
 export function Segmented<T extends string | number | boolean>(props: {
   value: T;
@@ -13,15 +13,16 @@ export function Segmented<T extends string | number | boolean>(props: {
   ariaLabel: string;
   disabled?: boolean;
   fill?: boolean;
+  grid?: boolean;
   id?: string;
 }) {
-  const { value, options, onChange, ariaLabel, disabled, fill, id } = props;
+  const { value, options, onChange, ariaLabel, disabled, fill, grid, id } = props;
   return (
     <div
       id={id}
       role="radiogroup"
       aria-label={ariaLabel}
-      className={`${fill ? "flex w-full" : "inline-flex"} gap-0.5 rounded-lg border border-outline bg-canvas p-0.5 ${disabled ? "opacity-50" : ""}`}
+      className={`${grid ? "grid grid-cols-2 w-full" : fill ? "flex w-full" : "inline-flex"} gap-0.5 rounded-lg border border-outline bg-canvas p-0.5 ${disabled ? "opacity-50" : ""}`}
     >
       {options.map((o) => {
         const on = o.value === value;
@@ -34,7 +35,7 @@ export function Segmented<T extends string | number | boolean>(props: {
             title={o.title}
             disabled={disabled}
             onClick={() => { if (!on) onChange(o.value); }}
-            className={`${fill ? "flex-1 px-2" : "px-3"} min-h-9 rounded-md text-xs font-bold whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:cursor-not-allowed ${
+            className={`${fill || grid ? "flex-1 px-2" : "px-3"} min-h-9 rounded-md text-xs font-bold whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:cursor-not-allowed ${
               on ? "seg-on shadow-sm" : "text-ink-3 hover:text-ink hover:bg-control"
             }`}
           >
