@@ -30,6 +30,8 @@ export function BatchAudioExportDialog(props: {
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [scope, setScope] = useState<string>(startTag ?? "all");
   const [tempo, setTempo] = useState<"track" | "original">("track");   // each song at the tempo set for it in the playlist, or as recorded
+  const [withClick, setWithClick] = useState(false);                   // the metronome in the files, sounding as set in the player (volume, sound, accent, quiet bars)
+  const [countIn, setCountIn] = useState<0 | 1 | 2>(0);                 // bars of count-in before each song (only with the metronome)
   const [phase, setPhase] = useState<Phase>("idle");
   const [stage, setStage] = useState("");
   const [cur, setCur] = useState({ i: 0, name: "" });
@@ -94,16 +96,16 @@ export function BatchAudioExportDialog(props: {
         setStage(L("запис файлу", "writing the file"));
         const ok = await core.exportStartEx({
           path: `${dir}${sep}${name}.wav`,
-          metronome: false,
-          countInBars: 0,
+          metronome: withClick,
+          countInBars: withClick ? countIn : 0,
           rangeA: -1,
           rangeB: -1,
           separate: false,
           stems: [],
           gains: [],
           speedRatio: tempo === "track" && it.speed > 0 ? it.speed : 1,
-          accent: 0,
-          quiet: 0,
+          accent: withClick ? -1 : 0,          // -1 = as in the player
+          quiet: withClick ? -1 : 0,
           clickIntoStem: -1,
         }).catch(() => false);
         if (!ok || !(await waitExport())) { if (!cancelled.current) skipped.push(displayName(it)); continue; }
@@ -160,7 +162,20 @@ export function BatchAudioExportDialog(props: {
             <Segmented grid id="batch-tempo" ariaLabel={L("Темп", "Tempo")} value={tempo} onChange={setTempo}
               options={[{ value: "track", label: L("Як налаштовано для треку", "As set for the track") }, { value: "original", label: L("Оригінальний", "Original") }]} />
           </div>
-          <p className="text-xs text-ink-3">{L("Файли без метронома, з усім треком. Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Files without the metronome, the whole track. Tracks that have not been analysed are analysed now, which can take a while.")}</p>
+          <div className="space-y-2">
+            <div className="text-sm font-semibold">{L("Метроном у файлах", "Metronome in the files")}</div>
+            <Segmented grid id="batch-click" ariaLabel={L("Метроном у файлах", "Metronome in the files")} value={withClick} onChange={setWithClick}
+              options={[{ value: false, label: L("Без метронома", "No metronome") }, { value: true, label: L("З метрономом", "With the metronome") }]} />
+            {withClick && (
+              <>
+                <div className="text-sm font-semibold">{L("Відлік перед піснею", "Count-in before the song")}</div>
+                <Segmented fill id="batch-countin" ariaLabel={L("Відлік перед піснею", "Count-in before the song")} value={countIn} onChange={setCountIn}
+                  options={[{ value: 0, label: L("Без відліку", "None") }, { value: 1, label: L("1 такт", "1 bar") }, { value: 2, label: L("2 такти", "2 bars") }]} />
+                <p className="text-xs text-ink-3">{L("Метроном звучить так, як налаштовано в плеєрі: гучність, звук, акцент на першій долі, тихі такти.", "The metronome sounds as set in the player: volume, sound, accent on the first beat, quiet bars.")}</p>
+              </>
+            )}
+          </div>
+          <p className="text-xs text-ink-3">{L("Файли з усім треком. Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Whole tracks. Tracks that have not been analysed are analysed now, which can take a while.")}</p>
           {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
           <div className="flex justify-end gap-2">
             <button className={btn.neutral} onClick={onClose}>{L("Скасувати", "Cancel")}</button>
