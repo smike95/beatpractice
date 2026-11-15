@@ -41,7 +41,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
   return (
     <div
       id="dual-volume-mixer"
-      className="bg-slate-100/90 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800/90 rounded-xl px-3 sm:px-4 py-2 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 text-xs select-none"
+      className="border rounded-xl px-3 sm:px-4 py-2 shadow-2xs flex flex-wrap items-center justify-between gap-2.5 text-xs select-none bg-canvas/80 border-line/90"
     >
       <button
         type="button"
@@ -50,25 +50,25 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
         aria-expanded={expanded}
         aria-controls="mixer-details"
         title={expanded ? (lang === 'en' ? 'Fold the mixer' : 'Згорнути мікшер') : (lang === 'en' ? 'Unfold the mixer' : 'Розгорнути мікшер')}
-        className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 font-semibold uppercase tracking-wider shrink-0 cursor-pointer rounded-lg px-2.5 mr-2 min-h-11 sm:min-h-9 hover:bg-slate-200/70 dark:hover:bg-slate-800/70 transition-colors"
+        className="flex items-center gap-1.5 font-semibold uppercase tracking-wider shrink-0 cursor-pointer rounded-lg px-2.5 mr-2 min-h-11 sm:min-h-9 transition-colors text-ink-3 hover:bg-control/70"
       >
-        <Sliders className="w-6 h-6 text-slate-700 dark:text-slate-300" />
-        <span className="text-xs text-slate-700 dark:text-slate-300 font-bold">{lang === 'en' ? 'Mixer' : 'Мікшер'}</span>
-        <ChevronDown className={`w-4 h-4 text-slate-500 dark:text-slate-400 transition-transform ${expanded ? 'rotate-180' : ''}`} />
+        <Sliders className="w-6 h-6 text-ink-2" />
+        <span className="text-xs font-bold text-ink-2">{lang === 'en' ? 'Mixer' : 'Мікшер'}</span>
+        <ChevronDown className={`w-4 h-4 transition-transform  text-ink-3${expanded ? 'rotate-180' : ''}`} />
       </button>
 
       <div className="flex-1 min-w-[260px] sm:min-w-[500px] grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3 items-center">
         {/* Track Volume Channel */}
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-0.5 sm:py-2 rounded-lg border border-slate-200 dark:border-slate-800/80 mixer-channel-box shadow-2xs">
+        <div className="flex items-center gap-2 px-3 py-0.5 sm:py-2 rounded-lg border mixer-channel-box shadow-2xs bg-surface/90 border-line/80">
           <button
             type="button"
             onClick={onTrackMuteToggle}
             className={`flex items-center gap-1 min-h-11 sm:min-h-0 font-semibold shrink-0 cursor-pointer transition-colors ${
-              isTrackMuted ? 'text-rose-500 font-bold' : 'text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white'
+              isTrackMuted ? 'text-rose-500 font-bold' : 'text-ink-2 hover:text-ink'
             }`}
             title={isTrackMuted ? 'Увімкнути звук треку' : 'Заглушити трек'}
           >
-            <Music className="w-6 h-6 text-slate-600 dark:text-slate-300 mixer-icon" />
+            <Music className="w-6 h-6 mixer-icon text-ink-2" />
             <span className="mixer-label">Трек</span>
           </button>
 
@@ -83,22 +83,22 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
             className="flex-1 min-w-[70px]"
           />
 
-          <span className="font-mono font-bold text-slate-800 dark:text-slate-200 w-11 shrink-0 text-right text-xs mixer-value">
+          <span className="font-mono font-bold w-11 shrink-0 text-right text-xs mixer-value text-ink-2">
             {isTrackMuted ? 'Mute' : `${trackPercent}%`}
           </span>
         </div>
 
         {/* Metronome Volume Channel */}
-        <div className="flex items-center gap-2 bg-white dark:bg-slate-900/90 px-3 py-0.5 sm:py-2 rounded-lg border border-slate-200 dark:border-slate-800/80 mixer-channel-box shadow-2xs">
+        <div className="flex items-center gap-2 px-3 py-0.5 sm:py-2 rounded-lg border mixer-channel-box shadow-2xs bg-surface/90 border-line/80">
           <button
             type="button"
             onClick={onMetronomeToggle}
             className={`flex items-center gap-1 min-h-11 sm:min-h-0 font-semibold shrink-0 cursor-pointer transition-colors ${
-              isMetronomeEnabled ? 'text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white' : 'text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-400'
+              isMetronomeEnabled ? 'text-ink-2 hover:text-ink' : 'text-ink-4 hover:text-ink-3'
             }`}
             title={isMetronomeEnabled ? 'Вимкнути метроном' : 'Увімкнути метроном'}
           >
-            <MetronomeIcon className={`w-6 h-6 mixer-icon ${isMetronomeEnabled ? 'text-slate-700 dark:text-slate-200' : 'text-slate-400 dark:text-slate-500'}`} />
+            <MetronomeIcon className={`w-6 h-6 mixer-icon ${isMetronomeEnabled ? 'text-ink-2' : 'text-ink-4'}`} />
             <span className="mixer-label">{lang === 'en' ? 'Metronome' : 'Метроном'}</span>
           </button>
 
@@ -113,7 +113,7 @@ export const TrackMetronomeMixer: React.FC<TrackMetronomeMixerProps> = ({
             className="flex-1 min-w-[70px]"
           />
 
-          <span className="font-mono font-bold text-slate-800 dark:text-slate-200 w-11 shrink-0 text-right text-xs mixer-value">
+          <span className="font-mono font-bold w-11 shrink-0 text-right text-xs mixer-value text-ink-2">
             {metronomePercent}%
           </span>
         </div>

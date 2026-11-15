@@ -540,25 +540,25 @@ export function Waveform(props: Props) {
   const barIdx = barTimes.length > 0 ? Math.max(0, lastLE(barTimes, position)) : 0;
   const totalBars = barTimes.length;
   const btn =
-    "h-8 px-2.5 inline-flex items-center justify-center text-center text-xs font-bold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
+    "h-8 px-2.5 inline-flex items-center justify-center text-center text-xs font-bold rounded-lg bg-control hover:bg-control-hover text-ink-2 border border-outline transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed";
 
   return (
-    <div className="mt-3.5 rounded-2xl border border-slate-800 bg-slate-900 p-3 sm:p-4 space-y-3">
+    <div className="mt-3.5 rounded-2xl border border-line bg-surface p-3 sm:p-4 space-y-3">
       {/* clock, bar navigation, zoom */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-baseline gap-2 shrink-0">
-          <span className="text-2xl font-black font-mono text-slate-100 tabular-nums">{fmt(position / sp)}</span>
-          <span className="text-xs font-mono text-slate-400">/ {fmt(duration / sp)}</span>
+          <span className="text-2xl font-black font-mono text-ink tabular-nums">{fmt(position / sp)}</span>
+          <span className="text-xs font-mono text-ink-3">/ {fmt(duration / sp)}</span>
         </div>
 
-        <div className="ml-auto flex shrink-0 h-10 items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-1 select-none">
+        <div className="ml-auto flex shrink-0 h-10 items-center gap-1.5 bg-canvas border border-line rounded-xl px-1 select-none">
           <button className={btn} disabled={!song} onClick={() => onJumpBar(-1)} title={L("Такт назад (←)", "Previous bar (←)")}>
             <span className="inline-flex items-center justify-center gap-0.5"><ChevronLeft className="icon-sm" />{L("Такт", "Bar")}</span>
           </button>
-          <span className="px-2 text-xs text-slate-300 inline-flex items-center gap-1.5 whitespace-nowrap">
-            {L("Такт", "Bar")} <strong className="font-mono text-slate-100">{totalBars ? barIdx + 1 : "—"}</strong>
-            <span className="text-slate-500">/ {totalBars || "—"}</span>
-            <span className="text-slate-500">•</span>
+          <span className="px-2 text-xs text-ink-2 inline-flex items-center gap-1.5 whitespace-nowrap">
+            {L("Такт", "Bar")} <strong className="font-mono text-ink">{totalBars ? barIdx + 1 : "—"}</strong>
+            <span className="text-ink-4">/ {totalBars || "—"}</span>
+            <span className="text-ink-4">•</span>
             <strong className="font-mono text-emerald-500">{song ? `${currentBeat + 1}/${beatsPerBar}` : "—"}</strong>
           </span>
           <button className={btn} disabled={!song} onClick={() => onJumpBar(1)} title={L("Такт вперед (→)", "Next bar (→)")}>
@@ -569,8 +569,8 @@ export function Waveform(props: Props) {
 
       {/* sections */}
       {sections.length > 1 && (
-        <div className="flex items-center gap-2 flex-wrap rounded-xl bg-slate-950/60 border border-slate-800 px-3 py-2">
-          <span className="text-xs font-semibold text-slate-400">{L("Секції:", "Sections:")}</span>
+        <div className="flex items-center gap-2 flex-wrap rounded-xl bg-canvas/60 border border-line px-3 py-2">
+          <span className="text-xs font-semibold text-ink-3">{L("Секції:", "Sections:")}</span>
           {sections.map((s, i) => {
             const active = position >= s.startTime && position < s.endTime;
             return (
@@ -578,7 +578,7 @@ export function Waveform(props: Props) {
                 key={i}
                 onClick={() => onSeek(s.loopStart)}
                 title={`${L("Такти", "Bars")} ${s.firstBar}–${s.lastBar}, ${fmt(s.startTime / sp)}`}
-                className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2 border-[3px] cursor-pointer transition-colors bg-slate-800 text-slate-200 hover:bg-slate-700 ${
+                className={`px-3 py-1 rounded-lg text-xs font-bold flex items-center gap-2 border-[3px] cursor-pointer transition-colors bg-control text-ink-2 hover:bg-control-hover ${
                   active ? "border-accent" : "border-transparent"
                 }`}
               >
@@ -594,11 +594,11 @@ export function Waveform(props: Props) {
 
       {/* minimap */}
       <div>
-        <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
+        <div className="flex items-center justify-between text-xs text-ink-3 mb-1">
           <span>{L("Мінікарта треку", "Track minimap")}</span>
           <span className="font-mono">{totalBars ? `${barsText(totalBars, lang)} (${fmt(duration / sp)})` : ""}</span>
         </div>
-        <div ref={miniBox} className="rounded-lg overflow-hidden bg-slate-950 border border-slate-800">
+        <div ref={miniBox} className="rounded-lg overflow-hidden bg-canvas border border-line">
           <canvas
             ref={miniRef}
             style={{ width: "100%", height: MINI_H, display: "block", cursor: "pointer" }}
@@ -612,7 +612,7 @@ export function Waveform(props: Props) {
       </div>
 
       {/* main waveform */}
-      <div ref={mainBox} className="rounded-lg overflow-hidden bg-slate-950 border border-slate-800 relative select-none">
+      <div ref={mainBox} className="rounded-lg overflow-hidden bg-canvas border border-line relative select-none">
         <canvas
           ref={mainRef}
           style={{ width: "100%", height: MAIN_H, display: "block", cursor: "crosshair", touchAction: "none" }}
@@ -678,7 +678,7 @@ export function Waveform(props: Props) {
           </button>
         )}
         {!song && (
-          <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-500">
+          <div className="absolute inset-0 flex items-center justify-center text-xs text-ink-4">
             {L("Хвиля з’явиться після аналізу треку", "The waveform appears after the track is analysed")}
           </div>
         )}
@@ -692,23 +692,23 @@ export function Waveform(props: Props) {
         <InfoTip label={L("Підказка", "Hint")}>
           {L("Клік по хвилі – перемотати. Протягніть по хвилі, щоб задати цикл по тактах.", "Click on the waveform to seek. Drag across it to set a bar loop.")}
         </InfoTip>
-        <div className="flex shrink-0 h-8 items-center gap-1 bg-slate-950 border border-slate-800 rounded-lg px-1 select-none">
+        <div className="flex shrink-0 h-8 items-center gap-1 bg-canvas border border-line rounded-lg px-1 select-none">
           <button
-            className="h-6 w-6 flex items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            className="h-6 w-6 flex items-center justify-center rounded-md text-ink-2 hover:text-ink hover:bg-control-hover cursor-pointer disabled:opacity-40 disabled:cursor-default"
             disabled={!song || zoom <= 1} onClick={() => zoomStep(-1)}
             title={L("Зменшити масштаб (Ctrl + колесо вниз)", "Zoom out (Ctrl + wheel down)")} aria-label={L("Зменшити масштаб", "Zoom out")}
           ><ZoomOut className="icon-sm" /></button>
-          <span className="text-xs text-slate-400 mx-0.5 whitespace-nowrap">{L("Масштаб", "Zoom")} <strong className="font-mono text-slate-100 inline-block w-9 text-left">×{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}</strong></span>
+          <span className="text-xs text-ink-3 mx-0.5 whitespace-nowrap">{L("Масштаб", "Zoom")} <strong className="font-mono text-ink inline-block w-9 text-left">×{zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}</strong></span>
           {PRESET_ZOOMS.map((z) => (
             <button
               key={z} disabled={!song} onClick={() => changeZoom(z)}
               className={`h-6 min-w-[2.25rem] px-1.5 inline-flex items-center justify-center text-xs font-bold rounded-md border transition-colors cursor-pointer ${
-                Math.abs(zoom - z) < 0.01 ? "bg-slate-700 text-white border-slate-500" : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+                Math.abs(zoom - z) < 0.01 ? "bg-control-hover text-ink border-outline" : "bg-control text-ink-2 border-outline hover:bg-control-hover"
               }`}
             >×{z}</button>
           ))}
           <button
-            className="h-6 w-6 flex items-center justify-center rounded-md text-slate-300 hover:text-white hover:bg-slate-700 cursor-pointer disabled:opacity-40 disabled:cursor-default"
+            className="h-6 w-6 flex items-center justify-center rounded-md text-ink-2 hover:text-ink hover:bg-control-hover cursor-pointer disabled:opacity-40 disabled:cursor-default"
             disabled={!song || zoom >= ZOOM_MAX} onClick={() => zoomStep(1)}
             title={L("Збільшити масштаб (Ctrl + колесо вгору)", "Zoom in (Ctrl + wheel up)")} aria-label={L("Збільшити масштаб", "Zoom in")}
           ><ZoomIn className="icon-sm" /></button>

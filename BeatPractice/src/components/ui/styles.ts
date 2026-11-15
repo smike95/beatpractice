@@ -16,13 +16,13 @@ export const btn = {
   neutral: `${base} ${regular} border track-edit-btn`,
   compact: `${base} ${compact} border track-edit-btn shrink-0`,
   /** the quiet dark button used inside panels (loops, stems); its colours follow the slate classes the light theme already maps */
-  secondary: `${base} ${compact} border bg-slate-800 hover:bg-slate-700 text-slate-200 border-slate-700`,
+  secondary: `${base} ${compact} border bg-control hover:bg-control-hover text-ink-2 border-outline`,
   /** the one big action of a panel */
   cta: `${base} min-h-11 px-5 text-sm bg-accent hover:bg-accent-hover text-accent-on`,
   /** one of several choices; the chosen one has a sky border (count-in, sound, meter mode, beats per bar) */
   option: (active: boolean) =>
     `${base} h-11 sm:h-9 px-3 border font-bold disabled:cursor-not-allowed ${
-      active ? "bg-slate-700 text-white border-accent border-2" : "bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700"
+      active ? "bg-control-hover text-ink border-accent border-2" : "bg-control text-ink-2 border-outline hover:bg-control-hover"
     }`,
   /** a small toggle / choice button */
   chip: (active: boolean) => `${base} ${compact} border ${active ? "bg-accent text-accent-on border-accent" : "track-edit-btn"}`,

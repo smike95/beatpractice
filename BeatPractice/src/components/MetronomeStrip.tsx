@@ -25,7 +25,7 @@ export function BeatLamps(props: { lang: Lang; beatsPerBar: number; activeBeat: 
                 ? idx === 0
                   ? "scale-110 bg-rose-500 font-black text-white shadow-[0_0_8px_rgba(244,63,94,0.8)]"
                   : "beat-non-accent-active scale-105 bg-accent font-black text-accent-on shadow-[0_0_8px_rgb(var(--accent)/0.8)]"
-                : "beat-inactive border border-slate-800 bg-slate-900 text-slate-400"
+                : "beat-inactive border border-line bg-surface text-ink-3"
             }`}
           >
             {idx + 1}
@@ -59,10 +59,10 @@ export function MetronomeStrip(props: {
   const box = useRef<HTMLDivElement>(null);
   return (
     <div ref={box} className="relative">
-      <div id="quick-metronome-strip" className="flex h-12 items-center gap-3 rounded-xl border border-slate-800 bg-slate-950 px-3 select-none">
-        <MetronomeIcon className={`h-6 w-6 shrink-0 ${enabled ? "text-slate-200" : "text-slate-500"}`} />
+      <div id="quick-metronome-strip" className="flex h-12 items-center gap-3 rounded-xl border border-line bg-canvas px-3 select-none">
+        <MetronomeIcon className={`h-6 w-6 shrink-0 ${enabled ? "text-ink-2" : "text-ink-4"}`} />
         <Switch id="quick-switch-metronome" checked={enabled} onChange={onToggle} label={enabled ? L("Вимкнути метроном", "Turn the metronome off") : L("Увімкнути метроном", "Turn the metronome on")} />
-        <span className="font-mono text-xs font-bold text-slate-400" title={L("Розмір такту", "Bar size")}>{meter}</span>
+        <span className="font-mono text-xs font-bold text-ink-3" title={L("Розмір такту", "Bar size")}>{meter}</span>
         <BeatLamps lang={lang} beatsPerBar={beatsPerBar} activeBeat={activeBeat} />
         <button
           id="btn-metronome-settings"
@@ -73,14 +73,14 @@ export function MetronomeStrip(props: {
           title={L("Налаштування метронома", "Metronome settings")}
           aria-label={L("Налаштування метронома", "Metronome settings")}
           className={`ml-auto flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border cursor-pointer transition-colors duration-150 ${
-            open ? "seg-on border-transparent" : "border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+            open ? "seg-on border-transparent" : "border-outline bg-control text-ink-2 hover:bg-control-hover"
           }`}
         >
           <SlidersHorizontal className="h-5 w-5" />
         </button>
       </div>
       <Popover open={open} onClose={() => setOpen(false)} containerRef={box} ariaLabel={L("Налаштування метронома", "Metronome settings")} id="metronome-settings-popover">
-        <h3 className="text-sm font-bold text-slate-100">{L("Налаштування метронома", "Metronome settings")}</h3>
+        <h3 className="text-sm font-bold text-ink">{L("Налаштування метронома", "Metronome settings")}</h3>
         <MetronomeSettingsForm
           lang={lang}
           accent={props.accent} onAccent={props.onAccent}

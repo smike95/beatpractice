@@ -54,10 +54,10 @@ function NameEditor(props: { value: string; shown: string; label: string; onComm
   if (!editing) {
     return (
       <span className="inline-flex items-center gap-1.5 min-w-0">
-        <span className="truncate text-sm font-bold text-slate-100" title={shown}>{shown}</span>
+        <span className="truncate text-sm font-bold text-ink" title={shown}>{shown}</span>
         <button type="button" aria-label={label} title={label}
           onClick={(e) => { e.stopPropagation(); setDraft(value); setEditing(true); }}
-          className="p-3 -m-3 sm:p-0.5 sm:m-0 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0 transition-colors duration-150">
+          className="p-3 -m-3 sm:p-0.5 sm:m-0 rounded-md text-ink-3 hover:text-ink hover:bg-control cursor-pointer shrink-0 transition-colors duration-150">
           <Pencil className="icon-xs" />
         </button>
       </span>
@@ -75,7 +75,7 @@ function NameEditor(props: { value: string; shown: string; label: string; onComm
         if (e.key === "Enter") (e.target as HTMLInputElement).blur();
         if (e.key === "Escape") { setDraft(value); setEditing(false); }
       }}
-      className="min-w-0 w-40 sm:w-56 h-11 sm:h-8 px-2 rounded-lg bg-slate-950 border border-accent text-sm font-bold text-slate-100"
+      className="min-w-0 w-40 sm:w-56 h-11 sm:h-8 px-2 rounded-lg bg-canvas border border-accent text-sm font-bold text-ink"
     />
   );
 }
@@ -115,7 +115,7 @@ export function LoopsPanel(props: Props) {
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="text-xs font-semibold text-slate-300">{L("Відлік", "Count-in")}</span>
+        <span className="text-xs font-semibold text-ink-2">{L("Відлік", "Count-in")}</span>
         <Segmented
           id="select-countin-bars-loops-tab"
           ariaLabel={L("Відлік", "Count-in")}
@@ -125,7 +125,7 @@ export function LoopsPanel(props: Props) {
         />
         </div>
         <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
-        <span className="text-xs font-semibold text-slate-300">{L("Перед кожним циклом", "Before every loop")}</span>
+        <span className="text-xs font-semibold text-ink-2">{L("Перед кожним циклом", "Before every loop")}</span>
         <Segmented
           id="switch-countin-on-loop-loops-tab"
           ariaLabel={L("Перед кожним циклом", "Before every loop")}
@@ -138,8 +138,8 @@ export function LoopsPanel(props: Props) {
       </div>
 
       {loops.length === 0 && (
-        <div className="rounded-xl border border-dashed border-slate-700 p-4 flex items-center justify-between gap-3 flex-wrap">
-          <div className="text-sm text-slate-300 font-semibold">{L("Цикл не задано", "No loop set")}</div>
+        <div className="rounded-xl border border-dashed border-outline p-4 flex items-center justify-between gap-3 flex-wrap">
+          <div className="text-sm text-ink-2 font-semibold">{L("Цикл не задано", "No loop set")}</div>
           <button className={btn} disabled={!ready} onClick={props.onAdd}>{L("Створити з поточного такту", "Create from the current bar")}</button>
         </div>
       )}
@@ -157,18 +157,18 @@ export function LoopsPanel(props: Props) {
             tabIndex={0}
             onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); props.onSelect(i); } }}
             style={{ borderColor: sel ? col.solid : undefined, background: sel ? col.fill : undefined }}
-            className={`rounded-xl border-2 p-3 space-y-3 cursor-pointer transition-colors duration-150 ${sel ? "" : "border-slate-800"}`}
+            className={`rounded-xl border-2 p-3 space-y-3 cursor-pointer transition-colors duration-150 ${sel ? "" : "border-line"}`}
           >
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-2 min-w-0">
                 <span style={{ background: on ? col.solid : undefined, color: on ? col.text : undefined, borderColor: col.solid }}
-                  className={`w-5 h-5 shrink-0 rounded-md border text-xs flex items-center justify-center font-mono ${on ? "" : "bg-slate-800 text-slate-300"}`}>{i + 1}</span>
+                  className={`w-5 h-5 shrink-0 rounded-md border text-xs flex items-center justify-center font-mono ${on ? "" : "bg-control text-ink-2"}`}>{i + 1}</span>
                 <NameEditor value={s.name ?? ""} shown={loopLabel(s, i, lang)} label={L("Змінити назву циклу", "Rename the loop")}
                   onCommit={(v) => props.onUpdate(i, { start: s.start, end: s.end, ...(v ? { name: v } : {}) })} />
-                <span className="text-xs font-normal text-slate-400 whitespace-nowrap">{barsText(tb - fb + 1, lang)}</span>
+                <span className="text-xs font-normal text-ink-3 whitespace-nowrap">{barsText(tb - fb + 1, lang)}</span>
               </div>
               <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-                <span className="text-xs font-semibold text-slate-400"><StableLabel align="text-right" active={on ? 1 : 0} labels={[L("Вимкнено", "Off"), L("Грає", "Playing")]} /></span>
+                <span className="text-xs font-semibold text-ink-3"><StableLabel align="text-right" active={on ? 1 : 0} labels={[L("Вимкнено", "Off"), L("Грає", "Playing")]} /></span>
                 <Switch
                   checked={on}
                   disabled={!ready}
@@ -176,7 +176,7 @@ export function LoopsPanel(props: Props) {
                   label={on ? L("Вимкнути цикл", "Turn the loop off") : L("Увімкнути цикл", "Turn the loop on")}
                 />
                 <button
-                  className="p-2.5 sm:p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 cursor-pointer transition-colors duration-150"
+                  className="p-2.5 sm:p-1.5 rounded-lg text-ink-3 hover:text-rose-400 hover:bg-control cursor-pointer transition-colors duration-150"
                   title={L("Видалити цикл", "Delete loop")} aria-label={L("Видалити цикл", "Delete loop")}
                   onClick={() => props.onRemove(i)}
                 >
@@ -184,7 +184,7 @@ export function LoopsPanel(props: Props) {
                 </button>
               </div>
             </div>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-xs text-slate-300" onClick={(e) => e.stopPropagation()}>
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-3 text-xs text-ink-2" onClick={(e) => e.stopPropagation()}>
               <label className="flex items-center gap-1.5">
                 {L("З такту", "From bar")}
                 <BarInput value={fb} min={1} max={Math.max(1, total)} disabled={!ready || total === 0}
@@ -201,7 +201,7 @@ export function LoopsPanel(props: Props) {
               <button className={btn} disabled={!ready || total === 0} onClick={() => props.onUpdate(i, keepName(s, slotFromBars(Math.min(fb, currentBar), currentBar)))}>
                 {L("Кінець – поточним тактом", "End = current bar")}
               </button>
-              <span className="text-slate-500">/ {total || "—"}</span>
+              <span className="text-ink-4">/ {total || "—"}</span>
             </div>
           </div>
         );

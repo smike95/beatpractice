@@ -14,7 +14,7 @@ const MIN_BPM = 30, MAX_BPM = 250;
 const clampBpm = (v: number) => Math.max(MIN_BPM, Math.min(MAX_BPM, Math.round(v)));
 
 /** Every block of the row is 48 px high, like the blocks of the song's metronome and tempo. */
-const block = "flex h-12 items-center rounded-xl border border-slate-800 bg-slate-950 select-none";   // only the lamps are in a block
+const block = "flex h-12 items-center rounded-xl border border-line bg-canvas select-none";   // only the lamps are in a block
 const plain = "flex h-12 items-center select-none";
 
 /** Start / stop. The size is fixed and the icons are the same size, so nothing jumps when the state changes. */
@@ -84,12 +84,12 @@ export function ClickMetronomePanel(props: {
   const setBpm = (v: number) => setOwn((o) => ({ ...o, bpm: clampBpm(v) }));
 
   return (
-    <section id="click-metronome-panel" className="fm-card bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+    <section id="click-metronome-panel" className="fm-card bg-surface border border-line rounded-2xl p-4 sm:p-5 shadow-sm">
       <div className="fm-grid">
         {/* 1: emblem, name, start / stop */}
         <div className={`${plain} gap-3`}>
-          <MetronomeIcon className={`h-6 w-6 shrink-0 ${running ? "text-slate-200" : "text-slate-400"}`} />
-          <span className="text-sm font-bold text-slate-100 whitespace-nowrap">{L("Вільний метроном", "Free metronome")}</span>
+          <MetronomeIcon className={`h-6 w-6 shrink-0 ${running ? "text-ink-2" : "text-ink-3"}`} />
+          <span className="text-sm font-bold text-ink whitespace-nowrap">{L("Вільний метроном", "Free metronome")}</span>
         </div>
 
         <div className="fm-rest">
@@ -114,14 +114,14 @@ export function ClickMetronomePanel(props: {
               aria-expanded={settingsOpen} aria-haspopup="dialog"
               title={L("Налаштування метронома", "Metronome settings")} aria-label={L("Налаштування метронома", "Metronome settings")}
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border cursor-pointer transition-colors duration-150 ${
-                settingsOpen ? "seg-on border-transparent" : "border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700"
+                settingsOpen ? "seg-on border-transparent" : "border-outline bg-control text-ink-2 hover:bg-control-hover"
               }`}
             >
               <SlidersHorizontal className="h-5 w-5" />
             </button>
           </div>
           <Popover open={settingsOpen} onClose={() => setSettingsOpen(false)} containerRef={settingsBox} ariaLabel={L("Налаштування метронома", "Metronome settings")} id="click-metronome-settings-popover" align="left">
-            <h3 className="text-sm font-bold text-slate-100">{L("Налаштування метронома", "Metronome settings")}</h3>
+            <h3 className="text-sm font-bold text-ink">{L("Налаштування метронома", "Metronome settings")}</h3>
             <MetronomeSettingsForm
               lang={lang}
               accent={accent} onAccent={(v) => setOwn((o) => ({ ...o, accent: v }))}
@@ -140,10 +140,10 @@ export function ClickMetronomePanel(props: {
         <div className="fm-vol">
         {props.showVolume && (
         <div className={`${plain} min-w-[220px] gap-2`}>
-          <Volume2 className="h-6 w-6 shrink-0 text-slate-300 mixer-icon" aria-hidden="true" />
-          <span className="mixer-label shrink-0 text-xs font-semibold text-slate-300">{L("Гучність", "Volume")}</span>
+          <Volume2 className="h-6 w-6 shrink-0 text-ink-2 mixer-icon" aria-hidden="true" />
+          <span className="mixer-label shrink-0 text-xs font-semibold text-ink-2">{L("Гучність", "Volume")}</span>
           <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={setVolume} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
-          <span className="mixer-value w-11 shrink-0 text-right font-mono text-xs font-bold text-slate-200">{pct}%</span>
+          <span className="mixer-value w-11 shrink-0 text-right font-mono text-xs font-bold text-ink-2">{pct}%</span>
         </div>
         )}
         </div>

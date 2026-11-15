@@ -26,21 +26,21 @@ export function DuplicateDialog(props: { lang: Lang; ask: DupAsk; tags: Playlist
     const tg = tagNames(it);
     const ext = /\.beatpack$/i.test(it.path) ? L("пакет", "pack") : L("аудіофайл", "audio file");
     return (
-      <div className="min-w-0 flex-1 space-y-1.5 rounded-xl border border-slate-700/70 p-3">
+      <div className="min-w-0 flex-1 space-y-1.5 rounded-xl border border-outline/70 p-3">
         <p className="text-xs font-bold uppercase tracking-wide text-accent-text">{heading}</p>
         <div className="flex items-center gap-3">
           {it.cover ? <img src={it.cover} alt="" className="h-14 w-14 shrink-0 rounded-lg object-cover" /> : <CoverPlaceholder className="h-14 w-14" rounded="rounded-lg" />}
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold" title={it.title || it.name}>{it.title || it.name}</p>
-            <p className="truncate text-xs text-slate-400">{it.artist || L("без виконавця", "no artist")}</p>
+            <p className="truncate text-xs text-ink-3">{it.artist || L("без виконавця", "no artist")}</p>
           </div>
         </div>
         <dl className="space-y-1 text-xs">
-          <div className="flex justify-between gap-2"><dt className="text-slate-400">{L("Файл", "File")}</dt><dd className="min-w-0 truncate text-right" title={it.path}>{fileOf(it.path)} · {ext}</dd></div>
-          {it.trackInfo.duration > 0 && <div className="flex justify-between gap-2"><dt className="text-slate-400">{L("Тривалість", "Length")}</dt><dd>{clock(it.trackInfo.duration)}</dd></div>}
-          <div className="flex justify-between gap-2"><dt className="text-slate-400">{L("Розпізнано", "Analysed")}</dt><dd className={isAnalysed(it) ? "font-semibold text-emerald-600" : ""}>{isAnalysed(it) ? yes : no}</dd></div>
-          <div className="flex justify-between gap-2"><dt className="text-slate-400">{L("Розділено на партії", "Separated into parts")}</dt><dd className={isSeparated(it) ? "font-semibold text-emerald-600" : ""}>{isSeparated(it) ? yes : no}</dd></div>
-          <div className="flex justify-between gap-2"><dt className="text-slate-400">{L("Теги", "Tags")}</dt><dd className="min-w-0 truncate text-right">{tg.length ? tg.join(", ") : "—"}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="text-ink-3">{L("Файл", "File")}</dt><dd className="min-w-0 truncate text-right" title={it.path}>{fileOf(it.path)} · {ext}</dd></div>
+          {it.trackInfo.duration > 0 && <div className="flex justify-between gap-2"><dt className="text-ink-3">{L("Тривалість", "Length")}</dt><dd>{clock(it.trackInfo.duration)}</dd></div>}
+          <div className="flex justify-between gap-2"><dt className="text-ink-3">{L("Розпізнано", "Analysed")}</dt><dd className={isAnalysed(it) ? "font-semibold text-emerald-600" : ""}>{isAnalysed(it) ? yes : no}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="text-ink-3">{L("Розділено на партії", "Separated into parts")}</dt><dd className={isSeparated(it) ? "font-semibold text-emerald-600" : ""}>{isSeparated(it) ? yes : no}</dd></div>
+          <div className="flex justify-between gap-2"><dt className="text-ink-3">{L("Теги", "Tags")}</dt><dd className="min-w-0 truncate text-right">{tg.length ? tg.join(", ") : "—"}</dd></div>
         </dl>
       </div>
     );
@@ -49,15 +49,15 @@ export function DuplicateDialog(props: { lang: Lang; ask: DupAsk; tags: Playlist
   return (
     <Modal id="duplicate-dialog" width="lg" onClose={() => onAnswer("keep-existing", false)} closeOnEscape={false} layer="z-[100]">
       <ModalHeader title={L("Такий трек уже є", "This track is already here")} onClose={() => onAnswer("keep-existing", false)} closeLabel={L("Пропустити", "Skip")} />
-      <p className="text-sm text-slate-300">
+      <p className="text-sm text-ink-2">
         {L("Новий трек схожий на той, що вже є в плейлісті. Що залишити?", "The new track looks like one that is already in the playlist. Which one to keep?")}
-        {ask.total > 1 && <span className="text-slate-400"> {L(`(дублікат ${ask.index} з ${ask.total})`, `(duplicate ${ask.index} of ${ask.total})`)}</span>}
+        {ask.total > 1 && <span className="text-ink-3"> {L(`(дублікат ${ask.index} з ${ask.total})`, `(duplicate ${ask.index} of ${ask.total})`)}</span>}
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
         {column(ask.existing, L("Наявний", "Existing"))}
         {column(ask.incoming, L("Новий", "New"))}
       </div>
-      <p className="text-xs text-slate-400">
+      <p className="text-xs text-ink-3">
         {L("«Об’єднати» залишає один трек із найкращим з обох: виконавець, назва й обкладинка – з того, де вони є; звук – з того, де є партії чи розпізнавання; теги й цикли – з обох.", "“Merge” keeps one track that has the best of both: artist, title and cover come from the one that has them; the sound comes from the one with separated parts or analysis; tags and loops are added from both.")}
       </p>
       {left > 0 && (

@@ -53,7 +53,7 @@ export function InfoTip(props: { children: ReactNode; label?: string; className?
         onFocus={() => show(0)}
         onBlur={hide}
         onClick={() => (open ? hide() : setOpen(true))}
-        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-slate-400 hover:text-slate-100 cursor-pointer transition-colors normal-case ${className}`}
+        className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-ink-3 hover:text-ink cursor-pointer transition-colors normal-case ${className}`}
       >
         <Info className="icon-sm" />
       </button>
@@ -62,7 +62,7 @@ export function InfoTip(props: { children: ReactNode; label?: string; className?
           ref={tip}
           id="info-tip"
           role="tooltip"
-          className="pointer-events-none fixed z-[200] max-w-[22rem] rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-xs font-normal normal-case leading-snug tracking-normal text-slate-200 shadow-xl"
+          className="pointer-events-none fixed z-[200] max-w-[22rem] rounded-lg border border-outline bg-control px-3 py-2 text-xs font-normal normal-case leading-snug tracking-normal text-ink-2 shadow-xl"
           style={{ left: pos?.left ?? -9999, top: pos?.top ?? -9999 }}
         >
           {children}

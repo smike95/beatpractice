@@ -40,21 +40,21 @@ export function TempoMapDialog(props: {
       />
 
       <div className="space-y-1.5">
-        <div className="text-xs font-semibold text-slate-300">{L("Темп", "Tempo")}</div>
+        <div className="text-xs font-semibold text-ink-2">{L("Темп", "Tempo")}</div>
         <Segmented ariaLabel={L("Темп", "Tempo")} value={halveTempo} onChange={onHalveTempo} disabled={disabled}
           options={[{ value: false, label: L("Як визначено", "As detected") }, { value: true, label: L("Вдвічі повільніше", "Half speed"), title: L("Темп усього треку ділиться навпіл", "The tempo of the whole track is divided by two") }]} />
-        <p className="text-xs text-slate-400">{L("Для швидких пісень, темп яких визначено вдвічі завищеним (наприклад, 210 замість 105).", "For fast songs whose tempo was found twice too high (for example 210 instead of 105).")}</p>
+        <p className="text-xs text-ink-3">{L("Для швидких пісень, темп яких визначено вдвічі завищеним (наприклад, 210 замість 105).", "For fast songs whose tempo was found twice too high (for example 210 instead of 105).")}</p>
       </div>
 
       <div className="space-y-1.5">
-        <div className="text-xs font-semibold text-slate-300">{L("Розпізнавання розміру", "Meter recognition")}</div>
+        <div className="text-xs font-semibold text-ink-2">{L("Розпізнавання розміру", "Meter recognition")}</div>
         <Segmented ariaLabel={L("Розпізнавання розміру", "Meter recognition")} value={meterPreset} onChange={onMeterPreset} disabled={disabled}
           options={[
             { value: 0, label: L("Авто", "Auto"), title: L("Збалансовано: такти з 3–7 долей, зміни розміру за чітких ознак", "Balanced: bars of 3 to 7 beats, changes need clear evidence") },
             { value: 1, label: L("Чутливо", "Sensitive"), title: L("Ближче до нейромережі: легше знаходить непарні й змінні розміри", "Follows the neural network more closely: finds odd and changing meters more readily") },
             { value: 2, label: L("Спрощено", "Simplified"), title: L("Лише 3/4 і 4/4, зміни розміру лише за дуже чітких ознак", "Only 3/4 and 4/4, changes need strong evidence") },
           ]} />
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-ink-3">
           {L("Якщо складний трек показано з хибним розміром, спробуйте «Чутливо» або «Спрощено».", "If a complex song is shown with the wrong meter, try “Sensitive” or “Simplified”.")}
         </p>
         <p className="flex items-center gap-1.5 text-xs font-semibold text-accent-text">
@@ -64,12 +64,12 @@ export function TempoMapDialog(props: {
       </div>
 
       {sections.length === 0 ? (
-        <p className="text-sm text-slate-400">{L("Відкрийте трек, щоб побачити секції.", "Open a track to see its sections.")}</p>
+        <p className="text-sm text-ink-3">{L("Відкрийте трек, щоб побачити секції.", "Open a track to see its sections.")}</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-slate-300">
+          <table className="w-full text-xs text-ink-2">
             <thead>
-              <tr className="border-b border-slate-800 text-left text-slate-400">
+              <tr className="border-b border-line text-left text-ink-3">
                 <th className={th}>#</th>
                 <th className={th}>{L("Такти", "Bars")}</th>
                 <th className={th}>{L("Час", "Time")}</th>
@@ -80,7 +80,7 @@ export function TempoMapDialog(props: {
             </thead>
             <tbody>
               {sections.map((sec, i) => (
-                <tr key={i} className="border-b border-slate-800/60">
+                <tr key={i} className="border-b border-line/60">
                   <td className="py-1.5 pr-3 font-mono">{i + 1}</td>
                   <td className="py-1.5 pr-3 font-mono">{sec.firstBar}–{sec.lastBar} ({sec.bars})</td>
                   <td className="py-1.5 pr-3 font-mono">{mmss(sec.startTime / speed)}–{mmss(sec.endTime / speed)}</td>

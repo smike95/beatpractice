@@ -29,9 +29,9 @@ export function SpinField(props: {
     setDraft(null);
   };
   const nudge = (d: number) => { setDraft(null); onChange(round(clamp(value + d * step))); };
-  const arrow = "flex min-h-0 w-full items-center justify-center overflow-hidden p-0 leading-none text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent";
+  const arrow = "flex min-h-0 w-full items-center justify-center overflow-hidden p-0 leading-none text-ink-3 hover:text-ink hover:bg-control cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent";
   return (
-    <div className={`inline-flex h-10 shrink-0 items-stretch overflow-hidden rounded-lg border border-slate-700 bg-slate-950 transition-colors duration-150 focus-within:border-accent ${disabled ? "opacity-50" : ""}`}>
+    <div className={`inline-flex h-10 shrink-0 items-stretch overflow-hidden rounded-lg border border-outline bg-canvas transition-colors duration-150 focus-within:border-accent ${disabled ? "opacity-50" : ""}`}>
       <input
         id={id}
         type="text"
@@ -48,9 +48,9 @@ export function SpinField(props: {
           else if (e.key === "ArrowUp") { e.preventDefault(); nudge(1); }
           else if (e.key === "ArrowDown") { e.preventDefault(); nudge(-1); }
         }}
-        className={`${widthClass} bg-transparent px-1 text-center font-mono text-sm font-bold tabular-nums text-slate-100`}
+        className={`${widthClass} bg-transparent px-1 text-center font-mono text-sm font-bold tabular-nums text-ink`}
       />
-      <div className="grid h-full w-8 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] divide-y divide-slate-700 border-l border-slate-700">
+      <div className="grid h-full w-8 grid-rows-[minmax(0,1fr)_minmax(0,1fr)] divide-y divide-outline border-l border-outline">
         <button type="button" tabIndex={-1} disabled={disabled || value >= max} onClick={() => nudge(1)} aria-label={`${label} +`} className={arrow}><ChevronUp className="block h-4 w-4" /></button>
         <button type="button" tabIndex={-1} disabled={disabled || value <= min} onClick={() => nudge(-1)} aria-label={`${label} −`} className={arrow}><ChevronDown className="block h-4 w-4" /></button>
       </div>

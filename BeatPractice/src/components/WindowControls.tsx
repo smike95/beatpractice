@@ -16,7 +16,7 @@ export function WindowControls({ lang }: { lang: "uk" | "en" }) {
     return () => { dead = true; un?.(); };
   }, []);
 
-  const btn = "w-[46px] h-8 flex items-center justify-center text-slate-300 hover:bg-slate-700/70 hover:text-white cursor-pointer transition-colors";
+  const btn = "w-[46px] h-8 flex items-center justify-center text-ink-2 hover:bg-control-hover/70 hover:text-ink cursor-pointer transition-colors";
   const w = () => getCurrentWindow();
   const g = { width: 10, height: 10, viewBox: "0 0 10 10", fill: "none", stroke: "currentColor", strokeWidth: 1 } as const;
   return (

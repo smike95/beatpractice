@@ -8,7 +8,7 @@ type Lang = "uk" | "en";
 function Row(props: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-1.5">
-      <div className="text-xs font-semibold text-slate-300">{props.label}</div>
+      <div className="text-xs font-semibold text-ink-2">{props.label}</div>
       {props.children}
     </div>
   );

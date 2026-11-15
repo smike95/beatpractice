@@ -23,10 +23,22 @@ export default {
       },
       // accent colour: by default blue in the light theme and violet in the dark theme (see :root and html.light in index.css)
       colors: {
-        // neutral greys of the Apple system (no blue tint): dark windows use 950..700, light ones are remapped in index.css
-        slate: {
-          50: "#f2f2f7", 100: "#e5e5ea", 200: "#d1d1d6", 300: "#c7c7cc", 400: "#aeaeb2", 500: "#8e8e93",
-          600: "#636366", 700: "#48484a", 800: "#3a3a3c", 900: "#2c2c2e", 950: "#1c1c1e",
+        // SEMANTIC NEUTRALS: every grey of the interface is one of these roles; both themes define their values in index.css
+        // (--c-*), so a class is written once and means the right thing in the dark and in the light theme, also with opacity (bg-canvas/40).
+        canvas: "rgb(var(--c-canvas) / <alpha-value>)",            // the window; inputs and wells sunk into a card
+        surface: "rgb(var(--c-surface) / <alpha-value>)",          // cards, panels, sidebar, dialogs
+        control: {                                                  // buttons, segments, chips
+          DEFAULT: "rgb(var(--c-control) / <alpha-value>)",
+          hover: "rgb(var(--c-control-hover) / <alpha-value>)",     // hover and the chosen option
+          active: "rgb(var(--c-control-active) / <alpha-value>)",   // pressed / strongest neutral fill
+        },
+        line: "rgb(var(--c-line) / <alpha-value>)",                // hairlines between and around blocks
+        outline: "rgb(var(--c-outline) / <alpha-value>)",          // outlines of controls and fields
+        ink: {                                                      // text
+          DEFAULT: "rgb(var(--c-ink) / <alpha-value>)",             // primary
+          2: "rgb(var(--c-ink-2) / <alpha-value>)",                 // secondary
+          3: "rgb(var(--c-ink-3) / <alpha-value>)",                 // muted
+          4: "rgb(var(--c-ink-4) / <alpha-value>)",                 // faint (placeholders, disabled)
         },
         // system green: every Play button
         emerald: { 400: "#5fe07f", 500: "#30d158", 600: "#248a3d", 700: "#1d7233" },

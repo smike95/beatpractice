@@ -53,12 +53,12 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   const elapsed = state === 1 ? (now - player.stemsStartedAt) / 1000 : 0;
   const eta = progress > 0.04 ? (elapsed * (1 - progress)) / progress : NaN;
 
-  const card = "border-t border-slate-200 dark:border-slate-800 pt-3 space-y-4";
+  const card = "border-t pt-3 space-y-4 border-line";
   const btn = btnStyle.secondary;
   const primary = btnStyle.cta;
 
   const neuralNote = (
-    <p className="text-xs text-slate-400">
+    <p className="text-xs text-ink-3">
       {L("Нейромережа розділяє пісню на ударні, бас, вокал та інше.", "A neural network splits the song into drums, bass, vocals and the rest.")}
     </p>
   );
@@ -66,7 +66,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   if (!ready) {
     return (
       <section className={card}>
-        <p className="text-sm text-slate-400">{L("Трек завантажується…", "The track is loading…")}</p>
+        <p className="text-sm text-ink-3">{L("Трек завантажується…", "The track is loading…")}</p>
       </section>
     );
   }
@@ -84,11 +84,11 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
           </button>
         </div>
         {neuralNote}
-        <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+        <p className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <BetaBadge lang={lang} />
         <span>{L("Бета-функція. Розділення поки не ідеальне: у партіях можуть бути чутні сліди інших інструментів.", "Beta feature. The separation is not perfect yet: the parts may contain traces of other instruments.")}</span>
         </p>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-ink-3">
           {info?.cached
             ? L("Для цієї пісні партії вже готові: підключення займе кілька секунд.", "The stems of this song are already done: connecting them takes a few seconds.")
             : L(
@@ -105,18 +105,18 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
     return (
       <section className={card}>
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm text-slate-200">
+          <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 text-sm text-ink-2">
             <span className="inline-flex items-center gap-2"><Loader2 className="w-6 h-6 animate-spin" />{L("Розділення…", "Separating…")} {Math.round(progress * 100)}%</span>
             <button className={btn} onClick={player.cancelStems}>{L("Скасувати", "Cancel")}</button>
           </div>
-          <div className="h-2 rounded bg-slate-800 overflow-hidden"><div className="h-full bg-accent transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
-          <div className="text-xs text-slate-400 font-mono">
+          <div className="h-2 rounded bg-control overflow-hidden"><div className="h-full bg-accent transition-all" style={{ width: `${Math.round(progress * 100)}%` }} /></div>
+          <div className="text-xs text-ink-3 font-mono">
             {L("Минуло", "Elapsed")} {mmss(elapsed)} • {L("лишилось приблизно", "about")} {mmss(eta)} {lang === "en" ? "left" : ""}
           </div>
-          <p className="text-xs text-slate-400">{L("Пісню можна слухати як зазвичай, поки йде розділення.", "You can keep listening to the song while it runs.")}</p>
+          <p className="text-xs text-ink-3">{L("Пісню можна слухати як зазвичай, поки йде розділення.", "You can keep listening to the song while it runs.")}</p>
         </div>
         {neuralNote}
-      <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+      <p className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <BetaBadge lang={lang} />
         <span>{L("Бета-функція. Розділення поки не ідеальне: у партіях можуть бути чутні сліди інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
       </p>
@@ -131,7 +131,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
   const onlyList = [...ORDER.filter((n) => names.includes(n)), ...names.filter((n) => !ORDER.includes(n) && n !== "rest")];
   return (
     <section className={card}>
-      <p className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
+      <p className="flex flex-wrap items-center gap-2 text-xs text-ink-3">
         <BetaBadge lang={lang} />
         <span>{L("Бета-функція. Розділення поки не ідеальне: у партіях можуть бути чутні сліди інших інструментів.", "Beta feature: the separation is not perfect yet, the parts may contain traces of other instruments.")}</span>
       </p>
@@ -149,8 +149,8 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
           const g = stemMix.gain[i] ?? 1;
           const muted = !!stemMix.mute[i];
           return (
-            <div key={n + i} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-slate-800 px-3 py-2">
-              <div className="w-full sm:w-44 min-w-0 text-sm font-semibold text-slate-100 truncate">{(NAMES[n] ?? [n, n])[lang === "en" ? 1 : 0]}</div>
+            <div key={n + i} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border border-line px-3 py-2">
+              <div className="w-full sm:w-44 min-w-0 text-sm font-semibold text-ink truncate">{(NAMES[n] ?? [n, n])[lang === "en" ? 1 : 0]}</div>
               <Slider
                 min={0}
                 max={150}
@@ -159,7 +159,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
                 onChange={(v) => player.setStemGainUi(i, v / 100)}
                 ariaLabel={(NAMES[n] ?? [n, n])[lang === "en" ? 1 : 0]}
               />
-              <span className="w-12 text-right text-xs font-mono text-slate-300">{Math.round(g * 100)}%</span>
+              <span className="w-12 text-right text-xs font-mono text-ink-2">{Math.round(g * 100)}%</span>
               <Switch
                 checked={!muted}
                 onChange={() => player.toggleStemMute(i)}
@@ -170,7 +170,7 @@ export function StemsPanel({ player, lang }: { player: Player; lang: Lang }) {
           );
         })}
       </div>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-ink-4">
         {L("Регулювання гучності «Трек» впливає на всі партії пропорційно.", "The “Track” volume applies to all the parts proportionally.")}
       </p>
     </section>

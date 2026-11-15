@@ -90,7 +90,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   const t = (key: keyof typeof translations.uk) => (translations[lang] || translations.uk)[key] || key;
   const containerClasses = isSidebar
     ? 'flex flex-col h-full w-full'
-    : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-sm dark:shadow-xl flex flex-col';
+    : 'border rounded-2xl p-4 shadow-sm flex flex-col bg-surface border-line shadow-xl';
 
   // ---- reordering with the grip handle (pointer events: HTML5 drag-and-drop does not work reliably in the app window) ----
   const listRef = useRef<HTMLDivElement>(null);
@@ -180,7 +180,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
           onClick={onExpand}
           title={lang === 'en' ? 'Show the playlist' : 'Показати плейліст'}
           aria-label={lang === 'en' ? 'Show the playlist' : 'Показати плейліст'}
-          className="mt-2 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-slate-300 hover:text-slate-100 hover:bg-slate-800 cursor-pointer"
+          className="mt-2 shrink-0 w-10 h-10 flex items-center justify-center rounded-xl text-ink-2 hover:text-ink hover:bg-control cursor-pointer"
         >
           <ChevronRight className="w-6 h-6" />
         </button>
@@ -194,7 +194,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       <div className="mac-top-space" data-tauri-drag-region />
       <div className="flex items-center gap-2 shrink-0 -mt-2" data-tauri-drag-region>
         <BeatPracticeLogo className="w-9 h-9 shrink-0 pointer-events-none" />
-        <span className="flex-1 min-w-0 truncate text-left text-2xl font-black tracking-tight text-slate-900 dark:text-slate-100 pointer-events-none">BeatPractice</span>
+        <span className="flex-1 min-w-0 truncate text-left text-2xl font-black tracking-tight pointer-events-none text-ink">BeatPractice</span>
         {onTogglePin && (
           <button
             type="button"
@@ -203,7 +203,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             aria-pressed={pinned}
             title={pinned ? (lang === 'en' ? 'Unpin: the playlist folds into a strip' : 'Відкріпити: плейліст згортається у смугу') : (lang === 'en' ? 'Pin: keep the playlist open' : 'Закріпити: плейліст завжди відкритий')}
             aria-label={pinned ? (lang === 'en' ? 'Unpin the playlist' : 'Відкріпити плейліст') : (lang === 'en' ? 'Pin the playlist' : 'Закріпити плейліст')}
-            className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md cursor-pointer transition-colors ${pinned ? 'text-slate-100' : 'text-slate-400 hover:text-slate-100'}`}
+            className={`w-6 h-6 shrink-0 flex items-center justify-center rounded-md cursor-pointer transition-colors ${pinned ? 'text-ink' : 'text-ink-3 hover:text-ink'}`}
           >
             {pinned ? <Pin className="icon-xs" /> : <PinOff className="icon-xs" />}
           </button>
@@ -221,12 +221,12 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             onKeyDown={(e) => { if (e.key === 'Escape') setQuery(''); }}
             placeholder={lang === 'en' ? 'Search the playlist' : 'Пошук у плейлісті'}
             aria-label={lang === 'en' ? 'Search the playlist' : 'Пошук у плейлісті'}
-            className={`h-10 w-full rounded-lg border border-slate-700 bg-slate-950 pr-8 text-sm text-slate-100 placeholder:text-slate-500 ${query === '' ? 'pl-9' : 'pl-3'}`}
+            className={`h-10 w-full rounded-lg border border-outline bg-canvas pr-8 text-sm text-ink placeholder:text-ink-4 ${query === '' ? 'pl-9' : 'pl-3'}`}
           />
-          {query === '' && <Search className="icon-sm pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true" />}
+          {query === '' && <Search className="icon-sm pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-ink-4" aria-hidden="true" />}
           {query !== '' && (
             <button type="button" onClick={() => setQuery('')} title={lang === 'en' ? 'Clear' : 'Очистити'} aria-label={lang === 'en' ? 'Clear' : 'Очистити'}
-              className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-md text-slate-400 hover:text-slate-100 cursor-pointer">
+              className="absolute right-1 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-md text-ink-3 hover:text-ink cursor-pointer">
               <X className="icon-sm" />
             </button>
           )}
@@ -235,7 +235,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
           type="button"
           id="btn-add-more-tracks"
           onClick={onOpenAddFiles}
-          className="h-10 px-3 shrink-0 text-xs font-semibold bg-slate-800 hover:bg-slate-700 active:bg-slate-900 text-slate-100 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+          className="h-10 px-3 shrink-0 text-xs font-semibold bg-control hover:bg-control-hover active:bg-surface text-ink rounded-lg flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
           title={t('addTrack')}
         >
           <Plus className="w-5 h-5" />
@@ -254,14 +254,14 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
           ))}
           <button type="button" id="btn-manage-tags" onClick={() => setManageTags(true)}
             title={lang === 'en' ? 'Manage tags' : 'Керувати тегами'} aria-label={lang === 'en' ? 'Manage tags' : 'Керувати тегами'}
-            className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-400 hover:bg-slate-800 hover:text-slate-100 cursor-pointer">
+            className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-ink-3 hover:bg-control hover:text-ink cursor-pointer">
             <Tag className="icon-sm" />{lang === 'en' ? 'Tags' : 'Теги'}
           </button>
         </div>
       )}
 
       {inTagView && (
-        <p className="mt-1.5 shrink-0 text-xs text-slate-400">
+        <p className="mt-1.5 shrink-0 text-xs text-ink-3">
           {lang === 'en'
             ? `List of the tag “${tagName(tagView!) ?? ''}”. The order of the filtered tracks does not affect the order in the main playlist.`
             : `Список тегу «${tagName(tagView!) ?? ''}». Порядок відфільтрованих треків не впливає на порядок в основному плейлісті.`}
@@ -276,19 +276,19 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             role="button"
             tabIndex={0}
             onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onOpenAddFiles(); } }}
-            className="group border-2 border-dashed border-slate-200 dark:border-slate-800/90 hover:border-slate-400 dark:hover:border-slate-600 rounded-xl p-5 text-center cursor-pointer transition-colors bg-slate-50/50 dark:bg-slate-950/40 hover:bg-slate-100/60 dark:hover:bg-slate-900/40 group mt-2"
+            className="group border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors group mt-2 border-line/90 hover:border-outline bg-canvas/40 hover:bg-surface/40"
           >
-            <Music className="w-6 h-6 text-slate-400 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300 mx-auto mb-1.5 transition-colors" />
-            <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white">
+            <Music className="w-6 h-6 mx-auto mb-1.5 transition-colors text-ink-4 group-hover:text-ink-2" />
+            <p className="text-xs font-semibold text-ink-2 group-hover:text-ink">
               {t('emptyPlaylist')}
             </p>
-            <p className="text-xs text-slate-400 mt-0.5">
+            <p className="text-xs text-ink-3 mt-0.5">
               {t('emptyPlaylistSub')}
             </p>
           </div>
         ) : (
           visible.length === 0 ? (
-            <p className="px-2 py-4 text-center text-xs text-slate-400">{lang === 'en' ? 'Nothing found' : 'Нічого не знайдено'}</p>
+            <p className="px-2 py-4 text-center text-xs text-ink-3">{lang === 'en' ? 'Nothing found' : 'Нічого не знайдено'}</p>
           ) : visible.map(({ item, index }) => {
             const isActive = item.id === activeTrackId;
             const showLineBefore = !filtered && drag && drag.ins === index && drag.ins !== drag.from && drag.ins !== drag.from + 1;
@@ -305,15 +305,15 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                 onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelectTrack(item); } }}
                 className={`relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 select-none ${
                   drag?.id === item.id ? 'opacity-50 ' : ''}${isActive
-                    ? 'bg-slate-100 dark:bg-slate-800 border-slate-400 dark:border-slate-600 text-slate-900 dark:text-slate-100 shadow-xs'
-                    : 'bg-slate-50/70 hover:bg-slate-100 dark:bg-slate-950/60 dark:hover:bg-slate-800/60 border-slate-200 hover:border-slate-300 dark:border-slate-800 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200'
+                    ? 'shadow-xs bg-control border-outline text-ink'
+                    : 'bg-canvas/60 hover:bg-control/60 border-line hover:border-outline text-ink-2'
                 }`}
               >
                 <div className="flex items-center gap-1 min-w-0 flex-1">
                   {/* Grip handle: drag to move the track (not while the list is filtered) */}
                   {!filtered && <button
                     type="button"
-                    className="p-2.5 sm:p-1.5 -ml-2.5 sm:-ml-1.5 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 cursor-grab active:cursor-grabbing touch-none shrink-0 rounded-lg transition-colors duration-150"
+                    className="p-2.5 sm:p-1.5 -ml-2.5 sm:-ml-1.5 text-ink-3 cursor-grab active:cursor-grabbing touch-none shrink-0 rounded-lg transition-colors duration-150 hover:text-ink-2"
                     title={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
                     aria-label={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
                     onClick={(e) => e.stopPropagation()}
@@ -341,13 +341,13 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 
                   {/* Song Details */}
                   <div className="min-w-0 flex-1">
-                    <p className={`text-xs font-bold truncate ${isActive ? 'text-slate-950 dark:text-white font-black' : 'text-slate-800 dark:text-slate-200'}`}>
+                    <p className={`text-xs font-bold truncate ${isActive ? 'font-black text-ink' : 'text-ink-2'}`}>
                       {displayName(item)}
                     </p>
-                    <div className="flex flex-nowrap items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-mono whitespace-nowrap">
+                    <div className="flex flex-nowrap items-center gap-1.5 text-xs mt-0.5 font-mono whitespace-nowrap text-ink-3">
                       <span>{formatDuration(item.trackInfo.duration)}</span>
                       <span>•</span>
-                      <span className={`font-semibold ${isActive ? 'text-slate-900 dark:text-slate-200 font-bold' : 'text-slate-600 dark:text-slate-400'}`}>
+                      <span className={`font-semibold ${isActive ? 'font-bold text-ink-2' : 'text-ink-3'}`}>
                         {(item.trackInfo.originalBpmExact ?? item.trackInfo.originalBpm) > 0 ? `${(item.trackInfo.originalBpmExact ?? item.trackInfo.originalBpm).toFixed(1)} BPM` : '—'}
                       </span>
                       <span>•</span>
@@ -368,7 +368,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     type="button"
                     id={`btn-track-tags-${item.id}`}
                     onClick={(e) => { e.stopPropagation(); setTagItemId(item.id); }}
-                    className="p-2.5 sm:p-1.5 text-slate-400 hover:text-accent-text hover:bg-accent/10 rounded-lg transition-colors shrink-0 cursor-pointer"
+                    className="p-2.5 sm:p-1.5 text-ink-3 hover:text-accent-text hover:bg-accent/10 rounded-lg transition-colors shrink-0 cursor-pointer"
                     title={lang === 'en' ? 'Tags of the track' : 'Теги треку'}
                     aria-label={lang === 'en' ? 'Tags of the track' : 'Теги треку'}
                   >
@@ -381,7 +381,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                   type="button"
                   id={`btn-remove-track-${item.id}`}
                   onClick={(e) => { e.stopPropagation(); setPendingDelete(item); }}
-                  className="p-2.5 sm:p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:text-slate-500 dark:hover:text-rose-400 dark:hover:bg-rose-950/30 rounded-lg transition-colors shrink-0 cursor-pointer"
+                  className="p-2.5 sm:p-1.5 rounded-lg transition-colors shrink-0 cursor-pointer text-ink-4 hover:text-rose-400 hover:bg-rose-950/30"
                   title={t('deleteTrack')}
                 >
                   <Trash2 className="w-6 h-6" />
@@ -397,18 +397,18 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       {/* Bottom Summary Divider & Track Count / Total Duration */}
       <div
         id="playlist-bottom-summary"
-        className="pt-3 mt-2 border-t border-slate-200 dark:border-slate-800 shrink-0 grid grid-cols-[1fr_auto_1fr] items-center text-xs text-slate-500 dark:text-slate-400 select-none px-1"
+        className="pt-3 mt-2 border-t shrink-0 grid grid-cols-[1fr_auto_1fr] items-center text-xs select-none px-1 border-line text-ink-3"
       >
         <div className="flex items-center gap-1.5 justify-self-start">
           <span>Треків:</span>
           {/* a tag shown: how many tracks have it (no total); a search: found / all */}
-          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">{inTagView ? visible.length : filtered ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
+          <span className="font-bold font-mono text-ink-2">{inTagView ? visible.length : filtered ? `${visible.length} / ${playlist.length}` : playlist.length}</span>
         </div>
 
         {/* the time of the tracks that are shown */}
         <div className="flex items-center gap-1.5 justify-self-center">
           <span>Час:</span>
-          <span className="font-bold text-slate-700 dark:text-slate-300 font-mono">
+          <span className="font-bold font-mono text-ink-2">
             {formatTotalDuration(visible.reduce((acc, { item }) => acc + (item.trackInfo?.duration || 0), 0))}
           </span>
         </div>
@@ -418,14 +418,14 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
             <button type="button" id="btn-export-library" onClick={onExportLibrary}
               title={lang === 'en' ? 'Save the playlist or a tag as one file for another device' : 'Зберегти плейліст або тег одним файлом для іншого пристрою'}
               aria-label={lang === 'en' ? 'Export a library' : 'Експорт збірки'}
-              className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-slate-500 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100 cursor-pointer">
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold cursor-pointer text-ink-3 hover:bg-control hover:text-ink">
               <Package className="icon-sm" />{lang === 'en' ? 'Export' : 'Експорт'}
             </button>
           )}
         </div>
       </div>
 
-      {footer && <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-800 shrink-0">{footer}</div>}
+      {footer && <div className="pt-3 mt-3 border-t shrink-0 border-line">{footer}</div>}
 
       {hasTags && tagItemId && playlist.find((it) => it.id === tagItemId) && createPortal(
         <TrackTagsDialog lang={lang === 'en' ? 'en' : 'uk'} item={playlist.find((it) => it.id === tagItemId)!} tags={allTags}
@@ -442,7 +442,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         <Modal id="confirm-delete-track" role="alertdialog" width="md" layer="z-[100]" onClose={() => setPendingDelete(null)}>
           <p className="text-base font-bold">{lang === 'en' ? 'Remove this track from the playlist?' : 'Видалити цей трек із плейліста?'}</p>
           <p className="text-sm break-words">{displayName(pendingDelete)}</p>
-          <p className="text-xs text-slate-400">{lang === 'en' ? 'The file on the disk stays.' : 'Файл на диску залишиться.'}</p>
+          <p className="text-xs text-ink-3">{lang === 'en' ? 'The file on the disk stays.' : 'Файл на диску залишиться.'}</p>
           <div className="flex flex-wrap justify-end gap-2">
             <button className={btn.neutral} onClick={() => setPendingDelete(null)}>
               {lang === 'en' ? 'Cancel' : 'Скасувати'}

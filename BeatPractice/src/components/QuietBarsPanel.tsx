@@ -31,7 +31,7 @@ export function QuietBarsPanel(props: {
       title={L("Тихі такти", "Quiet bars")}
       actions={
         <div className="flex items-center gap-3">
-          <span className="text-xs font-semibold text-slate-400"><StableLabel align="text-right" active={on ? 1 : 0} labels={[L("Вимкнено", "Off"), L("Увімкнено", "On")]} /></span>
+          <span className="text-xs font-semibold text-ink-3"><StableLabel align="text-right" active={on ? 1 : 0} labels={[L("Вимкнено", "Off"), L("Увімкнено", "On")]} /></span>
           <Switch checked={on} onChange={() => onChange({ quietEnabled: !on, ...(!on && !config.enabled ? { enabled: true } : {}) })   /* quiet bars need the metronome: turning them on turns it on */} label={on ? L("Вимкнути тихі такти", "Turn quiet bars off") : L("Увімкнути тихі такти", "Turn quiet bars on")} />
         </div>
       }
@@ -56,7 +56,7 @@ export function QuietBarsPanel(props: {
           ]}
         />
       </Field>
-      <p className="text-xs text-slate-500">
+      <p className="text-xs text-ink-4">
         {L(`Схема: ${barsText(cb, "uk")} з метрономом, ${barsText(qb, "uk")} без метронома.`, `Pattern: ${barsText(cb, "en")} with the metronome, ${barsText(qb, "en")} without it.`)}
         {!config.enabled && ` ${L("Метроном вимкнено: тихі такти не буде чути.", "The metronome is off: the quiet bars will not be heard.")}`}
       </p>

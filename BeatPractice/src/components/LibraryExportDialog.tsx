@@ -186,7 +186,7 @@ export function LibraryExportDialog(props: {
   };
 
   const close = () => { if (running) cancelled.current = true; onClose(); };
-  const radio = "flex items-center gap-3 cursor-pointer select-none rounded-lg px-2 py-1.5 hover:bg-slate-800/60";
+  const radio = "flex items-center gap-3 cursor-pointer select-none rounded-lg px-2 py-1.5 hover:bg-control/60";
 
   if (phase === "done" && result) {
     return (
@@ -197,7 +197,7 @@ export function LibraryExportDialog(props: {
         {result.skipped.length > 0 && (
           <p className="text-sm text-accent-text">{L("Не вдалося додати: ", "Could not add: ")}{result.skipped.join(", ")}</p>
         )}
-        <p className="text-xs text-slate-400">{L("Скопіюйте цей файл на інший пристрій і відкрийте його в програмі (або перетягніть у вікно): усі треки з’являться в плейлісті з тегами та порядком, а розпізнавати нічого не треба.", "Copy this file to another device and open it in the app (or drop it on the window): all the tracks appear in the playlist with their tags and order, and nothing has to be analysed.")}</p>
+        <p className="text-xs text-ink-3">{L("Скопіюйте цей файл на інший пристрій і відкрийте його в програмі (або перетягніть у вікно): усі треки з’являться в плейлісті з тегами та порядком, а розпізнавати нічого не треба.", "Copy this file to another device and open it in the app (or drop it on the window): all the tracks appear in the playlist with their tags and order, and nothing has to be analysed.")}</p>
         <div className="flex justify-end"><button className={btn.cta} onClick={onClose}>{L("Закрити", "Close")}</button></div>
       </Modal>
     );
@@ -208,7 +208,7 @@ export function LibraryExportDialog(props: {
       <ModalHeader title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Експорт збірки", "Export a library")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} />
       {!running && (
         <>
-          <p className="text-sm text-slate-300">{L("Усі вибрані треки будуть записані в один файл. На іншому пристрої його достатньо відкрити: розпізнавання вже всередині.", "All the chosen tracks are written into one file. On the other device it is enough to open it: the analysis is already inside.")}</p>
+          <p className="text-sm text-ink-2">{L("Усі вибрані треки будуть записані в один файл. На іншому пристрої його достатньо відкрити: розпізнавання вже всередині.", "All the chosen tracks are written into one file. On the other device it is enough to open it: the analysis is already inside.")}</p>
           <div role="radiogroup" aria-label={L("Що зберегти", "What to save")} className="space-y-0.5">
             <label className={radio}>
               <input type="radio" name="lib-scope" className="h-5 w-5" checked={scope === "all"} onChange={() => setScope("all")} />
@@ -226,21 +226,21 @@ export function LibraryExportDialog(props: {
             <Segmented id="lib-stems-mode" ariaLabel={L("Партії у збірці", "Parts in the library")} value={stemsMode} onChange={setStemsMode}
               options={[{ value: "none", label: L("Без розділених партій", "No separated parts") }, { value: "ready", label: L("Тільки готові розділені", "Only the ready ones") }, { value: "picked", label: L("Для обраних", "For chosen") }, { value: "all", label: L("Для всіх", "For all") }]} />
             {stemsMode === "picked" && (
-              <ul className="max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-slate-700/70 p-1.5">
+              <ul className="max-h-48 space-y-0.5 overflow-y-auto rounded-lg border border-outline/70 p-1.5">
                 {list.map((it) => (
                   <li key={it.id}>
                     <label className={radio}>
                       <input type="checkbox" className="h-5 w-5" checked={pickedStems.has(it.id)}
                         onChange={() => setPickedStems((p) => { const n = new Set(p); if (n.has(it.id)) n.delete(it.id); else n.add(it.id); return n; })} />
                       <span className="min-w-0 flex-1 truncate">{displayName(it)}</span>
-                      <span className={`shrink-0 text-xs ${it.hasStems ? "text-emerald-600" : "text-slate-400"}`}>{it.hasStems ? L("партії є", "has parts") : L("партій немає", "no parts")}</span>
+                      <span className={`shrink-0 text-xs ${it.hasStems ? "text-emerald-600" : "text-ink-3"}`}>{it.hasStems ? L("партії є", "has parts") : L("партій немає", "no parts")}</span>
                     </label>
                   </li>
                 ))}
               </ul>
             )}
           </div>
-          <p className="text-xs text-slate-400">{L("Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Tracks that have not been analysed are analysed now, which can take a while.")}{stemsMode === "ready" && L(" З партіями файл значно більший.", " The file is much larger with the parts.")}{(stemsMode === "picked" || stemsMode === "all") && L(" З партіями файл значно більший; розділення кожного треку теж триває кілька хвилин.", " The file is much larger with the parts; separating each track also takes a few minutes.")}</p>
+          <p className="text-xs text-ink-3">{L("Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Tracks that have not been analysed are analysed now, which can take a while.")}{stemsMode === "ready" && L(" З партіями файл значно більший.", " The file is much larger with the parts.")}{(stemsMode === "picked" || stemsMode === "all") && L(" З партіями файл значно більший; розділення кожного треку теж триває кілька хвилин.", " The file is much larger with the parts; separating each track also takes a few minutes.")}</p>
           {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
           <div className="flex justify-end gap-2">
             <button className={btn.neutral} onClick={onClose}>{L("Скасувати", "Cancel")}</button>
@@ -251,9 +251,9 @@ export function LibraryExportDialog(props: {
       {running && (
         <>
           <p className="text-sm font-semibold">{L(`Трек ${cur.i} з ${list.length}`, `Track ${cur.i} of ${list.length}`)}</p>
-          <p className="truncate text-sm text-slate-300" title={cur.name}>{cur.name}</p>
-          <p className="text-xs text-slate-400">{stage}{stage.startsWith(L("розділення", "separating")) ? ` ${stemPct}%` : ""}</p>
-          <div className="h-2 overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuenow={Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)} aria-valuemin={0} aria-valuemax={100}>
+          <p className="truncate text-sm text-ink-2" title={cur.name}>{cur.name}</p>
+          <p className="text-xs text-ink-3">{stage}{stage.startsWith(L("розділення", "separating")) ? ` ${stemPct}%` : ""}</p>
+          <div className="h-2 overflow-hidden rounded-full bg-control" role="progressbar" aria-valuenow={Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)} aria-valuemin={0} aria-valuemax={100}>
             <div className="h-full rounded-full bg-accent transition-[width] duration-200" style={{ width: `${Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)}%` }} />
           </div>
           <div className="flex justify-end"><button className={btn.neutral} onClick={() => { cancelled.current = true; }}>{L("Зупинити", "Stop")}</button></div>

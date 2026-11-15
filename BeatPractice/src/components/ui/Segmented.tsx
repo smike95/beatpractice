@@ -21,7 +21,7 @@ export function Segmented<T extends string | number | boolean>(props: {
       id={id}
       role="radiogroup"
       aria-label={ariaLabel}
-      className={`${fill ? "flex w-full" : "inline-flex"} gap-0.5 rounded-lg border border-slate-700 bg-slate-950 p-0.5 ${disabled ? "opacity-50" : ""}`}
+      className={`${fill ? "flex w-full" : "inline-flex"} gap-0.5 rounded-lg border border-outline bg-canvas p-0.5 ${disabled ? "opacity-50" : ""}`}
     >
       {options.map((o) => {
         const on = o.value === value;
@@ -35,7 +35,7 @@ export function Segmented<T extends string | number | boolean>(props: {
             disabled={disabled}
             onClick={() => { if (!on) onChange(o.value); }}
             className={`${fill ? "flex-1 px-2" : "px-3"} min-h-9 rounded-md text-xs font-bold whitespace-nowrap transition-colors duration-150 cursor-pointer disabled:cursor-not-allowed ${
-              on ? "seg-on shadow-sm" : "text-slate-400 hover:text-slate-100 hover:bg-slate-800"
+              on ? "seg-on shadow-sm" : "text-ink-3 hover:text-ink hover:bg-control"
             }`}
           >
             {o.label}

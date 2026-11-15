@@ -159,7 +159,7 @@ export function PackDialog(props: {
                   <span className="shrink-0">{L("Група", "Group")} {g + 1}:</span>
                   <input type="text" maxLength={30} disabled={running} value={groupNames[g]} onChange={(e) => setGroupNames((a) => a.map((v, k) => (k === g ? e.target.value : v)))}
                     placeholder={stemNames.filter((_, i) => group[i] === g).map(nm).join(" + ")} aria-label={`${L("Назва групи", "Group name")} ${g + 1}`}
-                    className="flex-1 min-w-0 px-2 py-1 rounded-lg bg-transparent border border-slate-600 text-sm" />
+                    className="flex-1 min-w-0 px-2 py-1 rounded-lg bg-transparent border border-outline text-sm" />
                 </label>
               ))}
             </div>

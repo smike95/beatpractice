@@ -21,7 +21,7 @@ export function BpmInput({ value, onCommit, disabled }: { value: number; onCommi
       onChange={(e) => setDraft(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
       onBlur={commit}
       onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); if (e.key === 'Escape') { setDraft(null); (e.target as HTMLInputElement).blur(); } }}
-      className="w-9 text-center text-xs font-mono font-bold text-slate-100 bg-transparent focus:outline-none"
+      className="w-9 text-center text-xs font-mono font-bold text-ink bg-transparent focus:outline-none"
       title="Поточний темп (введіть число і натисніть Enter)"
     />
   );

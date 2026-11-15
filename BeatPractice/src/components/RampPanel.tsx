@@ -123,13 +123,13 @@ export function RampPanel(props: {
     >
 
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <Field label={<>{L("Початковий темп, BPM", "Starting tempo, BPM")} {startOv === null && <span className="text-slate-500">({L("поточний", "current")})</span>}</>}>
+        <Field label={<>{L("Початковий темп, BPM", "Starting tempo, BPM")} {startOv === null && <span className="text-ink-4">({L("поточний", "current")})</span>}</>}>
           <div className="flex items-center gap-2 flex-wrap">
             <SpinField id="ramp-start" value={startShown} min={lo} max={hi} step={1} decimals={1} widthClass="w-16" label={L("Стартовий темп", "Start tempo")} disabled={!ready || running} onChange={(v) => setStartOv(v)} />
             {startOv !== null && <MiniButton disabled={running} onClick={() => setStartOv(null)}>{L("поточний", "current")}</MiniButton>}
           </div>
         </Field>
-        <Field label={<>{L("Цільовий темп, BPM", "Target tempo, BPM")} {targetOv === null && <span className="text-slate-500">({L("оригінал", "original")})</span>}</>}>
+        <Field label={<>{L("Цільовий темп, BPM", "Target tempo, BPM")} {targetOv === null && <span className="text-ink-4">({L("оригінал", "original")})</span>}</>}>
           <div className="flex items-center gap-2 flex-wrap">
             <SpinField id="ramp-target" value={targetShown} min={lo} max={hi} step={1} decimals={1} widthClass="w-16" label={L("Цільовий темп", "Target tempo")} disabled={!ready || running} onChange={(v) => setTargetOv(v)} />
             {targetOv !== null && <MiniButton disabled={running} onClick={() => setTargetOv(null)}>{L("оригінал", "original")}</MiniButton>}
@@ -142,7 +142,7 @@ export function RampPanel(props: {
           <SpinField id="ramp-every" value={every} min={1} max={32} label={L("Проходів на крок", "Passes per step")} disabled={running} onChange={setEvery} />
         </Field>
       </div>
-      {status && <p className="text-sm text-slate-200" role="status">{status}</p>}
+      {status && <p className="text-sm text-ink-2" role="status">{status}</p>}
     </PanelCard>
   );
 }

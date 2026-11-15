@@ -28,7 +28,7 @@ function NewTag(props: { lang: Lang; value: string; onValue: (v: string) => void
         />
         {value !== "" && (
           <button type="button" onClick={() => onValue("")} title={L("Очистити", "Clear")} aria-label={L("Очистити", "Clear")}
-            className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 hover:text-slate-100 cursor-pointer">
+            className="absolute right-1.5 top-1/2 flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-md text-ink-3 hover:text-ink cursor-pointer">
             <X className="icon-sm" />
           </button>
         )}
@@ -55,9 +55,9 @@ export function TrackTagsDialog(props: {
   return (
     <Modal id="track-tags-dialog" width="md" onClose={onClose} layer="z-[100]">
       <ModalHeader title={L("Теги треку", "Tags of the track")} onClose={onClose} closeLabel={L("Закрити", "Close")} />
-      <p className="truncate text-xs text-slate-400">{displayName(item)}</p>
+      <p className="truncate text-xs text-ink-3">{displayName(item)}</p>
       {tags.length === 0 ? (
-        <p className="text-sm text-slate-400">{L("Тегів ще немає. Введіть назву нижче, щоб створити перший.", "There are no tags yet. Type a name below to make the first one.")}</p>
+        <p className="text-sm text-ink-3">{L("Тегів ще немає. Введіть назву нижче, щоб створити перший.", "There are no tags yet. Type a name below to make the first one.")}</p>
       ) : (
         <div className="flex flex-wrap gap-2" role="group" aria-label={L("Теги", "Tags")}>
           {tags.map((t) => (
@@ -96,7 +96,7 @@ export function ManageTagsDialog(props: {
   return (
     <Modal id="manage-tags-dialog" width="md" onClose={onClose} layer="z-[100]">
       <ModalHeader title={L("Керування тегами", "Manage tags")} onClose={onClose} closeLabel={L("Закрити", "Close")} />
-      {tags.length === 0 && <p className="text-sm text-slate-400">{L("Тегів ще немає.", "There are no tags yet.")}</p>}
+      {tags.length === 0 && <p className="text-sm text-ink-3">{L("Тегів ще немає.", "There are no tags yet.")}</p>}
       <ul className="max-h-[50vh] space-y-2 overflow-y-auto">
         {tags.map((t) => (
           <li key={t.id} className="flex items-center gap-2">
@@ -105,9 +105,9 @@ export function ManageTagsDialog(props: {
               onChange={(e) => setDrafts((d) => ({ ...d, [t.id]: e.target.value }))}
               onBlur={() => commit(t)} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setDrafts((d) => { const { [t.id]: _drop, ...rest } = d; return rest; }); }}
             />
-            <span className="w-24 shrink-0 text-right text-xs text-slate-400">{L(`треків: ${counts[t.id] ?? 0}`, `tracks: ${counts[t.id] ?? 0}`)}</span>
+            <span className="w-24 shrink-0 text-right text-xs text-ink-3">{L(`треків: ${counts[t.id] ?? 0}`, `tracks: ${counts[t.id] ?? 0}`)}</span>
             <button type="button" onClick={() => setPending(t.id)} title={L("Видалити тег", "Delete the tag")} aria-label={L("Видалити тег", "Delete the tag")}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-slate-400 hover:bg-rose-950/30 hover:text-rose-400 cursor-pointer">
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-ink-3 hover:bg-rose-950/30 hover:text-rose-400 cursor-pointer">
               <Trash2 className="h-5 w-5" />
             </button>
           </li>

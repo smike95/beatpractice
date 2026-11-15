@@ -25,7 +25,7 @@ export function AccentPicker(props: { lang: "uk" | "en"; isDark: boolean; value:
   const dot = (hex: string | null) => (
     <span aria-hidden className="inline-block h-4 w-4 shrink-0 rounded-full border border-black/20" style={{ background: hex ?? "linear-gradient(135deg,#bf5af2 50%,#007aff 50%)" }} />
   );
-  const item = "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm cursor-pointer hover:bg-slate-700/60";
+  const item = "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm cursor-pointer hover:bg-control-hover/60";
   return (
     <div ref={box} className="relative">
       <button
@@ -35,14 +35,14 @@ export function AccentPicker(props: { lang: "uk" | "en"; isDark: boolean; value:
         aria-expanded={open}
         title={L("Акцентний колір (тимчасово)", "Accent colour (temporary)")}
         onClick={toggle}
-        className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold cursor-pointer select-none"
+        className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-semibold cursor-pointer select-none bg-control hover:bg-control-hover text-ink-2 border-outline/80"
       >
         <Palette className="w-6 h-6" />
         {dot(cur ? (isDark ? cur.dark : cur.light) : null)}
                 <ChevronDown className="w-4 h-4" />
       </button>
       {open && (
-        <div role="listbox" aria-label={L("Акцентний колір", "Accent colour")} style={pos ? { left: pos.left, bottom: pos.bottom } : undefined} className="fixed z-50 max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-slate-700 bg-slate-800 p-1 shadow-xl text-slate-100">
+        <div role="listbox" aria-label={L("Акцентний колір", "Accent colour")} style={pos ? { left: pos.left, bottom: pos.bottom } : undefined} className="fixed z-50 max-h-[70vh] w-56 overflow-y-auto rounded-xl border border-outline bg-control p-1 shadow-xl text-ink">
           <button type="button" role="option" aria-selected={value === "default"} className={item} onClick={() => { onChange("default"); setOpen(false); }}>
             {dot(null)}<span className="flex-1">{L("Стандартний", "Default")}</span>{value === "default" && <Check className="h-4 w-4" />}
           </button>

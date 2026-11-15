@@ -263,11 +263,11 @@ export default function App() {
 
   // ---- the core folder has not been chosen yet -------------------------------------------------
   if (!player.init) {
-    return <div className="min-h-screen bg-slate-950 text-slate-400 flex items-center justify-center">Завантаження…</div>;
+    return <div className="min-h-screen bg-canvas text-ink-3 flex items-center justify-center">Завантаження…</div>;
   }
   if (!player.init.loaded) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-canvas text-ink flex items-center justify-center p-6">
         <div className="max-w-md w-full space-y-4 text-center">
           <div className="flex items-center justify-center gap-3">
             <BeatPracticeLogo className="w-10 h-10" />
@@ -284,7 +284,7 @@ export default function App() {
               </button>
             </>
           ) : (
-            <p className="text-sm text-slate-400">{lang === 'en' ? 'Loading…' : 'Завантаження…'}</p>
+            <p className="text-sm text-ink-3">{lang === 'en' ? 'Loading…' : 'Завантаження…'}</p>
           )}
         </div>
       </div>
@@ -305,7 +305,7 @@ export default function App() {
         onClick={() => setAboutOpen(true)}
         title={lang === 'en' ? 'About BeatPractice' : 'Про програму'}
         aria-label={lang === 'en' ? 'About BeatPractice' : 'Про програму'}
-        className="p-2.5 lg:p-2 rounded-xl border border-slate-700 bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer"
+        className="p-2.5 lg:p-2 rounded-xl border border-outline bg-control hover:bg-control-hover text-ink-2 cursor-pointer"
       >
         <Info className="w-6 h-6" />
       </button>
@@ -314,15 +314,15 @@ export default function App() {
               id={`header-theme-toggle${sfx}`}
               type="button"
               onClick={() => setThemeMode(prev => prev === 'dark' ? 'light' : prev === 'light' ? 'system' : 'dark')}
-              className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none"
+              className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none bg-control hover:bg-control-hover active:bg-control-active text-ink-2 border-outline/80"
               title={`${t('theme')}: ${themeMode === 'light' ? t('themeLight') : themeMode === 'dark' ? t('themeDark') : t('themeSystem')}`}
             >
               {themeMode === 'light' && <Sun className="w-6 h-6 text-amber-500" />}
-              {themeMode === 'dark' && <Moon className="w-6 h-6 text-slate-200" />}
+              {themeMode === 'dark' && <Moon className="w-6 h-6 text-ink-2" />}
               {themeMode === 'system' && (
                 <>
-                  <Smartphone className="w-6 h-6 text-slate-700 dark:text-slate-200 sm:hidden" />
-                  <Monitor className="w-6 h-6 text-slate-700 dark:text-slate-200 hidden sm:block" />
+                  <Smartphone className="w-6 h-6 sm:hidden text-ink-2" />
+                  <Monitor className="w-6 h-6 hidden sm:block text-ink-2" />
                 </>
               )}
               <span className="hidden sm:inline font-medium">
@@ -337,10 +337,10 @@ export default function App() {
               id={`header-lang-toggle${sfx}`}
               type="button"
               onClick={() => handleSetLang(lang === 'uk' ? 'en' : 'uk')}
-              className="flex items-center gap-1 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 active:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 dark:active:bg-slate-600 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700/80 text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none"
+              className="flex items-center gap-1 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none bg-control hover:bg-control-hover active:bg-control-active text-ink-2 border-outline/80"
               title={lang === 'uk' ? 'Switch to English' : 'Перемкнути на українську'}
             >
-              <Languages className="w-6 h-6 sm:w-6 sm:h-6 text-slate-700 dark:text-slate-300" />
+              <Languages className="w-6 h-6 sm:w-6 sm:h-6 text-ink-2" />
               <span className="hidden sm:inline font-medium">{lang === 'uk' ? 'УКР' : 'ENG'}</span>
             </button>
 
@@ -348,7 +348,7 @@ export default function App() {
   );
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-slate-700 selection:text-white">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col font-sans selection:bg-control-hover selection:text-ink">
       {isWindows && <div className="fixed top-0 right-0 z-50"><WindowControls lang={lang} /></div>}
 
       <ModelsBanner lang={lang} />
@@ -363,7 +363,7 @@ export default function App() {
             id="playlist-sidebar"
             onPointerEnter={onAsideEnter}
             onPointerLeave={onAsideLeave}
-            className={`fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden bg-slate-900 border-r border-slate-800/80 transition-[width,box-shadow] duration-200 ease-out ${expanded ? 'w-[min(25rem,92vw)] p-4' : 'w-[4.5rem] p-3'} ${expanded && !pinned ? 'shadow-2xl' : ''}`}
+            className={`fixed inset-y-0 left-0 z-40 flex flex-col overflow-hidden bg-surface border-r border-line/80 transition-[width,box-shadow] duration-200 ease-out ${expanded ? 'w-[min(25rem,92vw)] p-4' : 'w-[4.5rem] p-3'} ${expanded && !pinned ? 'shadow-2xl' : ''}`}
           >
           <PlaylistPanel
             isSidebar
@@ -400,7 +400,7 @@ export default function App() {
         <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 space-y-4 pb-28 md:pb-8" style={isWindows ? { paddingTop: BAR_GAP_WIN + 8 } : undefined}>
           {/* Loading Overlay */}
           {isLoadingAudio && (
-            <div className="bg-slate-900/90 border border-slate-700 rounded-xl p-3 text-slate-200 space-y-2">
+            <div className="bg-surface/90 border border-outline rounded-xl p-3 text-ink-2 space-y-2">
               <div className="flex items-center justify-center gap-3">
                 <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs font-medium">{analysisStatus || t('processingAudio')}</span>
@@ -410,7 +410,7 @@ export default function App() {
                   <button
                     onClick={() => player.togglePreview()}
                     title={lang === 'en' ? 'Listen to the original while the analysis runs' : 'Послухати оригінал, поки триває аналіз'}
-                    className={`p-1.5 rounded-lg border cursor-pointer shrink-0 text-white ${snap.playing ? 'bg-slate-800 hover:bg-slate-700 border-slate-700' : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-500'}`}
+                    className={`p-1.5 rounded-lg border cursor-pointer shrink-0 text-white ${snap.playing ? 'bg-control hover:bg-control-hover border-outline' : 'bg-emerald-600 hover:bg-emerald-500 border-emerald-500'}`}
                   >
                     {snap.playing ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6" />}
                   </button>
@@ -428,7 +428,7 @@ export default function App() {
                 </div>
               )}
               {snap?.state === BC.ANALYZING && snap.duration > 0 && (
-                <p className="text-xs text-slate-400 text-center">{lang === 'en' ? 'You can listen to the original track while the analysis is running.' : 'Поки триває аналіз, можна послухати оригінальний трек.'}</p>
+                <p className="text-xs text-ink-3 text-center">{lang === 'en' ? 'You can listen to the original track while the analysis is running.' : 'Поки триває аналіз, можна послухати оригінальний трек.'}</p>
               )}
             </div>
           )}
@@ -446,16 +446,16 @@ export default function App() {
           <div
             id="track-bar"
             data-tauri-drag-region
-            className={`pointer-events-auto bg-slate-900 py-3 px-4 sm:px-5 border border-slate-800 transition-shadow ${barStuck ? 'is-stuck rounded-2xl' : 'border-b-0 rounded-t-2xl'}`}
+            className={`pointer-events-auto bg-surface py-3 px-4 sm:px-5 border border-line transition-shadow ${barStuck ? 'is-stuck rounded-2xl' : 'border-b-0 rounded-t-2xl'}`}
           >
             <div data-tauri-drag-region className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
               <div data-tauri-drag-region className="flex items-center gap-3 min-w-0 flex-1 basis-64">
-                <div className="hidden sm:flex w-14 h-14 rounded-xl bg-slate-800 border border-slate-700 overflow-hidden items-center justify-center shrink-0">
+                <div className="hidden sm:flex w-14 h-14 rounded-xl bg-control border border-outline overflow-hidden items-center justify-center shrink-0">
                   {track?.cover ? <img src={track.cover} alt="" className="w-full h-full object-cover" /> : <CoverPlaceholder className="w-full h-full" rounded="" />}
                 </div>
                 <div data-tauri-drag-region className="min-w-0">
                   <div data-tauri-drag-region className="flex items-center gap-1.5 min-w-0">
-                    <h2 id="track-title" className="text-base font-bold text-slate-100 truncate max-w-[24rem]">
+                    <h2 id="track-title" className="text-base font-bold text-ink truncate max-w-[24rem]">
                       {track ? track.displayName : (lang === 'en' ? 'Waiting for an audio track' : 'Очікування завантаження аудіотреку')}
                     </h2>
                     {track && (
@@ -463,24 +463,24 @@ export default function App() {
                         id="btn-edit-track"
                         onClick={() => setEditing(true)}
                         title={lang === 'en' ? 'Edit artist, title and cover' : 'Змінити виконавця, назву та обкладинку'}
-                        className="p-1 rounded-md text-slate-400 hover:text-slate-100 hover:bg-slate-800 cursor-pointer shrink-0"
+                        className="p-1 rounded-md text-ink-3 hover:text-ink hover:bg-control cursor-pointer shrink-0"
                       >
                         <Pencil className="icon-sm" />
                       </button>
                     )}
                   </div>
-                  <div id="track-meta-line" data-tauri-drag-region className="flex items-center gap-x-3 gap-y-0.5 text-xs text-slate-400 mt-0.5 flex-wrap">
-                    <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-slate-200 font-mono">{track && track.originalBpmExact > 0 ? `${track.originalBpmExact.toFixed(1)} BPM` : '—'}</strong>
+                  <div id="track-meta-line" data-tauri-drag-region className="flex items-center gap-x-3 gap-y-0.5 text-xs text-ink-3 mt-0.5 flex-wrap">
+                    <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-ink-2 font-mono">{track && track.originalBpmExact > 0 ? `${track.originalBpmExact.toFixed(1)} BPM` : '—'}</strong>
                       {track?.variableTempo && <em title={lang === 'en' ? 'The tempo changes during the song' : 'Темп змінюється протягом пісні'} className="ml-1.5 not-italic font-bold text-accent-text">{lang === 'en' ? 'variable' : 'змінний'}</em>}
                     </span>
                     <span>•</span>
                     <span>{lang === 'en' ? 'Meter' : 'Розмір'}:{' '}
                       {track?.variableMeter ? (
-                        <strong className="text-slate-300" title={lang === 'en' ? 'Meters in the song, most frequent first' : 'Розміри в пісні, від найчастішого'}>
+                        <strong className="text-ink-2" title={lang === 'en' ? 'Meters in the song, most frequent first' : 'Розміри в пісні, від найчастішого'}>
                           <span className="text-accent-text">{lang === 'en' ? 'Variable' : 'Змінний'}</span>: {track.meterLabels.join(', ')}
                         </strong>
                       ) : (
-                        <strong className="text-slate-300">{track ? (track.meterLabels[0] ?? track.timeSignature) : '4/4'}</strong>
+                        <strong className="text-ink-2">{track ? (track.meterLabels[0] ?? track.timeSignature) : '4/4'}</strong>
                       )}
                     </span>
                     {track && (<div className="flex items-center gap-x-3 shrink-0">
@@ -490,7 +490,7 @@ export default function App() {
                         onClick={() => setTempoMapOpen(true)}
                         title={lang === 'en' ? 'Tempo map and sections' : 'Карта темпу та секцій'}
                         aria-label={lang === 'en' ? 'Tempo map and sections' : 'Карта темпу та секцій'}
-                        className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150"
+                        className="-my-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-outline bg-control text-ink-2 hover:bg-control-hover cursor-pointer transition-colors duration-150"
                       >
                         <Wrench className="icon-sm" />
                       </button>
@@ -499,7 +499,7 @@ export default function App() {
                         onClick={() => setExporting(true)}
                         disabled={!(track && player.ready)}
                         title={lang === 'en' ? 'Export the track with the current tempo and parts' : 'Експортувати трек із поточним темпом і партіями'}
-                        className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-outline bg-control text-ink-2 hover:bg-control-hover cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Download className="icon-sm" />
                       </button>
@@ -508,7 +508,7 @@ export default function App() {
                         onClick={() => setPacking(true)}
                         disabled={!(track && player.ready)}
                         title={lang === 'en' ? 'Save as a pack (.beatpack) for another device' : 'Зберегти як пакет (.beatpack) для іншого пристрою'}
-                        className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-slate-700 bg-slate-800 text-slate-200 hover:bg-slate-700 cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="-my-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-outline bg-control text-ink-2 hover:bg-control-hover cursor-pointer transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
                       >
                         <Package className="icon-sm" />
                       </button>
@@ -523,7 +523,7 @@ export default function App() {
                   id="btn-restart-playback"
                   onClick={player.skipBack}
                   disabled={!track}
-                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40"
+                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-control hover:bg-control-hover text-ink-2 rounded-xl border border-outline transition-colors cursor-pointer disabled:opacity-40"
                   title={lang === 'en' ? 'To the start / previous track' : 'На початок / попередній трек'}
                 >
                   <SkipBack className="w-6 h-6 fill-current" />
@@ -534,7 +534,7 @@ export default function App() {
                   disabled={isLoadingAudio}
                   className={`h-12 w-32 px-3 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg cursor-pointer ${
                     isPlaying
-                      ? 'bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 shadow-amber-400/30'
+                      ? 'bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-[#1d1d1f] shadow-amber-400/30'
                       : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30'
                   }`}
                   title="Відтворення / Пауза (Пробіл)"
@@ -545,7 +545,7 @@ export default function App() {
                   id="btn-next-track"
                   onClick={player.playNext}
                   disabled={!player.hasNext}
-                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl border border-slate-700 transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
+                  className="w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center bg-control hover:bg-control-hover text-ink-2 rounded-xl border border-outline transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-default"
                   title={lang === 'en' ? 'Next track' : 'Наступний трек'}
                 >
                   <SkipForward className="w-6 h-6 fill-current" />
@@ -563,7 +563,7 @@ export default function App() {
                   }
                   className={`w-11 h-11 lg:w-10 lg:h-10 flex items-center justify-center rounded-xl border transition-colors cursor-pointer ${
                     player.playMode === 'stop'
-                      ? 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                      ? 'bg-control text-ink-3 border-outline hover:bg-control-hover'
                       : 'bg-accent text-accent-on border-accent hover:bg-accent-hover'
                   }`}
                 >
@@ -576,7 +576,7 @@ export default function App() {
           </div>
           )}
 
-          <section id="master-transport-bar" className={track ? "bg-slate-900 border border-slate-800 border-t-0 rounded-2xl rounded-t-none !mt-0 p-4 sm:p-5 pt-1 sm:pt-1 shadow-xl" : ""}>
+          <section id="master-transport-bar" className={track ? "bg-surface border border-line border-t-0 rounded-2xl rounded-t-none !mt-0 p-4 sm:p-5 pt-1 sm:pt-1 shadow-xl" : ""}>
             {track && (<>
             {/* Row 2: tempo, metronome switches, visual beats (they wrap instead of overflowing) */}
             <div className="flex flex-wrap items-center gap-2 max-w-full">
@@ -660,13 +660,13 @@ export default function App() {
               <button
                 type="button"
                 onClick={openFilesDialog}
-                className="w-full border-2 border-dashed border-slate-800 hover:border-slate-600 rounded-xl p-8 text-center cursor-pointer transition-colors bg-slate-950/40 hover:bg-slate-900/40 group block select-none"
+                className="w-full border-2 border-dashed border-line hover:border-outline rounded-xl p-8 text-center cursor-pointer transition-colors bg-canvas/40 hover:bg-surface/40 group block select-none"
               >
-                <div className="mx-auto w-12 h-12 rounded-full bg-slate-800/80 group-hover:bg-slate-700 text-slate-400 group-hover:text-slate-200 flex items-center justify-center mb-2.5 transition-colors">
+                <div className="mx-auto w-12 h-12 rounded-full bg-control/80 group-hover:bg-control-hover text-ink-3 group-hover:text-ink-2 flex items-center justify-center mb-2.5 transition-colors">
                   <Upload className="w-6 h-6" />
                 </div>
-                <p className="text-sm font-semibold text-slate-200">Додайте аудіотрек</p>
-                <p className="text-xs text-slate-400 mt-1">Натисніть тут або перетягніть файли у вікно (MP3, WAV, FLAC, OGG)</p>
+                <p className="text-sm font-semibold text-ink-2">Додайте аудіотрек</p>
+                <p className="text-xs text-ink-3 mt-1">Натисніть тут або перетягніть файли у вікно (MP3, WAV, FLAC, OGG)</p>
               </button>
             )}
             {player.message && <p className="mt-3 text-xs text-rose-400">{player.message}</p>}

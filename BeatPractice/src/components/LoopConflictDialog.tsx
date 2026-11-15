@@ -32,9 +32,9 @@ export function LoopConflictDialog(props: {
   return (
     <Modal id="loop-conflict-dialog" width="md" role="alertdialog" onClose={() => onChoose(null)}>
       <h3 className="text-base font-bold">{title}</h3>
-      <p className="text-sm text-slate-300">{text}</p>
+      <p className="text-sm text-ink-2">{text}</p>
       {!canCreate && (
-        <p className="text-xs text-slate-400">{L("Усі три місця для циклів зайняті, тому можна лише змінити наявний цикл.", "All three loop places are taken, so you can only change an existing loop.")}</p>
+        <p className="text-xs text-ink-3">{L("Усі три місця для циклів зайняті, тому можна лише змінити наявний цикл.", "All three loop places are taken, so you can only change an existing loop.")}</p>
       )}
       <div className="flex flex-col gap-2">
         {canCreate && (
@@ -48,7 +48,7 @@ export function LoopConflictDialog(props: {
             <button key={i} type="button" id={`loop-conflict-change-${i}`} className={`${btn.neutral} justify-start`} onClick={() => onChoose(i)}>
               <span className="h-3 w-3 shrink-0 rounded-full" style={{ background: c.solid }} aria-hidden="true" />
               <span className="min-w-0 truncate">{L("Змінити", "Change")} «{loopLabel(loops[i], i, lang)}»</span>
-              <span className="ml-auto shrink-0 font-normal text-slate-400">{barsInfo(loops[i], lang)}</span>
+              <span className="ml-auto shrink-0 font-normal text-ink-3">{barsInfo(loops[i], lang)}</span>
             </button>
           );
         })}
