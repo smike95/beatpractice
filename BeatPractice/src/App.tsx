@@ -26,15 +26,15 @@ import { MetronomeStrip } from './components/MetronomeStrip';
 import { TempoMapDialog } from './components/TempoMapDialog';
 import { LoopConflictDialog } from './components/LoopConflictDialog';
 import { LibraryExportDialog } from './components/LibraryExportDialog';
+import { SettingsDialog } from './components/SettingsDialog';
 import { ExportChooserDialog } from './components/ExportChooserDialog';
 import { BatchAudioExportDialog } from './components/BatchAudioExportDialog';
 import { DuplicateDialog } from './components/DuplicateDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
-import { AccentPicker } from './components/AccentPicker';
 import { applyAccent, loadAccent, saveAccent } from './utils/accent';
 import { btn } from './components/ui/styles';
-import { Info, Languages, ListEnd, Monitor, Moon, Pause, Pencil, Play, Repeat, Repeat1, SkipBack, SkipForward, Smartphone, Sun, Upload, Wrench } from 'lucide-react';
+import { Info, ListEnd, Package, Pause, Pencil, Play, Repeat, Repeat1, Settings, SkipBack, SkipForward, Upload, Wrench } from 'lucide-react';
 
 const formatTime = (seconds: number): string => {
   if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -164,6 +164,7 @@ export default function App() {
   const [editing, setEditing] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [packing, setPacking] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [exportChooser, setExportChooser] = useState(false);                        // the first step of every export
   const [libraryExporting, setLibraryExporting] = useState<{ startTag: string | null } | null>(null);   // pack of a tag / of the playlist
   const [batchAudio, setBatchAudio] = useState<{ startTag: string | null } | null>(null);          // audio files of a tag / of the playlist
@@ -302,7 +303,8 @@ export default function App() {
     while (lo <= hi) { const mid = (lo + hi) >> 1; if (bt[mid] <= currentTime) { ans = mid; lo = mid + 1; } else hi = mid - 1; }
     return ans + 1;
   })();
-  const themeLangButtons = (sfx: string) => (
+  // the bottom row of the playlist: About, Settings (theme, colour, language), Export
+  const footerButtons = (sfx: string) => (
     <>
       <button
         id={`btn-about${sfx}`}
@@ -313,41 +315,30 @@ export default function App() {
       >
         <Info className="w-6 h-6" />
       </button>
-            {/* Theme Toggle Button */}
-            <button
-              id={`header-theme-toggle${sfx}`}
-              type="button"
-              onClick={() => setThemeMode(prev => prev === 'dark' ? 'light' : prev === 'light' ? 'system' : 'dark')}
-              className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none bg-control hover:bg-control-hover active:bg-control-active text-ink-2 border-outline/80"
-              title={`${t('theme')}: ${themeMode === 'light' ? t('themeLight') : themeMode === 'dark' ? t('themeDark') : t('themeSystem')}`}
-            >
-              {themeMode === 'light' && <Sun className="w-6 h-6 text-amber-500" />}
-              {themeMode === 'dark' && <Moon className="w-6 h-6 text-ink-2" />}
-              {themeMode === 'system' && (
-                <>
-                  <Smartphone className="w-6 h-6 sm:hidden text-ink-2" />
-                  <Monitor className="w-6 h-6 hidden sm:block text-ink-2" />
-                </>
-              )}
-              <span className="hidden sm:inline font-medium">
-                {themeMode === 'light' ? t('themeLight') : themeMode === 'dark' ? t('themeDark') : t('themeSystem')}
-              </span>
-            </button>
-
-            <AccentPicker lang={lang} isDark={isDark} value={accent} onChange={handleSetAccent} idSuffix={sfx} />
-
-            {/* Language Toggle Button */}
-            <button
-              id={`header-lang-toggle${sfx}`}
-              type="button"
-              onClick={() => handleSetLang(lang === 'uk' ? 'en' : 'uk')}
-              className="flex items-center gap-1 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer shadow-2xs select-none bg-control hover:bg-control-hover active:bg-control-active text-ink-2 border-outline/80"
-              title={lang === 'uk' ? 'Switch to English' : 'Перемкнути на українську'}
-            >
-              <Languages className="w-6 h-6 sm:w-6 sm:h-6 text-ink-2" />
-              <span className="hidden sm:inline font-medium">{lang === 'uk' ? 'УКР' : 'ENG'}</span>
-            </button>
-
+      <button
+        id={`btn-settings${sfx}`}
+        type="button"
+        onClick={() => setSettingsOpen(true)}
+        title={lang === 'en' ? 'Settings' : 'Налаштування'}
+        aria-label={lang === 'en' ? 'Settings' : 'Налаштування'}
+        className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-outline bg-control hover:bg-control-hover text-xs font-semibold text-ink-2 cursor-pointer select-none"
+      >
+        <Settings className="w-6 h-6" />
+        <span className="hidden sm:inline font-medium">{lang === 'en' ? 'Settings' : 'Налаштування'}</span>
+      </button>
+      {isDesktop && player.playlist.length > 0 && (
+        <button
+          id="btn-export-library"
+          type="button"
+          onClick={() => setExportChooser(true)}
+          title={lang === 'en' ? 'Export a song, a tag or the playlist' : 'Експортувати пісню, тег або плейліст'}
+          aria-label={lang === 'en' ? 'Export' : 'Експорт'}
+          className="flex items-center gap-1.5 p-2.5 lg:p-1.5 sm:px-3 sm:py-1.5 rounded-xl border border-outline bg-control hover:bg-control-hover text-xs font-semibold text-ink-2 cursor-pointer select-none"
+        >
+          <Package className="w-6 h-6" />
+          <span className="hidden sm:inline font-medium">{lang === 'en' ? 'Export' : 'Експорт'}</span>
+        </button>
+      )}
     </>
   );
 
@@ -378,7 +369,7 @@ export default function App() {
             onRemoveTrack={handleRemoveTrackFromPlaylist}
             onOpenAddFiles={openFilesDialog}
             onReorder={player.reorderTracks}
-            footer={<div className="flex flex-wrap items-center gap-2">{themeLangButtons('')}</div>}
+            footer={<div className="flex flex-wrap items-center gap-2">{footerButtons('')}</div>}
             lang={lang}
             compact={!expanded}
             pinned={pinned}
@@ -394,8 +385,7 @@ export default function App() {
             onTagView={player.setTagView}
             viewList={player.viewList}
             onReorderInTag={player.reorderInTag}
-            onExportLibrary={isDesktop ? () => setExportChooser(true) : undefined}
-          />
+                      />
 
           </aside>
         </div>
@@ -795,6 +785,19 @@ export default function App() {
 
       {player.dupAsk && (
         <DuplicateDialog lang={lang} ask={player.dupAsk} tags={player.tags} onAnswer={player.answerDup} />
+      )}
+
+      {settingsOpen && (
+        <SettingsDialog
+          lang={lang}
+          isDark={isDark}
+          themeMode={themeMode}
+          onTheme={setThemeMode}
+          accent={accent}
+          onAccent={handleSetAccent}
+          onLang={handleSetLang}
+          onClose={() => setSettingsOpen(false)}
+        />
       )}
 
       {exportChooser && (

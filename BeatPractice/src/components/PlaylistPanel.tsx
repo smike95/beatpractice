@@ -39,7 +39,6 @@ interface PlaylistPanelProps {
   viewList?: PlaylistItem[];
   onReorderInTag?: (from: number, to: number) => void;
   /** save the playlist or a tag as one library file (desktop) */
-  onExportLibrary?: () => void;
 }
 
 const formatDuration = (seconds: number): string => {
@@ -85,7 +84,6 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   onTagView,
   viewList,
   onReorderInTag,
-  onExportLibrary,
 }) => {
   const t = (key: keyof typeof translations.uk) => (translations[lang] || translations.uk)[key] || key;
   const containerClasses = isSidebar
@@ -397,7 +395,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       {/* Bottom Summary Divider & Track Count / Total Duration */}
       <div
         id="playlist-bottom-summary"
-        className="pt-3 mt-2 border-t shrink-0 grid grid-cols-[1fr_auto_1fr] items-center text-xs select-none px-1 border-line text-ink-3"
+        className="pt-3 mt-2 border-t shrink-0 grid grid-cols-2 items-center text-xs select-none px-1 border-line text-ink-3"
       >
         <div className="flex items-center gap-1.5 justify-self-start">
           <span>Треків:</span>
@@ -406,23 +404,13 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         </div>
 
         {/* the time of the tracks that are shown */}
-        <div className="flex items-center gap-1.5 justify-self-center">
+        <div className="flex items-center gap-1.5 justify-self-end">
           <span>Час:</span>
           <span className="font-bold font-mono text-ink-2">
             {formatTotalDuration(visible.reduce((acc, { item }) => acc + (item.trackInfo?.duration || 0), 0))}
           </span>
         </div>
 
-        <div className="justify-self-end">
-          {onExportLibrary && playlist.length > 0 && (
-            <button type="button" id="btn-export-library" onClick={onExportLibrary}
-              title={lang === 'en' ? 'Export a song, a tag or the playlist' : 'Експортувати пісню, тег або плейліст'}
-              aria-label={lang === 'en' ? 'Export' : 'Експорт'}
-              className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold cursor-pointer text-ink-3 hover:bg-control hover:text-ink">
-              <Package className="icon-sm" />{lang === 'en' ? 'Export' : 'Експорт'}
-            </button>
-          )}
-        </div>
       </div>
 
       {footer && <div className="pt-3 mt-3 border-t shrink-0 border-line">{footer}</div>}
