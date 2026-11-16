@@ -373,46 +373,60 @@ export function Waveform(props: Props) {
       }
     }
 
-    // active loop: coloured band in the ruler with its number, thick edges and a bottom bar
-    if (act) {
-      const x0 = xOf(act.start), x1 = xOf(act.end);
-      const ac = loopColor(activeLoop ?? 0, isDark);
-      ctx.fillStyle = ac.solid;
-      ctx.fillRect(x0, 0, Math.max(2, x1 - x0), RULER_H);
-      ctx.fillRect(x0 - 1, RULER_H, 4, MAIN_H - RULER_H);
-      ctx.fillRect(x1 - 3, RULER_H, 4, MAIN_H - RULER_H);
-      ctx.fillRect(x0, MAIN_H - 4, Math.max(2, x1 - x0), 4);
-      // the name: inside the loop when it fits; otherwise the band continues past the loop's end, and when that would run into the next loop
-      // the whole label moves to the left, so it never covers another loop
-      ctx.font = "bold 16px Menlo, monospace";
-      ctx.textBaseline = "middle";
-      const name = loopLabel(loops[activeLoop ?? 0], activeLoop ?? 0, lang);
-      const PAD = 8, GAP = 4;
+    // the name of EVERY loop in the ruler (the active one in the solid colour, the others tinted). The name sits inside its loop when it fits;
+    // otherwise the band continues past the loop's end, and when that would run into the next loop the whole label moves to the left,
+    // so it never covers another loop. The active loop also gets thick edges and a bottom bar.
+    ctx.font = "bold 16px Menlo, monospace";
+    ctx.textBaseline = "middle";
+    const PAD = 8, GAP = 4;
+    const rulerBase = getComputedStyle(document.documentElement).getPropertyValue("--c-canvas").trim() || "28 28 30";
+    const order = loops.map((_, i) => i).filter((i) => i !== activeLoop);
+    if (activeLoop !== null && loops[activeLoop]) order.push(activeLoop);   // the active loop is drawn last, on top
+    for (const i of order) {
+      const l = loops[i];
+      const x0 = xOf(l.start), x1 = xOf(l.end);
+      if (x1 < 0 || x0 > w) continue;                                       // the loop is out of the view
+      const isAct = i === activeLoop;
+      const c = loopColor(i, isDark);
+      const vx0 = Math.max(0, x0), vx1 = Math.min(w, x1);
+      const name = loopLabel(l, i, lang);
       const need = ctx.measureText(name).width + PAD * 2;
-      let shownName = name;
-      if (need > x1 - x0) {
+      let left = vx0, right = vx1, shown = name;
+      if (need > vx1 - vx0) {
         let nextX = Infinity, prevX = 0;
-        loops.forEach((l, j) => {
-          if (j === activeLoop) return;
-          if (l.start >= act.start) nextX = Math.min(nextX, xOf(l.start));
-          else prevX = Math.max(prevX, xOf(l.end));
+        loops.forEach((o, j) => {
+          if (j === i) return;
+          if (o.start > l.start + 1e-6) nextX = Math.min(nextX, xOf(o.start));
+          else prevX = Math.max(prevX, Math.min(xOf(o.end), x0));
         });
-        let left = x0, right = x0 + need;
-        if (right > nextX - GAP) { right = nextX - GAP; left = right - need; }   // move left, away from the next loop
-        left = Math.max(left, prevX + GAP, 0);                                  // ... but not onto the previous loop or off the screen
-        right = Math.min(Math.max(right, left + 1), w);
-        if (right - left < need) {                                              // no room anywhere: shorten the name
+        // the free stretch of the ruler around this loop: between the end of the previous loop and the start of the next one
+        const lo = Math.max(0, prevX + GAP), hi = Math.min(w, nextX - GAP);
+        if (hi - lo >= need) { left = Math.min(Math.max(vx0, lo), hi - need); right = left + need; }   // fits: as near to its own start as possible, moved left if the next loop is in the way
+        else if (hi - lo > 24) { left = lo; right = hi; }                                              // no room for the whole name: use all the room and shorten it
+        else { left = vx0; right = Math.max(vx1, vx0 + 24); }
+        if (right - left < need) {
           let t = name;
           while (t.length > 1 && ctx.measureText(t + "…").width + PAD * 2 > right - left) t = t.slice(0, -1);
-          shownName = t + "…";
+          shown = t + "…";
         }
-        ctx.fillStyle = ac.solid;
-        ctx.fillRect(left, 0, right - left, RULER_H);
-        ctx.fillStyle = ac.text;
-        ctx.fillText(shownName, left + PAD, RULER_H / 2 + 1);
-      } else {
-        ctx.fillStyle = ac.text;
-        ctx.fillText(name, Math.max(x0, 0) + PAD, RULER_H / 2 + 1);
+      }
+      if (!isAct) {                                                             // an opaque base under the tint: the bar numbers must not show through a name
+        ctx.fillStyle = `rgb(${rulerBase})`;
+        ctx.fillRect(left, 0, Math.max(0, right - left), RULER_H);
+        ctx.fillRect(vx0, 0, Math.max(2, vx1 - vx0), RULER_H);
+      }
+      ctx.fillStyle = isAct ? c.solid : c.fillStrong;
+      ctx.beginPath();                                                          // band and label as one shape: no double tint where they overlap
+      ctx.rect(vx0, 0, Math.max(2, vx1 - vx0), RULER_H);
+      ctx.rect(left, 0, Math.max(0, right - left), RULER_H);
+      ctx.fill();
+      ctx.fillStyle = isAct ? c.text : c.solid;
+      ctx.fillText(shown, left + PAD, RULER_H / 2 + 1);
+      if (isAct) {
+        ctx.fillStyle = c.solid;
+        ctx.fillRect(x0 - 1, RULER_H, 4, MAIN_H - RULER_H);
+        ctx.fillRect(x1 - 3, RULER_H, 4, MAIN_H - RULER_H);
+        ctx.fillRect(x0, MAIN_H - 4, Math.max(2, x1 - x0), 4);
       }
     }
 

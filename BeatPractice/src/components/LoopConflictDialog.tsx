@@ -8,7 +8,8 @@ type Lang = "uk" | "en";
 
 /** What the person decided: the new loop (maybe with moved edges) and the existing loops (maybe with moved edges). */
 export interface LoopConflictAnswer {
-  mode: "replace" | "separate";     // replace: the new loop takes the place of the loops it still overlaps; separate: it is added next to them
+  mode: "replace" | "separate";     // replace: the new loop takes the place of the loop `target`; separate: it is added as one more loop
+  target?: number;                   // the index of the loop that is replaced (mode "replace")
   newLoop: { start: number; end: number };
   loops: LoopSlot[];                 // all existing loops, same order, with the edges as they were set here
 }
@@ -20,7 +21,8 @@ const overlap = (a: { start: number; end: number }, b: { start: number; end: num
 /**
  * Shown when a new loop shares bars with existing loops. The place of the conflict is drawn on the waveform and the edges of the loops
  * can be moved right here (they snap to bar lines), so the conflict can be solved without leaving the dialog.
- * Buttons: save only the new loop (it replaces the loops it still overlaps), save it as a separate loop, cancel.
+ * Buttons: save only the new loop (it replaces the loop it overlaps; with two or three overlapped loops there is one button per loop:
+ * "instead of loop 1", "instead of loop 2"), save it as a separate loop, cancel.
  */
 export function LoopConflictDialog(props: {
   lang: Lang;
@@ -159,8 +161,7 @@ export function LoopConflictDialog(props: {
     );
   };
 
-  const answer = (mode: "replace" | "separate"): LoopConflictAnswer => ({ mode, newLoop: nl, loops: ex });
-  const names = touching.map((i) => `«${loopLabel(ex[i], i, lang)}»`).join(", ");
+  const answer = (mode: "replace" | "separate", target?: number): LoopConflictAnswer => ({ mode, target, newLoop: nl, loops: ex });
   const full = !canCreate;
 
   return (
@@ -204,10 +205,17 @@ export function LoopConflictDialog(props: {
           </button>
         ) : (
           <>
-            <button type="button" id="loop-conflict-replace" className={`${btn.cta} flex-col !items-center !gap-0 py-2`} onClick={() => onChoose(answer("replace"))}>
-              <span>{L("Зберегти тільки новий", "Save only the new loop")}</span>
-              <span className="text-xs font-normal opacity-85">{L(`замінить ${names}`, `replaces ${names}`)}</span>
-            </button>
+            {touching.length === 1 ? (
+              <button type="button" id="loop-conflict-replace" className={`${btn.cta} flex-col !items-center !gap-0 py-2`} onClick={() => onChoose(answer("replace", touching[0]))}>
+                <span>{L("Зберегти тільки новий", "Save only the new loop")}</span>
+                <span className="text-xs font-normal opacity-85">{L(`замінить «${loopLabel(ex[touching[0]], touching[0], lang)}»`, `replaces “${loopLabel(ex[touching[0]], touching[0], lang)}”`)}</span>
+              </button>
+            ) : touching.map((i) => (
+              <button key={i} type="button" id={`loop-conflict-replace-${i}`} className={`${btn.cta} flex-col !items-center !gap-0 py-2`} onClick={() => onChoose(answer("replace", i))}>
+                <span>{L("Зберегти замість", "Save instead of")} «{loopLabel(ex[i], i, lang)}»</span>
+                <span className="text-xs font-normal opacity-85">{L(`такти ${barsOf(ex[i])}; інші цикли лишаться`, `bars ${barsOf(ex[i])}; the other loops stay`)}</span>
+              </button>
+            ))}
             <button type="button" id="loop-conflict-separate" className={btn.neutral} disabled={full} onClick={() => onChoose(answer("separate"))}>
               {L("Зберегти новий як окремий", "Save the new loop as a separate one")}
             </button>
