@@ -843,13 +843,17 @@ export default function App() {
         />
       )}
 
-      {player.loopChoice && (
+      {player.loopChoice && song && track && (
         <LoopConflictDialog
           lang={lang}
           loops={player.loops}
           hits={player.loopChoice.hits}
+          newLoop={{ start: player.loopChoice.start, end: player.loopChoice.end }}
           canCreate={player.loops.length < MAX_LOOPS}
           isDark={isDark}
+          peaks={song.peaks}
+          duration={track.duration}
+          barTimes={player.barTimes}
           onChoose={(answer) => { void player.resolveLoopChoice(answer); }}
         />
       )}

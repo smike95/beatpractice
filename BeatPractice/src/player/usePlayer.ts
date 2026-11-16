@@ -752,16 +752,39 @@ export function usePlayer() {
     [ready, activeId, loops, selectedLoop, applyDragLoop],
   );
 
-  /** The user's answer to the question about a loop that shares bars: "new", the index of the loop to change, or null = cancel. */
+  /**
+   * The user's answer in the dialog about a loop that shares bars: the new loop (with the edges as set there) and the existing loops (their edges may
+   * have been moved too). "replace": the new loop takes the place (and the name) of the loops it still overlaps; "separate" (or nothing left to replace):
+   * it is added as one more loop. The new loop becomes the active one. null = cancel.
+   */
   const resolveLoopChoice = useCallback(
-    async (answer: "new" | number | null) => {
+    async (answer: { mode: "replace" | "separate"; newLoop: { start: number; end: number }; loops: LoopSlot[] } | null) => {
       const c = loopChoice;
       setLoopChoice(null);
-      if (!c || answer === null) return;
-      if (c.origin === "drag") await applyDragLoop(c.start, c.end, answer);
-      else await applyAddLoop({ start: c.start, end: c.end }, answer);
+      if (!c || !answer || !ready || !activeId) return;
+      const base = answer.loops.map((l) => ({ ...l }));
+      const nl = answer.newLoop;
+      const touching = answer.mode === "replace" ? c.hits.filter((i) => base[i] && Math.min(base[i].end, nl.end) - Math.max(base[i].start, nl.start) > 0.02) : [];
+      let next: LoopSlot[], idx: number;
+      if (touching.length > 0) {
+        idx = touching[0];
+        const put: LoopSlot = { start: nl.start, end: nl.end, ...(base[idx].name ? { name: base[idx].name } : {}) };   // the replacing loop keeps the name
+        next = base.filter((_, i) => !touching.includes(i));
+        next.splice(idx, 0, put);
+      } else {
+        if (base.length >= MAX_LOOPS) return;
+        idx = base.length;
+        next = [...base, { start: nl.start, end: nl.end }];
+      }
+      const ok = await core.setLoop(nl.start, nl.end);
+      if (!ok) { setMessage("Цикл завеликий або замалий."); return; }
+      setLoops(next);
+      setSelectedLoop(idx);
+      setActiveLoop(idx);
+      persistLoops(next, idx);
+      await core.seek(nl.start).catch(() => {});
     },
-    [loopChoice, applyDragLoop, applyAddLoop],
+    [loopChoice, ready, activeId, persistLoops],
   );
 
   const jumpBar = useCallback(

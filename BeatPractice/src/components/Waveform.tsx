@@ -52,7 +52,7 @@ function fmt(t: number): string {
 }
 
 /** index of the last element <= t, or -1 */
-function lastLE(arr: number[], t: number): number {
+export function lastLE(arr: number[], t: number): number {
   let lo = 0;
   let hi = arr.length - 1;
   let ans = -1;
@@ -66,7 +66,7 @@ function lastLE(arr: number[], t: number): number {
   return ans;
 }
 
-function useWidth(ref: React.RefObject<HTMLElement | null>): number {
+export function useWidth(ref: React.RefObject<HTMLElement | null>): number {
   const [w, setW] = useState(0);
   useEffect(() => {
     const el = ref.current;
@@ -79,7 +79,7 @@ function useWidth(ref: React.RefObject<HTMLElement | null>): number {
   return w;
 }
 
-function prepCanvas(cv: HTMLCanvasElement, w: number, h: number): CanvasRenderingContext2D | null {
+export function prepCanvas(cv: HTMLCanvasElement, w: number, h: number): CanvasRenderingContext2D | null {
   const dpr = window.devicePixelRatio || 1;
   const pw = Math.round(w * dpr);
   const ph = Math.round(h * dpr);
@@ -94,7 +94,7 @@ function prepCanvas(cv: HTMLCanvasElement, w: number, h: number): CanvasRenderin
   return ctx;
 }
 
-function drawPeaks(
+export function drawPeaks(
   ctx: CanvasRenderingContext2D,
   peaks: number[],
   w: number,
@@ -382,10 +382,38 @@ export function Waveform(props: Props) {
       ctx.fillRect(x0 - 1, RULER_H, 4, MAIN_H - RULER_H);
       ctx.fillRect(x1 - 3, RULER_H, 4, MAIN_H - RULER_H);
       ctx.fillRect(x0, MAIN_H - 4, Math.max(2, x1 - x0), 4);
-      ctx.fillStyle = ac.text;
+      // the name: inside the loop when it fits; otherwise the band continues past the loop's end, and when that would run into the next loop
+      // the whole label moves to the left, so it never covers another loop
       ctx.font = "bold 16px Menlo, monospace";
       ctx.textBaseline = "middle";
-      ctx.fillText(loopLabel(loops[activeLoop ?? 0], activeLoop ?? 0, lang), Math.max(x0, 0) + 8, RULER_H / 2 + 1);
+      const name = loopLabel(loops[activeLoop ?? 0], activeLoop ?? 0, lang);
+      const PAD = 8, GAP = 4;
+      const need = ctx.measureText(name).width + PAD * 2;
+      let shownName = name;
+      if (need > x1 - x0) {
+        let nextX = Infinity, prevX = 0;
+        loops.forEach((l, j) => {
+          if (j === activeLoop) return;
+          if (l.start >= act.start) nextX = Math.min(nextX, xOf(l.start));
+          else prevX = Math.max(prevX, xOf(l.end));
+        });
+        let left = x0, right = x0 + need;
+        if (right > nextX - GAP) { right = nextX - GAP; left = right - need; }   // move left, away from the next loop
+        left = Math.max(left, prevX + GAP, 0);                                  // ... but not onto the previous loop or off the screen
+        right = Math.min(Math.max(right, left + 1), w);
+        if (right - left < need) {                                              // no room anywhere: shorten the name
+          let t = name;
+          while (t.length > 1 && ctx.measureText(t + "…").width + PAD * 2 > right - left) t = t.slice(0, -1);
+          shownName = t + "…";
+        }
+        ctx.fillStyle = ac.solid;
+        ctx.fillRect(left, 0, right - left, RULER_H);
+        ctx.fillStyle = ac.text;
+        ctx.fillText(shownName, left + PAD, RULER_H / 2 + 1);
+      } else {
+        ctx.fillStyle = ac.text;
+        ctx.fillText(name, Math.max(x0, 0) + PAD, RULER_H / 2 + 1);
+      }
     }
 
     // playhead
