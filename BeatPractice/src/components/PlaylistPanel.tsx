@@ -104,6 +104,19 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   // the "Змінити" mode: only in it the tiles show the drag handles, the tag and the delete buttons
   const [manage, setManage] = useState(false);
   useEffect(() => { if (playlist.length === 0) setManage(false); }, [playlist.length]);
+  useEffect(() => { if (compact) setManage(false); }, [compact]);
+  // any action in the main window (a press on a button, a field, the waveform...; scrolling is not one) ends the Edit mode
+  useEffect(() => {
+    if (!manage) return;
+    const onDown = (e: PointerEvent) => {
+      const t = e.target as Element | null;
+      if (!t || !t.closest) return;
+      if (t.closest('#playlist-panel') || t.closest('.bp-modal-overlay')) return;
+      if (t.closest('button, a, input, select, textarea, canvas, label, [role="button"], [role="switch"], [role="tab"], [role="option"]')) setManage(false);
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    return () => document.removeEventListener('pointerdown', onDown, true);
+  }, [manage]);
 
   // the list that is shown: the whole playlist, or the tracks of the chosen tag in the order they have inside that tag
   const inTagView = !!tagView && !!viewList && !!onReorderInTag;
@@ -169,17 +182,62 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       <CoverPlaceholder className={size} active={isActive} />
     );
 
+  // the dialogs (tags, delete) are drawn in both states of the panel: if they lived only in the open one, folding the strip under a dialog
+  // would hide it and hovering the strip would bring it back, in a loop
+  const dialogs = (
+    <>
+      {pendingDelete && createPortal(
+        <Modal id="confirm-delete-track" role="alertdialog" width="md" layer="z-[100]" onClose={() => setPendingDelete(null)}>
+          <p className="text-base font-bold">{lang === 'en' ? 'Remove this track from the playlist?' : 'Видалити цей трек із плейліста?'}</p>
+          <p className="text-sm break-words">{displayName(pendingDelete)}</p>
+          <p className="text-xs text-ink-3">{lang === 'en' ? 'The file on the disk stays.' : 'Файл на диску залишиться.'}</p>
+          <div className="flex flex-wrap justify-end gap-2">
+            <button className={btn.neutral} onClick={() => setPendingDelete(null)}>
+              {lang === 'en' ? 'Cancel' : 'Скасувати'}
+            </button>
+            <button
+              id="btn-confirm-delete-track"
+              autoFocus
+              className={btn.danger}
+              onClick={() => { const id = pendingDelete.id; setPendingDelete(null); onRemoveTrack(id, { stopPropagation: () => {} } as React.MouseEvent); }}
+            >
+              {lang === 'en' ? 'Remove' : 'Видалити'}
+            </button>
+          </div>
+        </Modal>,
+        document.body
+      )}
+      {hasTags && tagItemId && playlist.find((it) => it.id === tagItemId) && createPortal(
+        <TrackTagsDialog lang={lang === 'en' ? 'en' : 'uk'} item={playlist.find((it) => it.id === tagItemId)!} tags={allTags}
+          onToggle={onToggleTag!} onCreateForItem={onAddTagToItem!} onClose={() => setTagItemId(null)} />,
+        document.body
+      )}
+      {hasTags && manageTags && createPortal(
+        <ManageTagsDialog lang={lang === 'en' ? 'en' : 'uk'} tags={allTags} counts={tagCounts}
+          onCreate={(n) => { onCreateTag!(n); }} onRename={onRenameTag!} onDelete={onDeleteTag!} onClose={() => setManageTags(false)} />,
+        document.body
+      )}
+    </>
+  );
+
   if (compact) {
     return (
       <div id="playlist-panel" className="flex h-full w-full flex-col items-center">
         <div className="mac-top-space" data-tauri-drag-region />
         <div className="shrink-0 h-2" data-tauri-drag-region />
+        <div className="shrink-0 pb-2 text-center text-[11px] font-black leading-[1.05] tracking-tight text-ink pointer-events-none select-none" data-tauri-drag-region aria-label="BeatPractice">
+          beat<br />Practice
+        </div>
         <div className="flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center gap-2 py-1">
-          {base.map((item) => (
-            <button key={item.id} type="button" onClick={() => onSelectTrack(item)} title={displayName(item)} aria-label={displayName(item)} className="shrink-0 rounded-lg cursor-pointer">
-              {coverOf(item, item.id === activeTrackId, 'w-10 h-10')}
-            </button>
-          ))}
+          {base.map((item) => {
+            const isActive = item.id === activeTrackId;
+            return (
+              <button key={item.id} type="button" onClick={() => onSelectTrack(item)} title={displayName(item)} aria-label={displayName(item)} className="relative shrink-0 rounded-lg cursor-pointer">
+                {coverOf(item, isActive, 'w-10 h-10')}
+                {isActive && <span className="absolute -bottom-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-surface border border-outline"><NowMark playing={isPlaying} lang={lang} /></span>}
+              </button>
+            );
+          })}
         </div>
         <button
           type="button"
@@ -191,6 +249,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         >
           <ChevronRight className="w-6 h-6" />
         </button>
+        {dialogs}
       </div>
     );
   }
@@ -442,38 +501,8 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
 
       {footer && <div className="pt-3 mt-3 border-t shrink-0 border-line">{footer}</div>}
 
-      {hasTags && tagItemId && playlist.find((it) => it.id === tagItemId) && createPortal(
-        <TrackTagsDialog lang={lang === 'en' ? 'en' : 'uk'} item={playlist.find((it) => it.id === tagItemId)!} tags={allTags}
-          onToggle={onToggleTag!} onCreateForItem={onAddTagToItem!} onClose={() => setTagItemId(null)} />,
-        document.body
-      )}
-      {hasTags && manageTags && createPortal(
-        <ManageTagsDialog lang={lang === 'en' ? 'en' : 'uk'} tags={allTags} counts={tagCounts}
-          onCreate={(n) => { onCreateTag!(n); }} onRename={onRenameTag!} onDelete={onDeleteTag!} onClose={() => setManageTags(false)} />,
-        document.body
-      )}
+      {dialogs}
 
-      {pendingDelete && createPortal(
-        <Modal id="confirm-delete-track" role="alertdialog" width="md" layer="z-[100]" onClose={() => setPendingDelete(null)}>
-          <p className="text-base font-bold">{lang === 'en' ? 'Remove this track from the playlist?' : 'Видалити цей трек із плейліста?'}</p>
-          <p className="text-sm break-words">{displayName(pendingDelete)}</p>
-          <p className="text-xs text-ink-3">{lang === 'en' ? 'The file on the disk stays.' : 'Файл на диску залишиться.'}</p>
-          <div className="flex flex-wrap justify-end gap-2">
-            <button className={btn.neutral} onClick={() => setPendingDelete(null)}>
-              {lang === 'en' ? 'Cancel' : 'Скасувати'}
-            </button>
-            <button
-              id="btn-confirm-delete-track"
-              autoFocus
-              className={btn.danger}
-              onClick={() => { const id = pendingDelete.id; setPendingDelete(null); onRemoveTrack(id, { stopPropagation: () => {} } as React.MouseEvent); }}
-            >
-              {lang === 'en' ? 'Remove' : 'Видалити'}
-            </button>
-          </div>
-        </Modal>,
-        document.body
-      )}
     </div>
   );
 };

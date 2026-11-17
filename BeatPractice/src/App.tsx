@@ -100,7 +100,10 @@ export default function App() {
   // outside press closes the opened (not pinned) playlist: touch screens have no hover
   useEffect(() => {
     if (!playlistOpen || pinned) return;
-    const onDown = (e: PointerEvent) => { if (asideRef.current && !asideRef.current.contains(e.target as Node)) setPlaylistOpen(false); };
+    const onDown = (e: PointerEvent) => {
+      if ((e.target as Element | null)?.closest?.('.bp-modal-overlay')) return;   // a dialog of the playlist (tags, delete) is not "outside": the strip stays open under it
+      if (asideRef.current && !asideRef.current.contains(e.target as Node)) setPlaylistOpen(false);
+    };
     document.addEventListener('pointerdown', onDown);
     return () => document.removeEventListener('pointerdown', onDown);
   }, [playlistOpen, pinned]);
