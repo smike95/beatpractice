@@ -21,7 +21,7 @@ export default {
         sans: ['"BP UI"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro"', '"Segoe UI Variable"', '"Segoe UI"', 'system-ui', 'sans-serif'],
         mono: ['"SF Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
       },
-      // accent colour: by default blue in the light theme and violet in the dark theme (see :root and html.light in index.css)
+      // accent colour: purple by default in both themes (see :root and html.light in index.css)
       colors: {
         // SEMANTIC NEUTRALS: every grey of the interface is one of these roles; both themes define their values in index.css
         // (--c-*), so a class is written once and means the right thing in the dark and in the light theme, also with opacity (bg-canvas/40).

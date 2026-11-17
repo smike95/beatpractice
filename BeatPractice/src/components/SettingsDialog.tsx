@@ -5,6 +5,8 @@ import { Modal, ModalHeader } from "./ui/Modal";
 import { Segmented } from "./ui/Segmented";
 import { AccentPicker } from "./AccentPicker";
 import { btn } from "./ui/styles";
+import { Switch } from "./Switch";
+import type { AccentChoice } from "../utils/accent";
 
 /** The languages of the interface. Up to three are shown as a switch; with more, the setting becomes a drop-down list. */
 export const LANGUAGES: { id: Language; label: string }[] = [
@@ -18,8 +20,8 @@ export function SettingsDialog(props: {
   isDark: boolean;
   themeMode: ThemeMode;
   onTheme: (m: ThemeMode) => void;
-  accent: string;
-  onAccent: (id: string) => void;
+  accent: AccentChoice;
+  onAccent: (a: AccentChoice) => void;
   onLang: (l: Language) => void;
   onClose: () => void;
 }) {
@@ -43,8 +45,24 @@ export function SettingsDialog(props: {
 
       <div className="space-y-2">
         <div className={label}>{L("Колір", "Colour")}</div>
-        <AccentPicker field lang={lang} isDark={isDark} value={accent} onChange={onAccent} idSuffix="-settings" />
-        <p className="text-xs text-ink-3">{L("Один акцентний колір для обох тем: системні кольори Apple.", "One accent colour for both themes: the Apple system colours.")}</p>
+        {!accent.separate ? (
+          <AccentPicker field lang={lang} isDark={isDark} value={accent.both} onChange={(id) => onAccent({ ...accent, both: id })} idSuffix="-settings" />
+        ) : (
+          <div className="space-y-2">
+            <div className="space-y-1">
+              <div className="text-xs text-ink-3">{L("Світла тема", "Light theme")}</div>
+              <AccentPicker field lang={lang} isDark={false} value={accent.light} onChange={(id) => onAccent({ ...accent, light: id })} idSuffix="-settings-light" label={L("Колір світлої теми", "Light theme colour")} />
+            </div>
+            <div className="space-y-1">
+              <div className="text-xs text-ink-3">{L("Темна тема", "Dark theme")}</div>
+              <AccentPicker field lang={lang} isDark={true} value={accent.dark} onChange={(id) => onAccent({ ...accent, dark: id })} idSuffix="-settings-dark" label={L("Колір темної теми", "Dark theme colour")} />
+            </div>
+          </div>
+        )}
+        <label className="flex items-center justify-between gap-3 pt-1 text-sm text-ink-2 cursor-pointer">
+          <span>{L("Різні кольори для світлої і темної теми", "Different colours for the light and dark theme")}</span>
+          <Switch checked={accent.separate} onChange={(v) => onAccent(v ? { ...accent, separate: true, light: accent.both, dark: accent.both } : { ...accent, separate: false })} />
+        </label>
       </div>
 
       <div className="space-y-2">

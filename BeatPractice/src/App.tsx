@@ -32,7 +32,7 @@ import { BatchAudioExportDialog } from './components/BatchAudioExportDialog';
 import { DuplicateDialog } from './components/DuplicateDialog';
 import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
-import { applyAccent, loadAccent, saveAccent } from './utils/accent';
+import { accentFor, applyAccent, loadAccent, saveAccent, type AccentChoice } from './utils/accent';
 import { btn } from './components/ui/styles';
 import { Info, ListEnd, Package, Pause, Pencil, Play, Repeat, Repeat1, Settings, SkipBack, SkipForward, Upload, Wrench } from 'lucide-react';
 
@@ -222,16 +222,16 @@ export default function App() {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [themeMode]);
 
-  // TEMPORARY accent colour (system colours of the Apple HIG); re-applied when the theme changes
-  const [accent, setAccent] = useState<string>(() => loadAccent());
+  // accent colour (system colours of the Apple HIG): purple at the first start; re-applied when the theme changes
+  const [accent, setAccent] = useState<AccentChoice>(() => loadAccent());
   useEffect(() => {
-    const apply = () => applyAccent(accent, document.documentElement.classList.contains('dark'));
+    const apply = () => { const dark = document.documentElement.classList.contains('dark'); applyAccent(accentFor(accent, dark), dark); }
     apply();
     const mo = new MutationObserver(apply);
     mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => mo.disconnect();
   }, [accent]);
-  const handleSetAccent = (id: string) => { setAccent(id); saveAccent(id); };
+  const handleSetAccent = (a: AccentChoice) => { setAccent(a); saveAccent(a); };
 
   // Language state
   const [lang, setLang] = useState<Language>(() => {

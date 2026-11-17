@@ -47,10 +47,12 @@ export function ExportChooserDialog(props: {
     <Modal id="export-chooser-dialog" width="lg" onClose={onClose}>
       <ModalHeader title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Що експортувати?", "What do you want to export?")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")} />
 
+      <p className="text-xs text-ink-3">{L("Оберіть, що вам потрібно. Хочете слухати або вчити пісню деінде, у будь-якому плеєрі, — зберігайте аудіофайл. Хочете продовжити роботу в BeatPractice на іншому пристрої — зберігайте пакет.", "Choose what you need. To listen to or learn a song elsewhere, in any player, save an audio file. To carry on working in BeatPractice on another device, save a pack.")}</p>
+
       <section className="space-y-2" aria-labelledby="export-audio-title">
         <div>
-          <h3 id="export-audio-title" className="text-sm font-bold text-ink">{L("Аудіофайл (WAV)", "Audio file (WAV)")}</h3>
-          <p className="text-xs text-ink-3">{L("Звичайні файли для будь-якого плеєра.", "Ordinary files for any player.")}</p>
+          <h3 id="export-audio-title" className="flex items-center gap-2 text-sm font-bold text-ink">{L("Аудіофайл", "Audio file")}<span className="rounded-md border border-line px-1.5 py-px font-mono text-[11px] font-semibold text-ink-3">.wav</span></h3>
+          <p className="text-xs text-ink-3">{L("Звичайні файли для будь-якого плеєра, телефона чи програми для монтажу.", "Ordinary files for any player, phone or editing program.")}</p>
         </div>
         {row("export-audio-song", { kind: "audio", scope: "song" }, <Music className="h-6 w-6" />, L("Пісню", "A song"),
           L("Поточний трек: темп, метроном, партії та цикл можна змінити.", "The open track; tempo, metronome, parts and loop can be changed."), !canSong, noTrack)}
@@ -62,7 +64,7 @@ export function ExportChooserDialog(props: {
 
       <section className="space-y-2" aria-labelledby="export-pack-title">
         <div>
-          <h3 id="export-pack-title" className="text-sm font-bold text-ink">{L("Пакет для іншого пристрою", "A pack for another device")}</h3>
+          <h3 id="export-pack-title" className="flex items-center gap-2 text-sm font-bold text-ink">{L("Пакет для іншого пристрою", "A pack for another device")}<span className="rounded-md border border-line px-1.5 py-px font-mono text-[11px] font-semibold text-ink-3">.beatpack / .beatlib</span></h3>
           <p className="text-xs text-ink-3">{L("З розпізнаним темпом і розділеними партіями: на іншому пристрої нічого розпізнавати не треба.", "With the recognised tempo and the separated parts: the other device analyses nothing.")}</p>
         </div>
         {row("export-pack-song", { kind: "pack", scope: "song" }, <Music className="h-6 w-6" />, L("Одну пісню", "One song"),

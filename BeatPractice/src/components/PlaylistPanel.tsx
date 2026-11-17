@@ -44,7 +44,7 @@ interface PlaylistPanelProps {
 const NowMark: React.FC<{ playing: boolean; lang: Language }> = ({ playing, lang }) => {
   const label = playing ? (lang === 'en' ? 'Playing' : 'Грає') : (lang === 'en' ? 'Paused' : 'Пауза');
   const Icon = playing ? Play : Pause;
-  return <span role="img" aria-label={label} title={label} className="flex h-[11px] w-[11px] shrink-0 items-center justify-center text-accent-text"><Icon className="h-[8.5px] w-[8.5px]" fill="currentColor" strokeWidth={0} /></span>;
+  return <span role="img" aria-label={label} title={label} className="flex h-[12px] w-[12px] shrink-0 items-center justify-center text-accent-text"><Icon className="h-[10px] w-[10px]" fill="currentColor" strokeWidth={0} /></span>;
 };
 
 const formatDuration = (seconds: number): string => {
@@ -331,7 +331,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     {manage && !filtered ? (
                       <button
                         type="button"
-                        className="-mx-1.5 px-1.5 py-2 flex flex-col items-center gap-[3px] cursor-grab active:cursor-grabbing touch-none rounded-md text-ink-3 hover:text-ink-2 transition-colors duration-150"
+                        className="relative flex flex-col items-center gap-[3px] cursor-grab after:absolute after:-inset-x-1.5 after:-inset-y-3 after:content-[''] active:cursor-grabbing touch-none rounded-md text-ink-3 hover:text-ink-2 transition-colors duration-150"
                         title={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
                         aria-label={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
                         onClick={(e) => e.stopPropagation()}
@@ -340,9 +340,9 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                         onPointerUp={onGripUp}
                         onPointerCancel={() => setDrag(null)}
                       >
-                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
-                        {isActive ? <NowMark playing={isPlaying} lang={lang} /> : <span className="block h-[5px] w-[5px] rounded-full bg-current" />}
-                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                        <span className="block h-1 w-1 rounded-full bg-current" />
+                        {isActive ? <NowMark playing={isPlaying} lang={lang} /> : <span className="block h-1 w-1 rounded-full bg-current" />}
+                        <span className="block h-1 w-1 rounded-full bg-current" />
                       </button>
                     ) : isActive ? <NowMark playing={isPlaying} lang={lang} /> : null}
                   </div>

@@ -21,12 +21,30 @@ export const ACCENT_COLORS: AccentColor[] = [
 const ON_LIGHT = "255 255 255";
 const ON_DARK = "29 29 31";
 
-const KEY = "beatpractice_accent";
+/** The choice of the person: one colour for both themes (the default is purple) or, only if they want it, a colour for each theme. */
+export interface AccentChoice { separate: boolean; both: string; light: string; dark: string }
+export const DEFAULT_ACCENT: AccentChoice = { separate: false, both: "purple", light: "purple", dark: "purple" };
 
-export function loadAccent(): string {
-  try { const v = localStorage.getItem(KEY); if (v && ACCENT_COLORS.some((c) => c.id === v)) return v; } catch { /* ignore */ }
-  return "default";
+const KEY = "beatpractice_accent2";
+const OLD_KEY = "beatpractice_accent";   // the first version stored one id (or "default", which no longer exists: it becomes purple)
+
+const known = (v: unknown): v is string => typeof v === "string" && ACCENT_COLORS.some((c) => c.id === v);
+
+export function loadAccent(): AccentChoice {
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const o = JSON.parse(raw);
+      return { separate: !!o.separate, both: known(o.both) ? o.both : "purple", light: known(o.light) ? o.light : "purple", dark: known(o.dark) ? o.dark : "purple" };
+    }
+    const old = localStorage.getItem(OLD_KEY);
+    if (known(old)) return { separate: false, both: old, light: old, dark: old };
+  } catch { /* ignore */ }
+  return DEFAULT_ACCENT;
 }
+
+/** The colour id that applies now. */
+export const accentFor = (a: AccentChoice, isDark: boolean): string => (a.separate ? (isDark ? a.dark : a.light) : a.both);
 
 function rgb(hex: string): [number, number, number] {
   return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
@@ -35,8 +53,8 @@ const trip = (hex: string) => rgb(hex).join(" ");
 const VARS = ["--accent", "--accent-hover", "--accent-text", "--accent-on"];
 
 /**
- * Replaces the four accent tokens of index.css (rgb triplets) with one Apple system colour for the given theme.
- * "default" removes them, so the theme's own pair (violet / blue) comes back. Everything in the interface reads only these tokens.
+ * Replaces the four accent tokens of index.css (rgb triplets) with the Apple system colour for the given theme.
+ * Everything in the interface reads only these tokens. An unknown id falls back to the CSS values of the theme.
  */
 export function applyAccent(id: string, isDark: boolean): void {
   const root = document.documentElement;
@@ -66,6 +84,6 @@ export function useAccentRgb(isDark: boolean): string {
   return v;
 }
 
-export function saveAccent(id: string): void {
-  try { localStorage.setItem(KEY, id); } catch { /* ignore */ }
+export function saveAccent(a: AccentChoice): void {
+  try { localStorage.setItem(KEY, JSON.stringify(a)); } catch { /* ignore */ }
 }

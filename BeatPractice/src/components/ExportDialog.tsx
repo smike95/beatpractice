@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { canShareSaved, pickSavePath, shareSaved } from "../platform";
-import { Download } from "lucide-react";
+import { ChevronDown, ChevronRight, Download, FileAudio, RotateCcw } from "lucide-react";
 import { core, type ExportStatus } from "../core";
 import { LoopSlot, barsText, loopLabel } from "../types";
 import { NAMES } from "./StemsPanel";
@@ -11,22 +11,32 @@ import { Segmented } from "./ui/Segmented";
 
 type Lang = "uk" | "en";
 
-/** One line of the dialog: the title, what is set now, and a button to change it (the controls fold open under it). */
-function Section(props: { title: string; summary: string; open: boolean; disabled: boolean; lang: Lang; onToggle: () => void; children: React.ReactNode; id: string }) {
-  const { title, summary, open, disabled, lang, onToggle, children, id } = props;
+/**
+ * One line of the dialog: the title, what is set now (in words), and a button to change it; the controls fold open under it.
+ * The whole header is clickable and has a chevron (it is visible that the line opens); a "Changed" mark shows what differs from the player.
+ */
+function Section(props: { title: string; summary: string; open: boolean; disabled: boolean; changed?: boolean; hint?: string; lang: Lang; onToggle: () => void; children: React.ReactNode; id: string }) {
+  const { title, summary, open, disabled, changed, hint, lang, onToggle, children, id } = props;
+  const Chevron = open ? ChevronDown : ChevronRight;
   return (
     <div className="rounded-xl border track-edit-section p-3 space-y-2.5" id={id}>
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-xs font-bold uppercase tracking-wide track-edit-label">{title}</div>
-          <div className="text-sm break-words">{summary}</div>
-        </div>
+        <button type="button" disabled={disabled} aria-expanded={open} onClick={onToggle} className="flex min-w-0 flex-1 items-start gap-2 text-left cursor-pointer disabled:cursor-default">
+          <Chevron aria-hidden className="mt-0.5 h-4 w-4 shrink-0 track-edit-label" />
+          <span className="min-w-0">
+            <span className="flex items-center gap-2">
+              <span className="text-xs font-bold uppercase tracking-wide track-edit-label">{title}</span>
+              {changed && <span className="rounded-full bg-accent/15 px-2 py-px text-[11px] font-bold text-accent-text">{lang === "en" ? "Changed" : "Змінено"}</span>}
+            </span>
+            <span className="block text-sm break-words">{summary}</span>
+          </span>
+        </button>
         <button type="button" disabled={disabled} aria-expanded={open} onClick={onToggle}
           className={btn.compact}>
           {open ? (lang === "en" ? "Done" : "Готово") : (lang === "en" ? "Change" : "Змінити")}
         </button>
       </div>
-      {open && <div className="space-y-2.5 pt-1">{children}</div>}
+      {open && <div className="space-y-2.5 pt-1">{hint && <p className="track-edit-label text-xs">{hint}</p>}{children}</div>}
     </div>
   );
 }
@@ -71,6 +81,8 @@ export function ExportDialog(props: {
   const [outPath, setOutPath] = useState("");
   const [err, setErr] = useState("");
   const timer = useRef<number | null>(null);
+  // what the player has now: the starting point of every setting here (to show what was changed, and to go back to it)
+  const initial = useRef({ bpm: Math.round(currentBpm * 10) / 10, range: activeLoop !== null && loops[activeLoop] ? activeLoop : -1, click: metronomeOn, accent: accentOn, quiet: quiet.enabled, ci: Math.min(2, countInBars) }).current;
 
   const running = st?.state === 1;
   const done = st?.state === 2;
@@ -122,6 +134,26 @@ export function ExportDialog(props: {
   ].filter(Boolean).join(" · ");
   const rangeSummary = range < 0 ? L("Весь трек", "The whole track")
     : `${L("Тільки цикл", "Only the loop")} «${loopLabel(loopSlot, range, lang)}» (${mmss(loopSlot!.start)} – ${mmss(loopSlot!.end)})`;
+
+  const tempoChanged = Math.abs(bpm - initial.bpm) > 0.05;
+  const clickChanged = withClick !== initial.click || (withClick && (accent !== initial.accent || quietOn !== initial.quiet || ciBars !== initial.ci));
+  const partsChanged = hasStems && (separate || stemNames.some((_, i) => picked[i] === !!stemMuted[i]));
+  const rangeChanged = range !== initial.range;
+  const anyChanged = tempoChanged || clickChanged || partsChanged || rangeChanged;
+  const resetAll = () => {
+    setBpm(initial.bpm); setRange(initial.range); setWithClick(initial.click); setAccent(initial.accent); setQuietOn(initial.quiet); setCiBars(initial.ci);
+    setSeparate(false); setClickTarget(-1); setPicked(stemNames.map((_, i) => !stemMuted[i]));
+  };
+  // the result in one sentence, before the person saves anything
+  const fileWord = separate && hasStems ? L(`${fileCount_()} файлів WAV`, `${fileCount_()} WAV files`) : L("1 файл WAV", "1 WAV file");
+  function fileCount_() { return chosen.length + (withClick && !clickTargetValid ? 1 : 0); }
+  const resultLine = [
+    fileWord,
+    range < 0 ? L("весь трек", "whole track") : L("тільки цикл", "loop only"),
+    `${bpm.toFixed(1)} BPM`,
+    withClick ? L("з метрономом", "with metronome") : L("без метронома", "no metronome"),
+    hasStems ? (separate ? L("партії окремо", "parts separate") : L(`партій у міксі: ${chosen.length} з ${stemNames.length}`, `parts in the mix: ${chosen.length} of ${stemNames.length}`)) : null,
+  ].filter(Boolean).join(" · ");
 
   const cleanName = displayName.replace(/[\\/:*?"<>|]+/g, " ").trim() || "track";
   const tags = [`${Math.round(bpm)} BPM`];
@@ -188,9 +220,25 @@ export function ExportDialog(props: {
         <ModalHeader title={L("Експорт треку", "Export track")} onClose={close} closeLabel={L("Закрити", "Close")} />
 
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
-        <p className="track-edit-label text-xs">{L("Трек буде збережено з поточними налаштуваннями. Змінити їх можна нижче.", "The track is saved with the current settings. You can change them below.")}</p>
+        <p className="track-edit-label text-xs">{L("Тут ви зберігаєте трек як звичайний аудіофайл. Спочатку він налаштований так, як звучить у плеєрі зараз; натисніть «Змінити» біля потрібного рядка, якщо хочете інакше.", "Here you save the track as an ordinary audio file. It starts out set up the way it sounds in the player now; press “Change” next to a line if you want it different.")}</p>
 
-        <Section id="export-sec-tempo" lang={lang} disabled={running} open={openSec === "tempo"} onToggle={() => toggle("tempo")}
+        <div className="flex items-start justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-3" id="export-result" role="status" aria-live="polite">
+          <div className="flex min-w-0 items-start gap-2">
+            <FileAudio aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
+            <div className="min-w-0">
+              <div className="text-xs font-bold uppercase tracking-wide track-edit-label">{L("Буде створено", "You will get")}</div>
+              <div className="text-sm font-semibold break-words">{noParts ? L("Нічого: позначте хоча б одну партію", "Nothing: tick at least one part") : resultLine}</div>
+            </div>
+          </div>
+          {anyChanged && !running && (
+            <button type="button" id="btn-export-reset" className={btn.compact} onClick={resetAll} title={L("Повернути налаштування плеєра", "Back to the player's settings")}>
+              <RotateCcw className="h-4 w-4" />{L("Як у плеєрі", "As in player")}
+            </button>
+          )}
+        </div>
+
+        <Section id="export-sec-tempo" lang={lang} disabled={running} open={openSec === "tempo"} onToggle={() => toggle("tempo")} changed={tempoChanged}
+          hint={L("Файл буде швидшим або повільнішим за оригінал. Для вправи зручно зменшити темп.", "The file will be faster or slower than the original. Lowering the tempo is handy for practice.")}
           title={L("Темп", "Tempo")} summary={tempoSummary}>
           <div className="flex flex-wrap items-center gap-2">
             <NumberStepper id="export-bpm" value={bpm} min={originalBpm > 0 ? Math.max(20, Math.round(originalBpm * 25) / 100) : 20} max={originalBpm > 0 ? Math.round(originalBpm * 200) / 100 : 400} step={1} decimals={1} suffix="BPM"
@@ -200,7 +248,8 @@ export function ExportDialog(props: {
           </div>
         </Section>
 
-        <Section id="export-sec-metronome" lang={lang} disabled={running} open={openSec === "metronome"} onToggle={() => toggle("metronome")}
+        <Section id="export-sec-metronome" lang={lang} disabled={running} open={openSec === "metronome"} onToggle={() => toggle("metronome")} changed={clickChanged}
+          hint={L("Метроном записується просто у файл, щоб він звучав і в звичайному плеєрі.", "The metronome is recorded into the file, so it also sounds in an ordinary player.")}
           title={L("Метроном", "Metronome")} summary={clickSummary}>
           <label className={row}><input type="checkbox" className={chk} checked={withClick} disabled={running} onChange={(e) => setWithClick(e.target.checked)} /><span className="text-sm">{L("Додати звук метронома", "Add the metronome sound")}</span></label>
           {withClick && (
@@ -219,7 +268,8 @@ export function ExportDialog(props: {
         </Section>
 
         {hasStems ? (
-          <Section id="export-sec-parts" lang={lang} disabled={running} open={openSec === "parts"} onToggle={() => toggle("parts")}
+          <Section id="export-sec-parts" lang={lang} disabled={running} open={openSec === "parts"} onToggle={() => toggle("parts")} changed={partsChanged}
+            hint={L("Позначте партії, які мають бути у файлі. Зніміть позначку з тієї, яку хочете зіграти самі.", "Tick the parts that should be in the file. Untick the one you want to play yourself.")}
             title={L("Партії", "Parts")} summary={partsSummary}>
             <div className="flex flex-wrap gap-x-4 gap-y-1.5">
               {stemNames.map((n, i) => (
@@ -260,8 +310,9 @@ export function ExportDialog(props: {
           </div>
         )}
 
-        <Section id="export-sec-range" lang={lang} disabled={running || loops.length === 0} open={openSec === "range"} onToggle={() => toggle("range")}
-          title={L("Цикл", "Loop")} summary={loops.length === 0 ? `${rangeSummary} (${L("циклів немає", "no loops")})` : rangeSummary}>
+        <Section id="export-sec-range" lang={lang} disabled={running || loops.length === 0} open={openSec === "range"} onToggle={() => toggle("range")} changed={rangeChanged}
+          hint={L("Можна зберегти весь трек або тільки один із ваших циклів.", "You can save the whole track or only one of your loops.")}
+          title={L("Цикл", "Loop")} summary={loops.length === 0 ? `${rangeSummary}. ${L("Щоб зберегти лише фрагмент, створіть цикл на хвилі.", "To save only a part, create a loop on the waveform.")}` : rangeSummary}>
           <div className="space-y-1.5" role="radiogroup" aria-label={L("Що експортувати", "What to export")}>
             <label className={row}><input type="radio" name="export-range" className={chk} checked={range < 0} disabled={running} onChange={() => setRange(-1)} /><span className="text-sm">{L("Весь трек", "The whole track")}</span></label>
             {loops.map((s, i) => (
@@ -274,7 +325,7 @@ export function ExportDialog(props: {
         {running && (
           <div className="space-y-1.5">
             <div className="h-3 rounded-full overflow-hidden track-edit-cover"><div className="h-full bg-accent transition-all" style={{ width: `${pct}%` }} /></div>
-            <div className="track-edit-label text-xs">{L("Експорт", "Exporting")}: {pct}%</div>
+            <div className="track-edit-label text-xs">{L("Зберігаємо", "Saving")}: {pct}%. {L("Не закривайте вікно, поки файл не буде готовий.", "Keep this window open until the file is ready.")}</div>
           </div>
         )}
         {(err || st?.state === 3) && <p className="text-sm text-rose-500 break-words">{err || st?.error}</p>}
