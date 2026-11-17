@@ -44,7 +44,7 @@ interface PlaylistPanelProps {
 const NowMark: React.FC<{ playing: boolean; lang: Language }> = ({ playing, lang }) => {
   const label = playing ? (lang === 'en' ? 'Playing' : 'Грає') : (lang === 'en' ? 'Paused' : 'Пауза');
   const Icon = playing ? Play : Pause;
-  return <span role="img" aria-label={label} title={label} className="flex h-4 w-4 shrink-0 items-center justify-center text-accent-text"><Icon className="h-3 w-3" fill="currentColor" strokeWidth={0} /></span>;
+  return <span role="img" aria-label={label} title={label} className="flex h-[11px] w-[11px] shrink-0 items-center justify-center text-accent-text"><Icon className="h-[8.5px] w-[8.5px]" fill="currentColor" strokeWidth={0} /></span>;
 };
 
 const formatDuration = (seconds: number): string => {
