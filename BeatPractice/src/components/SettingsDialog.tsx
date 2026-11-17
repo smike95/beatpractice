@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Settings } from "lucide-react";
+import { loadLookupEnabled, saveLookupEnabled } from "../utils/trackLookup";
 import type { Language } from "../i18n";
 import type { ThemeMode } from "../types";
 import { Modal, ModalHeader } from "./ui/Modal";
@@ -28,6 +30,7 @@ export function SettingsDialog(props: {
   const { lang, isDark, themeMode, onTheme, accent, onAccent, onLang, onClose } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const label = "text-sm font-semibold text-ink";
+  const [lookup, setLookup] = useState(loadLookupEnabled);
 
   return (
     <Modal id="settings-dialog" width="md" onClose={onClose}>
@@ -63,6 +66,15 @@ export function SettingsDialog(props: {
           <span>{L("Різні кольори для світлої і темної теми", "Different colours for the light and dark theme")}</span>
           <Switch checked={accent.separate} onChange={(v) => onAccent(v ? { ...accent, separate: true, light: accent.both, dark: accent.both } : { ...accent, separate: false })} />
         </label>
+      </div>
+
+      <div className="space-y-2">
+        <div className={label}>{L("Дані треку з інтернету", "Track data from the internet")}</div>
+        <label className="flex items-center justify-between gap-3 text-sm text-ink-2 cursor-pointer">
+          <span>{L("Розпізнавати виконавця, назву й обкладинку за назвою файлу", "Recognise the artist, title and cover from the file name")}</span>
+          <Switch checked={lookup} onChange={(v) => { setLookup(v); saveLookupEnabled(v); }} />
+        </label>
+        <p className="text-xs text-ink-3">{L("Працює, коли ви натискаєте олівець біля назви. В інтернет іде лише очищена назва пісні та виконавець (MusicBrainz, Cover Art Archive), сам файл ніколи.", "Works when you press the pencil next to the title. Only the cleaned song name and artist go to the internet (MusicBrainz, Cover Art Archive), never the file itself.")}</p>
       </div>
 
       <div className="space-y-2">

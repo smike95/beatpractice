@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { ImagePlus, Trash2 } from "lucide-react";
 import { Modal, ModalHeader } from "./ui/Modal";
 import { btn as btnStyle } from "./ui/styles";
+import { lookupTrack } from "../utils/trackLookup";
 
 type Lang = "uk" | "en";
 
@@ -57,6 +58,21 @@ export function TrackEditDialog(props: {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
+  // Opening the dialog (the pencil) quietly tries to recognise the artist, the title and the cover from the file name. Nothing is shown if it fails.
+  // It fills only what is still empty or default, and stops as soon as the person has typed or chosen something themselves.
+  const touched = useRef(false);
+  useEffect(() => {
+    const needsText = !initial.artist.trim();
+    if (!needsText && initial.cover) return;
+    const ac = new AbortController();
+    void lookupTrack(fileName, ac.signal).then((r) => {
+      if (!r || ac.signal.aborted || touched.current) return;
+      if (needsText) { setArtist(r.artist); setTitle(r.title); }
+      if (!initial.cover && r.cover) setCover(r.cover);
+    });
+    return () => ac.abort();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   const save = () => {
     const t = title.trim();
     // untouched default name with no artist: keep falling back to the file name
@@ -65,7 +81,7 @@ export function TrackEditDialog(props: {
 
   const pick = async (f: File | undefined) => {
     if (!f) return;
-    try { setCover(await fileToCover(f)); setErr(""); } catch { setErr(L("Не вдалося прочитати зображення.", "Could not read the image.")); }
+    try { touched.current = true; setCover(await fileToCover(f)); setErr(""); } catch { setErr(L("Не вдалося прочитати зображення.", "Could not read the image.")); }
   };
 
   const field = "track-edit-field w-full px-3 py-2 rounded-lg border text-base focus:outline-none focus:ring-2";
@@ -87,11 +103,11 @@ export function TrackEditDialog(props: {
           <div className="space-y-3 min-w-0">
             <label className="block space-y-1">
               <span className="track-edit-label text-xs font-semibold">{L("Виконавець", "Artist")}</span>
-              <input id="edit-artist" type="text" className={field} value={artist} onChange={(e) => setArtist(e.target.value)} autoFocus />
+              <input id="edit-artist" type="text" className={field} value={artist} onChange={(e) => { touched.current = true; setArtist(e.target.value); }} autoFocus />
             </label>
             <label className="block space-y-1">
               <span className="track-edit-label text-xs font-semibold">{L("Назва пісні", "Song title")}</span>
-              <input id="edit-title" type="text" className={field} value={title} onChange={(e) => setTitle(e.target.value)} />
+              <input id="edit-title" type="text" className={field} value={title} onChange={(e) => { touched.current = true; setTitle(e.target.value); }} />
             </label>
             <p className="track-edit-label text-xs truncate" title={fileName}>{L("Файл", "File")}: {fileName}</p>
           </div>

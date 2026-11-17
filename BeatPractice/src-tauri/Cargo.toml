@@ -1,6 +1,6 @@
 [package]
 name = "beatpractice"
-version = "1.5.9"
+version = "1.5.10"
 description = "BeatPractice"
 edition = "2021"
 

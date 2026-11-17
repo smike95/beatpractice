@@ -61,6 +61,10 @@ serde, serde_json (Rust) — MIT License or Apache License 2.0. Copyright (c) Er
 Other Rust and JavaScript packages that are built into the application: see licenses-rust.txt and licenses-npm.txt.
 
 
+Online services (optional, can be switched off in Settings; the cleaned artist and title of a song are sent, never the audio file):
+MusicBrainz web service (musicbrainz.org) — the core data is released into the public domain (CC0) by the MetaBrainz Foundation. Use of the live web service is subject to the MetaBrainz terms; see musicbrainz.org/doc/MusicBrainz_API.
+Cover Art Archive (coverartarchive.org) — a service of the Internet Archive and MetaBrainz; each cover image remains the property of its rights holder.
+
 LICENSE TEXTS
 -------------
 MIT License
