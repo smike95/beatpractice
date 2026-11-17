@@ -228,13 +228,15 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         <div className="shrink-0 pb-2 text-center text-[11px] font-black leading-[1.05] tracking-tight text-ink pointer-events-none select-none" data-tauri-drag-region aria-label="BeatPractice">
           beat<br />Practice
         </div>
-        <div className="flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center gap-2 py-1">
+        {/* the list is as wide as the whole strip (the strip's own padding is taken back), so the mark to the left of a cover is not cut off by the scrolling */}
+        <div className="-mx-3 flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto py-1" style={{ width: 'calc(100% + 1.5rem)' }}>
           {base.map((item) => {
             const isActive = item.id === activeTrackId;
             return (
               <button key={item.id} type="button" onClick={() => onSelectTrack(item)} title={displayName(item)} aria-label={displayName(item)} className="relative shrink-0 rounded-lg cursor-pointer">
                 {coverOf(item, isActive, 'w-10 h-10')}
-                {isActive && <span className="absolute -bottom-1 -right-1 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-surface border border-outline"><NowMark playing={isPlaying} lang={lang} /></span>}
+                {/* the same place as in the open playlist: to the left of the cover, the play triangle points at it */}
+                {isActive && <span className="absolute right-full top-1/2 mr-[3px] -translate-y-1/2"><NowMark playing={isPlaying} lang={lang} /></span>}
               </button>
             );
           })}
