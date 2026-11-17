@@ -1,8 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { PlaylistItem, PlaylistTag } from '../types';
-import { ChevronRight, Pin, PinOff, Package, Plus, Search, Trash2, Music, GripVertical, Tag, X } from 'lucide-react';
-import { BeatPracticeLogo } from './BeatPracticeLogo';
+import { ChevronRight, Pause, Pin, PinOff, Plus, Search, Trash2, Music, Play, Tag, X } from 'lucide-react';
 import { CoverPlaceholder } from './CoverPlaceholder';
 import { Language, translations } from '../i18n';
 import { displayName } from '../player/usePlayer';
@@ -40,6 +39,13 @@ interface PlaylistPanelProps {
   onReorderInTag?: (from: number, to: number) => void;
   /** save the playlist or a tag as one library file (desktop) */
 }
+
+/** The small mark of the current track: play while it sounds, pause while it is paused. */
+const NowMark: React.FC<{ playing: boolean; lang: Language }> = ({ playing, lang }) => {
+  const label = playing ? (lang === 'en' ? 'Playing' : 'Грає') : (lang === 'en' ? 'Paused' : 'Пауза');
+  const Icon = playing ? Play : Pause;
+  return <span role="img" aria-label={label} title={label} className="flex h-4 w-4 shrink-0 items-center justify-center text-accent-text"><Icon className="h-3 w-3" fill="currentColor" strokeWidth={0} /></span>;
+};
 
 const formatDuration = (seconds: number): string => {
   if (isNaN(seconds) || seconds <= 0) return '0:00';
@@ -95,6 +101,9 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [drag, setDrag] = useState<{ id: string; from: number; ins: number } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PlaylistItem | null>(null);
+  // the "Змінити" mode: only in it the tiles show the drag handles, the tag and the delete buttons
+  const [manage, setManage] = useState(false);
+  useEffect(() => { if (playlist.length === 0) setManage(false); }, [playlist.length]);
 
   // the list that is shown: the whole playlist, or the tracks of the chosen tag in the order they have inside that tag
   const inTagView = !!tagView && !!viewList && !!onReorderInTag;
@@ -164,7 +173,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
     return (
       <div id="playlist-panel" className="flex h-full w-full flex-col items-center">
         <div className="mac-top-space" data-tauri-drag-region />
-        <div className="shrink-0 pb-3 -mt-2 pointer-events-none" data-tauri-drag-region><BeatPracticeLogo className="w-9 h-9" /></div>
+        <div className="shrink-0 h-2" data-tauri-drag-region />
         <div className="flex-1 min-h-0 w-full overflow-y-auto flex flex-col items-center gap-2 py-1">
           {base.map((item) => (
             <button key={item.id} type="button" onClick={() => onSelectTrack(item)} title={displayName(item)} aria-label={displayName(item)} className="shrink-0 rounded-lg cursor-pointer">
@@ -191,8 +200,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       {/* Emblem and name (left), the pin (right) */}
       <div className="mac-top-space" data-tauri-drag-region />
       <div className="flex items-center gap-2 shrink-0 -mt-2" data-tauri-drag-region>
-        <BeatPracticeLogo className="w-9 h-9 shrink-0 pointer-events-none" />
-        <span className="flex-1 min-w-0 truncate text-left text-2xl font-black tracking-tight pointer-events-none text-ink">BeatPractice</span>
+        <span className="flex-1 min-w-0 truncate text-left text-2xl font-black tracking-tight pointer-events-none text-ink">beatPractice</span>
         {onTogglePin && (
           <button
             type="button"
@@ -241,20 +249,29 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         </button>
       </form>
 
-      {hasTags && (playlist.length > 0 || allTags.length > 0) && (
+      {((hasTags && (playlist.length > 0 || allTags.length > 0)) || playlist.length > 0) && (
         <div className="mt-2 flex shrink-0 flex-wrap items-center gap-1.5" role="group" aria-label={lang === 'en' ? 'Filter by tags' : 'Фільтр за тегами'}>
-          {allTags.map((tg) => (
+          {hasTags && allTags.map((tg) => (
             <button key={tg.id} type="button" aria-pressed={tagView === tg.id}
               onClick={() => onTagView?.(tagView === tg.id ? null : tg.id)}
               className={`${btn.chip(tagView === tg.id)} rounded-full !min-h-7 sm:!min-h-7 px-2.5`}>
               {tg.name}
             </button>
           ))}
-          <button type="button" id="btn-manage-tags" onClick={() => setManageTags(true)}
-            title={lang === 'en' ? 'Manage tags' : 'Керувати тегами'} aria-label={lang === 'en' ? 'Manage tags' : 'Керувати тегами'}
-            className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-ink-3 hover:bg-control hover:text-ink cursor-pointer">
-            <Tag className="icon-sm" />{lang === 'en' ? 'Tags' : 'Теги'}
-          </button>
+          {hasTags && (
+            <button type="button" id="btn-manage-tags" onClick={() => setManageTags(true)}
+              title={lang === 'en' ? 'Manage tags' : 'Керувати тегами'} aria-label={lang === 'en' ? 'Manage tags' : 'Керувати тегами'}
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2 text-xs font-semibold text-ink-3 hover:bg-control hover:text-ink cursor-pointer">
+              <Tag className="icon-sm" />{lang === 'en' ? 'Tags' : 'Теги'}
+            </button>
+          )}
+          {playlist.length > 0 && (
+            <button type="button" id="btn-edit-playlist" aria-pressed={manage} onClick={() => setManage((v) => !v)}
+              title={lang === 'en' ? 'Reorder tracks, tag and delete them' : 'Змінити порядок, теги, видалити треки'}
+              className={`ml-auto inline-flex h-7 items-center rounded-full px-3 text-xs font-semibold cursor-pointer transition-colors ${manage ? 'bg-accent text-accent-on hover:bg-accent-hover' : 'text-ink-3 hover:bg-control hover:text-ink'}`}>
+              {manage ? (lang === 'en' ? 'Done' : 'Готово') : (lang === 'en' ? 'Edit' : 'Змінити')}
+            </button>
+          )}
         </div>
       )}
 
@@ -307,21 +324,28 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                     : 'bg-canvas/60 hover:bg-control/60 border-line hover:border-outline text-ink-2'
                 }`}
               >
-                <div className="flex items-center gap-1 min-w-0 flex-1">
-                  {/* Grip handle: drag to move the track (not while the list is filtered) */}
-                  {!filtered && <button
-                    type="button"
-                    className="p-2.5 sm:p-1.5 -ml-2.5 sm:-ml-1.5 text-ink-3 cursor-grab active:cursor-grabbing touch-none shrink-0 rounded-lg transition-colors duration-150 hover:text-ink-2"
-                    title={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
-                    aria-label={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
-                    onClick={(e) => e.stopPropagation()}
-                    onPointerDown={(e) => onGripDown(e, item.id, index)}
-                    onPointerMove={onGripMove}
-                    onPointerUp={onGripUp}
-                    onPointerCancel={() => setDrag(null)}
-                  >
-                    <GripVertical className="w-6 h-6" />
-                  </button>}
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  {/* The gutter on the left is reserved in every tile, so nothing moves when the mode changes. It holds the three-dot drag handle
+                      (in the Edit mode) whose middle dot is the play / pause mark of the current track; outside the Edit mode, only the mark. */}
+                  <div className="w-5 shrink-0 self-stretch flex items-center justify-center">
+                    {manage && !filtered ? (
+                      <button
+                        type="button"
+                        className="-mx-1.5 px-1.5 py-2 flex flex-col items-center gap-[3px] cursor-grab active:cursor-grabbing touch-none rounded-md text-ink-3 hover:text-ink-2 transition-colors duration-150"
+                        title={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
+                        aria-label={lang === 'en' ? 'Drag to change the order' : 'Перетягніть, щоб змінити порядок'}
+                        onClick={(e) => e.stopPropagation()}
+                        onPointerDown={(e) => onGripDown(e, item.id, index)}
+                        onPointerMove={onGripMove}
+                        onPointerUp={onGripUp}
+                        onPointerCancel={() => setDrag(null)}
+                      >
+                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                        {isActive ? <NowMark playing={isPlaying} lang={lang} /> : <span className="block h-[5px] w-[5px] rounded-full bg-current" />}
+                        <span className="block h-[5px] w-[5px] rounded-full bg-current" />
+                      </button>
+                    ) : isActive ? <NowMark playing={isPlaying} lang={lang} /> : null}
+                  </div>
                   {/* Play or active animated icon */}
                   {item.cover ? (
                     <img src={item.cover} alt="" className={`w-10 h-10 rounded-md object-cover shrink-0 ${isActive ? 'ring-2 ring-accent' : ''}`} />
@@ -361,7 +385,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                   </div>
                 </div>
 
-                {hasTags && (
+                {manage && hasTags && (
                   <button
                     type="button"
                     id={`btn-track-tags-${item.id}`}
@@ -374,16 +398,19 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                   </button>
                 )}
 
-                {/* Delete button */}
-                <button
-                  type="button"
-                  id={`btn-remove-track-${item.id}`}
-                  onClick={(e) => { e.stopPropagation(); setPendingDelete(item); }}
-                  className="p-2.5 sm:p-1.5 rounded-lg transition-colors shrink-0 cursor-pointer text-ink-4 hover:text-rose-400 hover:bg-rose-950/30"
-                  title={t('deleteTrack')}
-                >
-                  <Trash2 className="w-6 h-6" />
-                </button>
+                {/* Delete button (Edit mode only; it takes its place in the tile) */}
+                {manage && (
+                  <button
+                    type="button"
+                    id={`btn-remove-track-${item.id}`}
+                    onClick={(e) => { e.stopPropagation(); setPendingDelete(item); }}
+                    className="p-2.5 sm:p-1.5 rounded-lg transition-colors shrink-0 cursor-pointer text-ink-4 hover:text-rose-400 hover:bg-rose-950/30"
+                    title={t('deleteTrack')}
+                    aria-label={t('deleteTrack')}
+                  >
+                    <Trash2 className="w-6 h-6" />
+                  </button>
+                )}
               </div>
               {showLineAfter && <div className="h-1 rounded-full bg-accent -my-1" />}
               </React.Fragment>
