@@ -51,10 +51,10 @@ html.dark {
   --c-ink-4: 142 142 147;
   /* ACCENT: the only place where the accent exists (rgb triplets, so alpha works). The theme gives the default pair;
      the interface (utils/accent.ts) can replace these four with one Apple system colour for both themes. */
-  --accent: 191 90 242;
-  --accent-hover: 175 82 222;
-  --accent-text: 220 160 249;
-  --accent-on: 255 255 255;
+  --accent: 211 139 252;          /* the default (violet), corrected to pass scripts/accent-audit.py */
+  --accent-hover: 220 163 254;
+  --accent-text: 211 139 252;
+  --accent-on: 29 29 31;
   --color-play: #30d158;
   --color-play-hover: #28b84c;
   --color-pause: #fbbf24;
@@ -79,9 +79,9 @@ html.light {
   --c-ink-2: 44 44 46;
   --c-ink-3: 110 110 115;
   --c-ink-4: 142 142 147;
-  --accent: 0 122 255;
-  --accent-hover: 0 98 204;
-  --accent-text: 0 122 255;
+  --accent: 10 94 195;            /* the default (blue), corrected to pass scripts/accent-audit.py */
+  --accent-hover: 7 81 169;
+  --accent-text: 10 94 195;
   --accent-on: 255 255 255;
   --color-play: #248a3d;
   --color-play-hover: #1d7233;

@@ -29,7 +29,7 @@ export function AccentPicker(props: { lang: "uk" | "en"; isDark: boolean; value:
 
   const cur = ACCENT_COLORS.find((c) => c.id === value);
   const dot = (hex: string | null) => (
-    <span aria-hidden className="inline-block h-4 w-4 shrink-0 rounded-full border border-black/20" style={{ background: hex ?? "linear-gradient(135deg,#bf5af2 50%,#007aff 50%)" }} />
+    <span aria-hidden className="inline-block h-4 w-4 shrink-0 rounded-full border border-black/20" style={{ background: hex ?? "linear-gradient(135deg,#d38bfc 50%,#0a5ec3 50%)" }} />
   );
   const item = "flex w-full items-center gap-2 rounded-md px-2.5 py-1.5 text-left text-sm cursor-pointer text-ink hover:bg-control-hover";
   const name = cur ? (lang === "en" ? cur.en : cur.uk) : L("Стандартний", "Default");

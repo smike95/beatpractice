@@ -30,7 +30,7 @@ export function BetaBadge({ onFill = false, lang = "uk" }: { onFill?: boolean; l
   return (
     <span
       title={lang === "en" ? "Beta: this feature is not perfect yet" : "Beta: ця функція ще не досконала"}
-      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-xs font-bold uppercase leading-4 tracking-wide ${onFill ? "bg-white/25 text-white" : "bg-accent/15 text-accent-text"}`}
+      className={`inline-flex shrink-0 items-center rounded-full px-1.5 py-px text-xs font-bold uppercase leading-4 tracking-wide ${onFill ? "bg-accent-on/20 text-accent-on" : "bg-accent/15 text-accent-text"}`}
     >
       Beta
     </span>
