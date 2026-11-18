@@ -5,7 +5,7 @@ import { core, type ExportStatus } from "../core";
 import { LoopSlot, barsText, loopLabel } from "../types";
 import { NAMES } from "./StemsPanel";
 import { NumberStepper } from "./NumberStepper";
-import { Modal, ModalHeader } from "./ui/Modal";
+import { ExportShell } from "./ui/ExportShell";
 import { btn } from "./ui/styles";
 import { Segmented } from "./ui/Segmented";
 
@@ -57,8 +57,9 @@ export function ExportDialog(props: {
   loops: LoopSlot[];     // the saved loops
   activeLoop: number | null;
   onClose: () => void;
+  onBack?: () => void;   // back to the first step (the choice of what to export)
 }) {
-  const { lang, displayName, originalBpm, currentBpm, stemNames, stemMuted, stemGains, metronomeOn, accentOn, quiet, countInBars, loops, activeLoop, onClose } = props;
+  const { lang, displayName, originalBpm, currentBpm, stemNames, stemMuted, stemGains, metronomeOn, accentOn, quiet, countInBars, loops, activeLoop, onClose, onBack } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
 
   // everything starts as it is in the player right now
@@ -204,21 +205,25 @@ export function ExportDialog(props: {
 
   if (done) {
     return (
-      <Modal id="export-dialog" width="lg" onClose={onClose}>
-          <p className="text-base font-bold text-emerald-600">{L("Трек успішно експортовано", "The track was exported successfully")}</p>
-          {canShareSaved && <button id="btn-export-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.wav$/i, ""))}>{L("Зберегти або надіслати", "Save or send")}</button>}
-          <p className="text-sm break-all">{fileCount > 1 ? L(`Збережено файлів: ${fileCount}. Назви починаються з:`, `Files saved: ${fileCount}. Names start with:`) : L("Файл збережено", "Saved to")}: {fileCount > 1 ? outPath.replace(/\.wav$/i, "") + " - …" : outPath}</p>
-          <div className="flex justify-end">
-            <button id="btn-export-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>
-          </div>
-      </Modal>
+      <ExportShell id="export-dialog" title={L("Експорт треку", "Export track")} onClose={onClose} closeLabel={L("Закрити", "Close")}
+        footer={<button id="btn-export-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>}>
+        <p className="text-base font-bold text-emerald-600">{L("Трек успішно експортовано", "The track was exported successfully")}</p>
+        {canShareSaved && <button id="btn-export-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.wav$/i, ""))}>{L("Зберегти або надіслати", "Save or send")}</button>}
+        <p className="text-sm break-all">{fileCount > 1 ? L(`Збережено файлів: ${fileCount}. Назви починаються з:`, `Files saved: ${fileCount}. Names start with:`) : L("Файл збережено", "Saved to")}: {fileCount > 1 ? outPath.replace(/\.wav$/i, "") + " - …" : outPath}</p>
+      </ExportShell>
     );
   }
 
   return (
-    <Modal id="export-dialog" width="lg" onClose={close} closeOnEscape={false}>
-        <ModalHeader title={L("Експорт треку", "Export track")} onClose={close} closeLabel={L("Закрити", "Close")} />
-
+    <ExportShell id="export-dialog" title={L("Експорт треку", "Export track")} onClose={close} closeLabel={L("Закрити", "Close")} closeOnEscape={false}
+      onBack={running ? undefined : onBack} backLabel={L("Назад", "Back")}
+      footer={running ? (
+        <button className={btn.neutral} onClick={cancel}>{L("Скасувати експорт", "Cancel export")}</button>
+      ) : (
+        <button id="btn-export-start" disabled={noParts || running} className={btn.primary} onClick={begin}>
+          <Download className="icon-sm" />{separate && hasStems ? L("Зберегти файли WAV…", "Save WAV files…") : L("Зберегти як WAV…", "Save as WAV…")}
+        </button>
+      )}>
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
         <p className="track-edit-label text-xs">{L("Трек збережеться таким, яким він звучить зараз. Щоб щось змінити, натисніть «Змінити» біля потрібного рядка.", "The track will be saved as it sounds now. To change something, press “Change” next to the line.")}</p>
 
@@ -329,19 +334,6 @@ export function ExportDialog(props: {
           </div>
         )}
         {(err || st?.state === 3) && <p className="text-sm text-rose-500 break-words">{err || st?.error}</p>}
-
-        <div className="flex justify-end gap-2 pt-1">
-          {running ? (
-            <button className={btn.neutral} onClick={cancel}>{L("Скасувати експорт", "Cancel export")}</button>
-          ) : (
-            <>
-              <button className={btn.neutral} onClick={close}>{L("Закрити", "Close")}</button>
-              <button id="btn-export-start" disabled={noParts || running} className={btn.primary} onClick={begin}>
-                <Download className="w-6 h-6" />{separate && hasStems ? L("Зберегти файли WAV…", "Save WAV files…") : L("Зберегти як WAV…", "Save as WAV…")}
-              </button>
-            </>
-          )}
-        </div>
-    </Modal>
+    </ExportShell>
   );
 }

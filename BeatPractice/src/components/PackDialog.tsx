@@ -5,7 +5,7 @@ import { core, type ExportStatus } from "../core";
 import { LoopSlot } from "../types";
 import { NAMES } from "./StemsPanel";
 import { getOwnerId } from "../utils/license";
-import { Modal, ModalHeader } from "./ui/Modal";
+import { ExportShell } from "./ui/ExportShell";
 import { btn } from "./ui/styles";
 
 type Lang = "uk" | "en";
@@ -26,8 +26,9 @@ export function PackDialog(props: {
   stemNames: string[];    // empty when the song has not been separated
   loops: LoopSlot[];
   onClose: () => void;
+  onBack?: () => void;   // back to the first step (the choice of what to export)
 }) {
-  const { lang, displayName, title, artist, duration, stemNames, loops, onClose } = props;
+  const { lang, displayName, title, artist, duration, stemNames, loops, onClose, onBack } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const nm = (n: string) => (NAMES[n] ?? [n, n])[lang === "en" ? 1 : 0];
   const hasStems = stemNames.length > 0;
@@ -108,23 +109,30 @@ export function PackDialog(props: {
 
   if (done) {
     return (
-      <Modal id="pack-dialog" width="lg" onClose={onClose}>
+      <ExportShell id="pack-dialog" title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Пакет beatPractice", "beatPractice pack")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")}
+        footer={<button id="btn-pack-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>}>
           <p className="text-base font-bold text-emerald-600">{L("Пакет збережено", "The pack was saved")}</p>
           <p className="text-sm break-all">{outPath}</p>
           {canShareSaved && <button id="btn-pack-share" className={btn.success} onClick={() => void shareSaved(outPath.replace(/\.beatpack$/i, ""))}>{L("Зберегти або надіслати", "Save or send")}</button>}
           <p className="track-edit-label text-xs">{L("Скопіюйте цей файл на інший ваш пристрій і відкрийте його в програмі: аналіз і розділення там не потрібні.", "Copy this file to your other device and open it in the program: no analysis or separation is needed there.")}</p>
-          <div className="flex justify-end"><button id="btn-pack-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button></div>
-      </Modal>
+      </ExportShell>
     );
   }
 
   return (
-    <Modal id="pack-dialog" width="lg" onClose={close} closeOnEscape={false}>
-        <ModalHeader title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Зберегти пакет", "Save as a pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} />
+    <ExportShell id="pack-dialog" title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Пакет beatPractice", "beatPractice pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} closeOnEscape={false}
+      onBack={running ? undefined : onBack} backLabel={L("Назад", "Back")}
+      footer={running
+        ? <button className={btn.neutral} onClick={cancel}>{L("Скасувати", "Cancel")}</button>
+        : (
+          <button id="btn-pack-start" disabled={bad} className={btn.primary} onClick={begin}>
+            <Package className="icon-sm" />{L("Зберегти пакет…", "Save the pack…")}
+          </button>
+        )}>
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
         <p className="track-edit-label text-xs">{L(
-          "Пакет – це трек разом із розпізнаним ритмом і партіями. Відкрийте його на іншому пристрої, і нічого не доведеться аналізувати чи розділяти. Пакети призначені для ваших власних пристроїв.",
-          "A pack is the track together with its analysed rhythm and its parts. Open it on another device and nothing has to be analysed or separated. Packs are meant for your own devices.")}</p>
+          "Пакет – це трек разом із розпізнаним ритмом і партіями. Відкрийте його в beatPractice на іншому пристрої, і нічого не доведеться аналізувати чи розділяти.",
+          "A pack is the track together with its analysed rhythm and parts. Open it in beatPractice on another device and nothing has to be analysed or separated.")}</p>
 
         <div className="space-y-1.5" role="radiogroup" aria-label={L("Партії в пакеті", "Parts in the pack")}>
           <div className="text-xs font-bold uppercase tracking-wide track-edit-label">{L("Партії", "Parts")}</div>
@@ -175,17 +183,6 @@ export function PackDialog(props: {
           </div>
         )}
         {(st?.state === 3 || err) && <p role="alert" className="text-sm text-rose-600 break-words">{err || st?.error}</p>}
-
-        <div className="flex justify-end gap-2">
-          {running
-            ? <button className={btn.neutral} onClick={cancel}>{L("Скасувати", "Cancel")}</button>
-            : (<>
-                <button className={btn.neutral} onClick={close}>{L("Закрити", "Close")}</button>
-                <button id="btn-pack-start" disabled={bad} className={btn.primary} onClick={begin}>
-                  <Package className="w-4 h-4" />{L("Зберегти пакет…", "Save the pack…")}
-                </button>
-              </>)}
-        </div>
-    </Modal>
+    </ExportShell>
   );
 }

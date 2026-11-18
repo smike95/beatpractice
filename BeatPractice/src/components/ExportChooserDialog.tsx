@@ -1,6 +1,6 @@
 import { ListMusic, Music, Package, Tag } from "lucide-react";
 import type { ReactNode } from "react";
-import { Modal, ModalHeader } from "./ui/Modal";
+import { ExportShell } from "./ui/ExportShell";
 import { btn } from "./ui/styles";
 
 type Lang = "uk" | "en";
@@ -30,12 +30,12 @@ export function ExportChooserDialog(props: {
       type="button"
       disabled={disabled}
       onClick={() => onChoose(c)}
-      className="flex w-full items-start gap-3 rounded-xl border border-line px-3 py-2.5 text-left transition-colors duration-150 hover:bg-control disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent cursor-pointer"
+      className="flex h-[5.5rem] w-full items-center gap-3 rounded-xl border border-line px-3 text-left transition-colors duration-150 hover:bg-control disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-transparent cursor-pointer"
     >
-      <span className="mt-0.5 shrink-0 text-accent-text">{icon}</span>
+      <span className="shrink-0 text-accent-text">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block text-sm font-bold text-ink">{title}</span>
-        <span className="block text-xs text-ink-3">{disabled && why ? why : hint}</span>
+        <span className="line-clamp-2 block text-xs text-ink-3">{disabled && why ? why : hint}</span>
       </span>
     </button>
   );
@@ -46,12 +46,11 @@ export function ExportChooserDialog(props: {
   const tag = (t: string) => <span className="rounded-md border border-line px-1.5 py-px font-mono text-[11px] font-semibold text-ink-3">{t}</span>;
 
   return (
-    <Modal id="export-chooser-dialog" width="2xl" onClose={onClose}>
-      <ModalHeader title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Що експортувати?", "What to export?")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")} />
-
+    <ExportShell id="export-chooser-dialog" title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Що експортувати?", "What to export?")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")}
+      footer={<button className={btn.neutral} onClick={onClose}>{L("Скасувати", "Cancel")}</button>}>
       <div className="grid gap-4 sm:grid-cols-2">
-        <section className="space-y-2" aria-labelledby="export-audio-title">
-          <div>
+        <section className="space-y-2.5" aria-labelledby="export-audio-title">
+          <div className="min-h-[4.25rem]">
             <h3 id="export-audio-title" className="flex items-center gap-2 text-sm font-bold text-ink">{L("Аудіофайл", "Audio file")}{tag(".wav")}</h3>
             <p className="text-xs text-ink-3">{L("Щоб слухати пісню в будь-якому плеєрі.", "To listen to the song in any player.")}</p>
           </div>
@@ -63,8 +62,8 @@ export function ExportChooserDialog(props: {
             L("Кожна пісня окремим файлом.", "Each song as its own file."), false)}
         </section>
 
-        <section className="space-y-2" aria-labelledby="export-pack-title">
-          <div>
+        <section className="space-y-2.5" aria-labelledby="export-pack-title">
+          <div className="min-h-[4.25rem]">
             <h3 id="export-pack-title" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-bold text-ink">{L("Пакет beatPractice", "beatPractice pack")}{tag(".beatpack")}{tag(".beatlib")}</h3>
             <p className="text-xs text-ink-3">{L("Щоб відкрити пісні в beatPractice на іншому пристрої. Темп і партії вже розпізнані.", "To open the songs in beatPractice on another device. Tempo and parts are already analysed.")}</p>
           </div>
@@ -77,7 +76,6 @@ export function ExportChooserDialog(props: {
         </section>
       </div>
 
-      <div className="flex justify-end"><button className={btn.neutral} onClick={onClose}>{L("Скасувати", "Cancel")}</button></div>
-    </Modal>
+    </ExportShell>
   );
 }

@@ -5,7 +5,7 @@ import { pickSavePath } from "../platform";
 import { getOwnerId } from "../utils/license";
 import { displayName } from "../player/usePlayer";
 import type { PlaylistItem, PlaylistTag } from "../types";
-import { Modal, ModalHeader } from "./ui/Modal";
+import { ExportShell } from "./ui/ExportShell";
 import { btn } from "./ui/styles";
 import { Segmented } from "./ui/Segmented";
 
@@ -27,8 +27,9 @@ export function LibraryExportDialog(props: {
   activeItem: PlaylistItem | null;                 // opened again when the export is over
   onRestore: (item: PlaylistItem) => void;
   onClose: () => void;
+  onBack?: () => void;   // back to the first step (the choice of what to export)
 }) {
-  const { lang, playlist, tags, listForTag, startTag, activeItem, onRestore, onClose } = props;
+  const { lang, playlist, tags, listForTag, startTag, activeItem, onRestore, onClose, onBack } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [scope, setScope] = useState<string>(startTag ?? "all");
   const [stemsMode, setStemsMode] = useState<"none" | "ready" | "picked" | "all">("none");   // the parts in the library: none / only the already separated ones / for the chosen tracks / for every track
@@ -190,7 +191,8 @@ export function LibraryExportDialog(props: {
 
   if (phase === "done" && result) {
     return (
-      <Modal id="library-export-dialog" width="lg" onClose={onClose}>
+      <ExportShell id="library-export-dialog" title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Пакет beatPractice", "beatPractice pack")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")}
+        footer={<button className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>}>
         <p className="text-base font-bold text-emerald-600">{L("Збірку збережено", "The library was saved")}</p>
         <p className="text-sm">{L(`Треків у збірці: ${result.count}.`, `Tracks in the library: ${result.count}.`)}</p>
         <p className="break-all text-sm">{result.path}</p>
@@ -198,14 +200,18 @@ export function LibraryExportDialog(props: {
           <p className="text-sm text-accent-text">{L("Не вдалося додати: ", "Could not add: ")}{result.skipped.join(", ")}</p>
         )}
         <p className="text-xs text-ink-3">{L("Скопіюйте цей файл на інший пристрій і відкрийте його в програмі (або перетягніть у вікно): усі треки з’являться в плейлісті з тегами та порядком, а розпізнавати нічого не треба.", "Copy this file to another device and open it in the app (or drop it on the window): all the tracks appear in the playlist with their tags and order, and nothing has to be analysed.")}</p>
-        <div className="flex justify-end"><button className={btn.cta} onClick={onClose}>{L("Закрити", "Close")}</button></div>
-      </Modal>
+      </ExportShell>
     );
   }
 
   return (
-    <Modal id="library-export-dialog" width="lg" onClose={close} closeOnEscape={false}>
-      <ModalHeader title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Експорт збірки", "Export a library")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} />
+    <ExportShell id="library-export-dialog" title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Пакет beatPractice", "beatPractice pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} closeOnEscape={false}
+      onBack={running ? undefined : onBack} backLabel={L("Назад", "Back")}
+      footer={running ? (
+        <button className={btn.neutral} onClick={() => { cancelled.current = true; }}>{L("Зупинити", "Stop")}</button>
+      ) : (
+        <button id="btn-library-start" className={btn.primary} disabled={list.length === 0} onClick={() => void begin()}>{L("Зберегти…", "Save…")}</button>
+      )}>
       {!running && (
         <>
           <p className="text-sm text-ink-2">{L("Усі вибрані треки будуть записані в один файл. На іншому пристрої його достатньо відкрити: розпізнавання вже всередині.", "All the chosen tracks are written into one file. On the other device it is enough to open it: the analysis is already inside.")}</p>
@@ -242,10 +248,6 @@ export function LibraryExportDialog(props: {
           </div>
           <p className="text-xs text-ink-3">{L("Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Tracks that have not been analysed are analysed now, which can take a while.")}{stemsMode === "ready" && L(" З партіями файл значно більший.", " The file is much larger with the parts.")}{(stemsMode === "picked" || stemsMode === "all") && L(" З партіями файл значно більший; розділення кожного треку теж триває кілька хвилин.", " The file is much larger with the parts; separating each track also takes a few minutes.")}</p>
           {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
-          <div className="flex justify-end gap-2">
-            <button className={btn.neutral} onClick={onClose}>{L("Скасувати", "Cancel")}</button>
-            <button id="btn-library-start" className={btn.cta} disabled={list.length === 0} onClick={() => void begin()}>{L("Зберегти…", "Save…")}</button>
-          </div>
         </>
       )}
       {running && (
@@ -256,9 +258,8 @@ export function LibraryExportDialog(props: {
           <div className="h-2 overflow-hidden rounded-full bg-control" role="progressbar" aria-valuenow={Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)} aria-valuemin={0} aria-valuemax={100}>
             <div className="h-full rounded-full bg-accent transition-[width] duration-200" style={{ width: `${Math.round(((cur.i - 1 + packPct / 100) / Math.max(1, list.length)) * 100)}%` }} />
           </div>
-          <div className="flex justify-end"><button className={btn.neutral} onClick={() => { cancelled.current = true; }}>{L("Зупинити", "Stop")}</button></div>
         </>
       )}
-    </Modal>
+    </ExportShell>
   );
 }

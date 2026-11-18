@@ -4,7 +4,7 @@ import { BC, core } from "../core";
 import { pickFolder } from "../platform";
 import { displayName } from "../player/usePlayer";
 import type { PlaylistItem, PlaylistTag } from "../types";
-import { Modal, ModalHeader } from "./ui/Modal";
+import { ExportShell } from "./ui/ExportShell";
 import { btn } from "./ui/styles";
 import { Segmented } from "./ui/Segmented";
 
@@ -25,8 +25,9 @@ export function BatchAudioExportDialog(props: {
   activeItem: PlaylistItem | null;                 // opened again when the export is over
   onRestore: (item: PlaylistItem) => void;
   onClose: () => void;
+  onBack?: () => void;   // back to the first step (the choice of what to export)
 }) {
-  const { lang, playlist, tags, listForTag, startTag, activeItem, onRestore, onClose } = props;
+  const { lang, playlist, tags, listForTag, startTag, activeItem, onRestore, onClose, onBack } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [scope, setScope] = useState<string>(startTag ?? "all");
   const [tempo, setTempo] = useState<"track" | "original">("track");   // each song at the tempo set for it in the playlist, or as recorded
@@ -129,19 +130,24 @@ export function BatchAudioExportDialog(props: {
 
   if (phase === "done" && result) {
     return (
-      <Modal id="batch-audio-export-dialog" width="lg" onClose={onClose}>
+      <ExportShell id="batch-audio-export-dialog" title={<span className="inline-flex items-center gap-2"><Music className="h-6 w-6" />{L("Експорт аудіофайлів", "Export audio files")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")}
+        footer={<button className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>}>
         <p className="text-base font-bold text-emerald-600">{L("Файли збережено", "The files were saved")}</p>
         <p className="text-sm">{L(`Збережено файлів: ${result.count}.`, `Files saved: ${result.count}.`)}</p>
         <p className="break-all text-sm">{result.dir}</p>
         {result.skipped.length > 0 && <p className="text-sm text-accent-text">{L("Не вдалося зберегти: ", "Could not save: ")}{result.skipped.join(", ")}</p>}
-        <div className="flex justify-end"><button className={btn.cta} onClick={onClose}>{L("Закрити", "Close")}</button></div>
-      </Modal>
+      </ExportShell>
     );
   }
 
   return (
-    <Modal id="batch-audio-export-dialog" width="lg" onClose={close} closeOnEscape={false}>
-      <ModalHeader title={<span className="inline-flex items-center gap-2"><Music className="h-6 w-6" />{L("Експорт аудіофайлів", "Export audio files")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} />
+    <ExportShell id="batch-audio-export-dialog" title={<span className="inline-flex items-center gap-2"><Music className="h-6 w-6" />{L("Експорт аудіофайлів", "Export audio files")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} closeOnEscape={false}
+      onBack={running ? undefined : onBack} backLabel={L("Назад", "Back")}
+      footer={running ? (
+        <button className={btn.neutral} onClick={() => { cancelled.current = true; }}>{L("Зупинити", "Stop")}</button>
+      ) : (
+        <button id="btn-batch-audio-start" className={btn.primary} disabled={list.length === 0} onClick={() => void begin()}>{L("Обрати папку…", "Choose a folder…")}</button>
+      )}>
       {!running && (
         <>
           <p className="text-sm text-ink-2">{L("Кожна пісня буде збережена окремим WAV-файлом у вибраній папці.", "Each song is saved as its own WAV file in the folder you choose.")}</p>
@@ -177,10 +183,6 @@ export function BatchAudioExportDialog(props: {
           </div>
           <p className="text-xs text-ink-3">{L("Файли з усім треком. Треки без розпізнавання буде розпізнано зараз, це може зайняти час.", "Whole tracks. Tracks that have not been analysed are analysed now, which can take a while.")}</p>
           {err && <p className="text-sm text-rose-500" role="alert">{err}</p>}
-          <div className="flex justify-end gap-2">
-            <button className={btn.neutral} onClick={onClose}>{L("Скасувати", "Cancel")}</button>
-            <button id="btn-batch-audio-start" className={btn.cta} disabled={list.length === 0} onClick={() => void begin()}>{L("Обрати папку…", "Choose a folder…")}</button>
-          </div>
         </>
       )}
       {running && (
@@ -191,9 +193,8 @@ export function BatchAudioExportDialog(props: {
           <div className="h-2 overflow-hidden rounded-full bg-control" role="progressbar" aria-valuenow={Math.round(((cur.i - 1 + pct / 100) / Math.max(1, list.length)) * 100)} aria-valuemin={0} aria-valuemax={100}>
             <div className="h-full rounded-full bg-accent transition-[width] duration-200" style={{ width: `${Math.round(((cur.i - 1 + pct / 100) / Math.max(1, list.length)) * 100)}%` }} />
           </div>
-          <div className="flex justify-end"><button className={btn.neutral} onClick={() => { cancelled.current = true; }}>{L("Зупинити", "Stop")}</button></div>
         </>
       )}
-    </Modal>
+    </ExportShell>
   );
 }

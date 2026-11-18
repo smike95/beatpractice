@@ -117,9 +117,9 @@ async function tryImage(url: string, signal: AbortSignal): Promise<string> {
 
 /** The front cover of the releases of one recording: the release itself first, then its release group (covers are often filed there). */
 async function coverOf(releases: any[], signal: AbortSignal): Promise<string> {
-  const list = [...releases].sort((a, b) => Number(b.status === "Official") - Number(a.status === "Official")).slice(0, 6);
+  const list = [...releases].sort((a, b) => Number(b.status === "Official") - Number(a.status === "Official")).slice(0, 10);
   for (const r of list) { if (r.id) { const c = await tryImage(`https://coverartarchive.org/release/${r.id}/front-500`, signal); if (c) return c; } }
-  const groups = Array.from(new Set(list.map((r) => r["release-group"]?.id).filter(Boolean))).slice(0, 4) as string[];
+  const groups = Array.from(new Set(list.map((r) => r["release-group"]?.id).filter(Boolean))).slice(0, 6) as string[];
   for (const g of groups) { const c = await tryImage(`https://coverartarchive.org/release-group/${g}/front-500`, signal); if (c) return c; }
   return "";
 }
@@ -149,7 +149,9 @@ export async function lookupTrack(fileName: string, signal: AbortSignal, parse: 
         const credit = creditOf(rec);
         if (!credit || !rec.title || (rec.score ?? 0) < 70) continue;
         const { inCov, resCov } = fit(input, words(`${credit} ${rec.title}`));
-        if (inCov < 0.85 || resCov < 0.6) continue;
+        // an explicit "artist - title" in either order: both parts must be found in the right fields (extra words in the answer, like a second artist, are fine)
+        const fieldOk = cands.some((c) => c.artist && fit(words(c.title), words(rec.title)).inCov >= 0.85 && fit(words(c.title), words(rec.title)).resCov >= 0.6 && fit(words(c.artist), words(credit)).inCov >= 0.85);
+        if (!fieldOk && (inCov < 0.85 || resCov < 0.6)) continue;
         const score = inCov + resCov + (rec.releases?.length ? 0.05 : 0);
         const key = norm(credit + " " + rec.title);
         const old = good.get(key);

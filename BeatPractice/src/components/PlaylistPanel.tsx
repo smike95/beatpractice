@@ -379,16 +379,16 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                 role="button"
                 tabIndex={0}
                 onKeyDown={(e) => { if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelectTrack(item); } }}
-                className={`relative p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 select-none ${
+                className={`relative py-2 pr-2 pl-1 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 select-none ${
                   drag?.id === item.id ? 'opacity-50 ' : ''}${isActive
                     ? 'shadow-xs bg-control border-outline text-ink'
                     : 'bg-canvas/60 hover:bg-control/60 border-line hover:border-outline text-ink-2'
                 }`}
               >
-                <div className="flex items-center gap-2 min-w-0 flex-1">
+                <div className="flex items-center gap-1.5 min-w-0 flex-1">
                   {/* The gutter on the left is reserved in every tile, so nothing moves when the mode changes. It holds the three-dot drag handle
                       (in the Edit mode) whose middle dot is the play / pause mark of the current track; outside the Edit mode, only the mark. */}
-                  <div className="w-4 shrink-0 self-stretch flex items-center justify-center">
+                  <div className="w-3.5 shrink-0 self-stretch flex items-center justify-center">
                     {manage && !filtered ? (
                       <button
                         type="button"

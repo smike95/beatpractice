@@ -758,6 +758,7 @@ export default function App() {
           loops={player.loops}
           activeLoop={player.activeLoop}
           onClose={() => setExporting(false)}
+          onBack={() => { setExporting(false); setExportChooser(true); }}
         />
       )}
 
@@ -771,6 +772,7 @@ export default function App() {
           stemNames={player.stemsState === 2 ? (player.stemsInfo?.names ?? []) : []}
           loops={player.loops}
           onClose={() => setPacking(false)}
+          onBack={() => { setPacking(false); setExportChooser(true); }}
         />
       )}
 
@@ -830,6 +832,7 @@ export default function App() {
           activeItem={player.playlist.find((p) => p.id === player.activeId) ?? null}
           onRestore={(item) => player.reloadTrack(item)}
           onClose={() => setLibraryExporting(null)}
+          onBack={() => { setLibraryExporting(null); setExportChooser(true); }}
         />
       )}
 
@@ -843,6 +846,7 @@ export default function App() {
           activeItem={player.playlist.find((p) => p.id === player.activeId) ?? null}
           onRestore={(item) => player.reloadTrack(item)}
           onClose={() => setBatchAudio(null)}
+          onBack={() => { setBatchAudio(null); setExportChooser(true); }}
         />
       )}
 
