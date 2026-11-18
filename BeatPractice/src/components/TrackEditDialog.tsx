@@ -99,7 +99,7 @@ export function TrackEditDialog(props: {
           <div className="space-y-2">
             <div className="track-edit-cover relative w-full aspect-square rounded-xl border overflow-hidden flex items-center justify-center">
               {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <ImagePlus className="w-6 h-6" />}
-              {searching && !cover && <span className="absolute inset-0 flex items-center justify-center bg-surface/60"><Loader2 className="w-6 h-6 animate-spin motion-reduce:animate-none text-accent-text" aria-hidden="true" /></span>}
+              {searching && !cover && <span role="status" aria-label={L("Розпізнаємо пісню й шукаємо обкладинку", "Recognising the song and looking for the cover")} className="absolute inset-0 flex items-center justify-center bg-surface/60"><Loader2 className="w-6 h-6 animate-spin motion-reduce:animate-none text-accent-text" aria-hidden="true" /></span>}
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
             <button type="button" className={btn} onClick={() => fileRef.current?.click()}><ImagePlus className="w-6 h-6" />{L("Обкладинка…", "Cover…")}</button>
@@ -114,7 +114,6 @@ export function TrackEditDialog(props: {
               <span className="track-edit-label text-xs font-semibold">{L("Назва пісні", "Song title")}</span>
               <input id="edit-title" type="text" className={field} value={title} onChange={(e) => { touched.current = true; setTitle(e.target.value); }} />
             </label>
-            {searching && <p role="status" className="track-edit-label flex items-center gap-1.5 text-xs"><Loader2 className="icon-xs animate-spin motion-reduce:animate-none text-accent-text" aria-hidden="true" />{L("Розпізнаємо пісню й шукаємо обкладинку…", "Recognising the song and looking for the cover…")}</p>}
             <p className="track-edit-label text-xs truncate" title={fileName}>{L("Файл", "File")}: {fileName}</p>
           </div>
         </div>
