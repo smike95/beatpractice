@@ -89,7 +89,7 @@ export function LibraryExportDialog(props: {
       title: L("Зберегти збірку", "Save the library"),
       defaultName: `${safeScope.replace(/[\\/:*?"<>|]+/g, " ").trim() || "BeatPractice"}.beatlib`,
       extension: "beatlib",
-      filterName: "BeatPractice library",
+      filterName: "beatPractice library",
     });
     if (!picked) return;
     const out = /\.beatlib$/i.test(picked) ? picked : picked + ".beatlib";

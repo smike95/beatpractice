@@ -22,7 +22,7 @@ function Section(props: { title: string; summary: string; open: boolean; disable
     <div className="rounded-xl border track-edit-section p-3 space-y-2.5" id={id}>
       <div className="flex items-start justify-between gap-3">
         <button type="button" disabled={disabled} aria-expanded={open} onClick={onToggle} className="flex min-w-0 flex-1 items-start gap-2 text-left cursor-pointer disabled:cursor-default">
-          <Chevron aria-hidden className="mt-0.5 h-4 w-4 shrink-0 track-edit-label" />
+          <Chevron aria-hidden className="icon-sm mt-0.5 track-edit-label" />
           <span className="min-w-0">
             <span className="flex items-center gap-2">
               <span className="text-xs font-bold uppercase tracking-wide track-edit-label">{title}</span>
@@ -220,11 +220,11 @@ export function ExportDialog(props: {
         <ModalHeader title={L("Експорт треку", "Export track")} onClose={close} closeLabel={L("Закрити", "Close")} />
 
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
-        <p className="track-edit-label text-xs">{L("Тут ви зберігаєте трек як звичайний аудіофайл. Спочатку він налаштований так, як звучить у плеєрі зараз; натисніть «Змінити» біля потрібного рядка, якщо хочете інакше.", "Here you save the track as an ordinary audio file. It starts out set up the way it sounds in the player now; press “Change” next to a line if you want it different.")}</p>
+        <p className="track-edit-label text-xs">{L("Трек збережеться таким, яким він звучить зараз. Щоб щось змінити, натисніть «Змінити» біля потрібного рядка.", "The track will be saved as it sounds now. To change something, press “Change” next to the line.")}</p>
 
         <div className="flex items-start justify-between gap-3 rounded-xl border border-accent/40 bg-accent/10 p-3" id="export-result" role="status" aria-live="polite">
           <div className="flex min-w-0 items-start gap-2">
-            <FileAudio aria-hidden className="mt-0.5 h-5 w-5 shrink-0 text-accent-text" />
+            <FileAudio aria-hidden className="icon-sm mt-0.5 text-accent-text" />
             <div className="min-w-0">
               <div className="text-xs font-bold uppercase tracking-wide track-edit-label">{L("Буде створено", "You will get")}</div>
               <div className="text-sm font-semibold break-words">{noParts ? L("Нічого: позначте хоча б одну партію", "Nothing: tick at least one part") : resultLine}</div>
@@ -232,7 +232,7 @@ export function ExportDialog(props: {
           </div>
           {anyChanged && !running && (
             <button type="button" id="btn-export-reset" className={btn.compact} onClick={resetAll} title={L("Повернути налаштування плеєра", "Back to the player's settings")}>
-              <RotateCcw className="h-4 w-4" />{L("Як у плеєрі", "As in player")}
+              <RotateCcw className="icon-sm" />{L("Як у плеєрі", "As in player")}
             </button>
           )}
         </div>

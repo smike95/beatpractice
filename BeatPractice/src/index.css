@@ -279,6 +279,7 @@ html.light #track-bar.is-stuck { box-shadow: 0 14px 28px -12px rgba(0, 0, 0, 0.3
 html.mac .mac-top-space { display: block; height: 28px; flex: none; }
 
 /* Lucide icons are 24 px everywhere (rule above); small controls ask for a smaller icon with these classes */
+svg.lucide.icon-mark { width: 11px !important; height: 11px !important; }   /* the play / pause mark of the current track: about 2.75x the 4px drag dot */
 svg.lucide.icon-xs { width: 14px !important; height: 14px !important; }
 svg.lucide.icon-sm { width: 16px !important; height: 16px !important; }
 

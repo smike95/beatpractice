@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { Modal, ModalHeader } from "./ui/Modal";
 import { btn as btnStyle } from "./ui/styles";
 import { lookupTrack } from "../utils/trackLookup";
@@ -61,17 +61,21 @@ export function TrackEditDialog(props: {
   // Opening the dialog (the pencil) quietly tries to recognise the artist, the title and the cover from the file name. Nothing is shown if it fails.
   // It fills only what is still empty or default, and stops as soon as the person has typed or chosen something themselves.
   const touched = useRef(false);
+  const [searching, setSearching] = useState(false);   // a quiet "looking..." mark while the search runs; it disappears with no message when it ends
   useEffect(() => {
     const needsText = !initial.artist.trim();
     if (!needsText && initial.cover) return;
     const ac = new AbortController();
+    const stop = window.setTimeout(() => ac.abort(), 25000);   // never wait longer than this
+    setSearching(true);
     void lookupTrack(fileName, ac.signal).then((r) => {
       if (!r || ac.signal.aborted || touched.current) return;
       if (needsText) { setArtist(r.artist); setTitle(r.title); }
       if (!initial.cover && r.cover) setCover(r.cover);
-    });
-    return () => ac.abort();
+    }).finally(() => { window.clearTimeout(stop); if (!ac.signal.aborted) setSearching(false); });
+    return () => { window.clearTimeout(stop); ac.abort(); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (touched.current) setSearching(false); }, [artist, title, cover]);
 
   const save = () => {
     const t = title.trim();
@@ -93,8 +97,9 @@ export function TrackEditDialog(props: {
 
         <div className="grid gap-4 sm:grid-cols-[11rem_minmax(0,1fr)]">
           <div className="space-y-2">
-            <div className="track-edit-cover w-full aspect-square rounded-xl border overflow-hidden flex items-center justify-center">
+            <div className="track-edit-cover relative w-full aspect-square rounded-xl border overflow-hidden flex items-center justify-center">
               {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <ImagePlus className="w-6 h-6" />}
+              {searching && !cover && <span className="absolute inset-0 flex items-center justify-center bg-surface/60"><Loader2 className="w-6 h-6 animate-spin motion-reduce:animate-none text-accent-text" aria-hidden="true" /></span>}
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
             <button type="button" className={btn} onClick={() => fileRef.current?.click()}><ImagePlus className="w-6 h-6" />{L("Обкладинка…", "Cover…")}</button>
@@ -109,6 +114,7 @@ export function TrackEditDialog(props: {
               <span className="track-edit-label text-xs font-semibold">{L("Назва пісні", "Song title")}</span>
               <input id="edit-title" type="text" className={field} value={title} onChange={(e) => { touched.current = true; setTitle(e.target.value); }} />
             </label>
+            {searching && <p role="status" className="track-edit-label flex items-center gap-1.5 text-xs"><Loader2 className="icon-xs animate-spin motion-reduce:animate-none text-accent-text" aria-hidden="true" />{L("Розпізнаємо пісню й шукаємо обкладинку…", "Recognising the song and looking for the cover…")}</p>}
             <p className="track-edit-label text-xs truncate" title={fileName}>{L("Файл", "File")}: {fileName}</p>
           </div>
         </div>

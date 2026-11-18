@@ -44,7 +44,7 @@ interface PlaylistPanelProps {
 const NowMark: React.FC<{ playing: boolean; lang: Language }> = ({ playing, lang }) => {
   const label = playing ? (lang === 'en' ? 'Playing' : 'Грає') : (lang === 'en' ? 'Paused' : 'Пауза');
   const Icon = playing ? Play : Pause;
-  return <span role="img" aria-label={label} title={label} className="flex h-[12px] w-[12px] shrink-0 items-center justify-center text-accent-text"><Icon className="h-[10px] w-[10px]" fill="currentColor" strokeWidth={0} /></span>;
+  return <span role="img" aria-label={label} title={label} className="flex h-[11px] w-[11px] shrink-0 items-center justify-center text-accent-text"><Icon className="icon-mark" fill="currentColor" strokeWidth={0} /></span>;
 };
 
 const formatDuration = (seconds: number): string => {
@@ -101,7 +101,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
   const itemRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const [drag, setDrag] = useState<{ id: string; from: number; ins: number } | null>(null);
   const [pendingDelete, setPendingDelete] = useState<PlaylistItem | null>(null);
-  // the "Змінити" mode: only in it the tiles show the drag handles, the tag and the delete buttons
+  // the "Керувати" mode: only in it the tiles show the drag handles, the tag and the delete buttons
   const [manage, setManage] = useState(false);
   useEffect(() => { if (playlist.length === 0) setManage(false); }, [playlist.length]);
   useEffect(() => { if (compact) setManage(false); }, [compact]);
@@ -328,9 +328,9 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
           )}
           {playlist.length > 0 && (
             <button type="button" id="btn-edit-playlist" aria-pressed={manage} onClick={() => setManage((v) => !v)}
-              title={lang === 'en' ? 'Reorder tracks, tag and delete them' : 'Змінити порядок, теги, видалити треки'}
+              title={lang === 'en' ? 'Order, tags and deleting of tracks' : 'Порядок, теги й видалення треків'}
               className={`ml-auto inline-flex h-7 items-center rounded-full px-3 text-xs font-semibold cursor-pointer transition-colors ${manage ? 'bg-accent text-accent-on hover:bg-accent-hover' : 'text-ink-3 hover:bg-control hover:text-ink'}`}>
-              {manage ? (lang === 'en' ? 'Done' : 'Готово') : (lang === 'en' ? 'Edit' : 'Змінити')}
+              {manage ? (lang === 'en' ? 'Done' : 'Готово') : (lang === 'en' ? 'Manage' : 'Керувати')}
             </button>
           )}
         </div>
@@ -388,7 +388,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                 <div className="flex items-center gap-2 min-w-0 flex-1">
                   {/* The gutter on the left is reserved in every tile, so nothing moves when the mode changes. It holds the three-dot drag handle
                       (in the Edit mode) whose middle dot is the play / pause mark of the current track; outside the Edit mode, only the mark. */}
-                  <div className="w-5 shrink-0 self-stretch flex items-center justify-center">
+                  <div className="w-4 shrink-0 self-stretch flex items-center justify-center">
                     {manage && !filtered ? (
                       <button
                         type="button"

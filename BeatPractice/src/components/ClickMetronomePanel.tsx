@@ -24,7 +24,7 @@ function RunButton(props: { running: boolean; onToggle: () => void; L: Translate
   return (
     <button
       id="btn-click-metronome" type="button" onClick={onToggle} aria-pressed={running} title={text} aria-label={text}
-      className={`h-9 w-24 shrink-0 rounded-lg flex items-center justify-center gap-1.5 cursor-pointer text-white text-xs font-bold shadow-sm transition-colors duration-150 ${
+      className={`h-10 w-28 shrink-0 rounded-lg flex items-center justify-center gap-2 cursor-pointer text-white text-sm font-bold shadow-sm transition-colors duration-150 ${
         running ? "bg-rose-700 hover:bg-rose-600" : "bg-emerald-600 hover:bg-emerald-500"
       }`}
     >
@@ -143,7 +143,7 @@ export function ClickMetronomePanel(props: {
           <Volume2 className="h-6 w-6 shrink-0 text-ink-2 mixer-icon" aria-hidden="true" />
           <span className="mixer-label shrink-0 text-xs font-semibold text-ink-2">{L("Гучність", "Volume")}</span>
           <Slider id="range-click-volume" min={0} max={2} step={0.01} value={volume} onChange={setVolume} title={`${pct}%`} ariaLabel={L("Гучність метронома", "Metronome volume")} className="min-w-[70px] flex-1" />
-          <span className="mixer-value w-11 shrink-0 text-right font-mono text-xs font-bold text-ink-2">{pct}%</span>
+          <span className="mixer-value w-14 shrink-0 text-center font-mono text-xs font-bold text-ink-2">{pct}%</span>
         </div>
         )}
         </div>
