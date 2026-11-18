@@ -52,6 +52,7 @@ export interface PlaylistItem {
   artist?: string; // set by the user
   title?: string;
   cover?: string; // small picture as a data URL
+  lookupTried?: boolean; // the artist, title and cover were already looked up from the file name once (when the track was first opened)
   stemMix?: StemMix; // levels of the separated parts for this track
   stemsOn?: boolean; // the separated parts are what is played
   tags?: string[]; // ids of the tags of this track (see PlaylistTag)

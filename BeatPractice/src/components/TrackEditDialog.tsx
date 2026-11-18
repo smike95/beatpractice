@@ -58,7 +58,8 @@ export function TrackEditDialog(props: {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // Opening the dialog (the pencil) quietly tries to recognise the artist, the title and the cover from the file name. Nothing is shown if it fails.
+  // The first try is made when the track is first opened (usePlayer); this is the second one: the pencil tries again while the artist or the cover is still empty.
+  // Opening the dialog quietly tries to recognise the artist, the title and the cover from the file name. Nothing is shown if it fails.
   // It fills only what is still empty or default, and stops as soon as the person has typed or chosen something themselves.
   const touched = useRef(false);
   const [searching, setSearching] = useState(false);   // a quiet "looking..." mark while the search runs; it disappears with no message when it ends
