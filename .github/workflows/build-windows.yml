@@ -30,10 +30,24 @@ jobs:
       - name: Download ONNX Runtime
         shell: pwsh
         run: |
+          $dir = "$env:RUNNER_TEMP\onnxruntime-win-x64-$env:ORT_VERSION"
           $zip = "$env:RUNNER_TEMP\ort.zip"
-          Invoke-WebRequest "https://github.com/microsoft/onnxruntime/releases/download/v$env:ORT_VERSION/onnxruntime-win-x64-$env:ORT_VERSION.zip" -OutFile $zip
-          Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP
-          "ORT_DIR=$env:RUNNER_TEMP\onnxruntime-win-x64-$env:ORT_VERSION" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+          try {
+            Invoke-WebRequest "https://github.com/microsoft/onnxruntime/releases/download/v$env:ORT_VERSION/onnxruntime-win-x64-$env:ORT_VERSION.zip" -OutFile $zip -ErrorAction Stop
+            Expand-Archive $zip -DestinationPath $env:RUNNER_TEMP
+          } catch {
+            # The GitHub release is not available (404 in November 2026): take the same Microsoft build from the official NuGet package
+            Write-Host "GitHub release not available ($($_.Exception.Message)); using the NuGet package Microsoft.ML.OnnxRuntime"
+            $nu = "$env:RUNNER_TEMP\ort-nuget.zip"
+            Invoke-WebRequest "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/$env:ORT_VERSION/microsoft.ml.onnxruntime.$env:ORT_VERSION.nupkg" -OutFile $nu -ErrorAction Stop
+            $x = "$env:RUNNER_TEMP\ort-nuget"
+            Expand-Archive $nu -DestinationPath $x -Force
+            New-Item -ItemType Directory -Force "$dir\include", "$dir\lib" | Out-Null
+            Copy-Item "$x\build\native\include\*" "$dir\include" -Recurse
+            Copy-Item "$x\runtimes\win-x64\native\*" "$dir\lib"
+          }
+          if (-not (Test-Path "$dir\lib\onnxruntime.dll") -or -not (Test-Path "$dir\lib\onnxruntime.lib") -or -not (Test-Path "$dir\include\onnxruntime_cxx_api.h")) { throw "ONNX Runtime layout is not as expected in $dir" }
+          "ORT_DIR=$dir" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
 
       # ---------- 2. C++ core ----------
       - name: Build core (beatcore_c.dll)

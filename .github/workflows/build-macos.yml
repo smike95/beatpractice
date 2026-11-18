@@ -14,9 +14,11 @@ jobs:
           - arch: arm64                       # Apple Silicon (M1 і новіші)
             rust_target: aarch64-apple-darwin
             ort_pkg: onnxruntime-osx-arm64
+            nuget_rid: osx-arm64
           - arch: x86_64                      # Mac на Intel
             rust_target: x86_64-apple-darwin
             ort_pkg: onnxruntime-osx-x86_64
+            nuget_rid: osx-x64
     runs-on: macos-latest
     timeout-minutes: 120
     env:
@@ -43,9 +45,22 @@ jobs:
       # ---------- 1. ONNX Runtime for this processor type ----------
       - name: Download ONNX Runtime
         run: |
-          curl -L --fail -o "$RUNNER_TEMP/ort.tgz" "https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/${{ matrix.ort_pkg }}-${ORT_VERSION}.tgz"
-          tar xzf "$RUNNER_TEMP/ort.tgz" -C "$RUNNER_TEMP"
-          echo "ORT_DIR=$RUNNER_TEMP/${{ matrix.ort_pkg }}-${ORT_VERSION}" >> "$GITHUB_ENV"
+          ORT_DIR="$RUNNER_TEMP/${{ matrix.ort_pkg }}-${ORT_VERSION}"
+          if curl -L --fail -o "$RUNNER_TEMP/ort.tgz" "https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/${{ matrix.ort_pkg }}-${ORT_VERSION}.tgz"; then
+            tar xzf "$RUNNER_TEMP/ort.tgz" -C "$RUNNER_TEMP"
+          else
+            # The GitHub release is not available (404 in November 2026): take the same Microsoft build from the official NuGet package
+            echo "GitHub release not available; using the NuGet package Microsoft.ML.OnnxRuntime"
+            curl -L --fail -o "$RUNNER_TEMP/ort.nupkg" "https://api.nuget.org/v3-flatcontainer/microsoft.ml.onnxruntime/${ORT_VERSION}/microsoft.ml.onnxruntime.${ORT_VERSION}.nupkg"
+            unzip -q "$RUNNER_TEMP/ort.nupkg" -d "$RUNNER_TEMP/ort-nuget"
+            mkdir -p "$ORT_DIR/include" "$ORT_DIR/lib"
+            cp -R "$RUNNER_TEMP"/ort-nuget/build/native/include/* "$ORT_DIR/include/"
+            # the library is staged under both names: the plain one and the versioned one that its install name points to
+            cp "$RUNNER_TEMP/ort-nuget/runtimes/${{ matrix.nuget_rid }}/native/libonnxruntime.dylib" "$ORT_DIR/lib/libonnxruntime.dylib"
+            cp "$ORT_DIR/lib/libonnxruntime.dylib" "$ORT_DIR/lib/libonnxruntime.${ORT_VERSION}.dylib"
+          fi
+          test -f "$ORT_DIR/include/onnxruntime_cxx_api.h" && test -f "$ORT_DIR/lib/libonnxruntime.dylib"
+          echo "ORT_DIR=$ORT_DIR" >> "$GITHUB_ENV"
 
       # ---------- 2. C++ core for this processor type ----------
       - name: Build core (libbeatcore_c.dylib)
