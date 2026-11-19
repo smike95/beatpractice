@@ -553,17 +553,20 @@ export function usePlayer() {
   );
   const barTimes = useMemo(() => (song ? barStartTimes(song.times, song.posInBar) : []), [song]);
   const variableTempo = useMemo(() => (song ? tempoVaries(song.times, song.posInBar, song.barLength) : false), [song]);
-  // bar lengths present in the song, most frequent first (e.g. ["4/4", "3/4"]); "variable" if a second length is more than noise
+  // bar lengths of the song, most frequent first (e.g. ["4/4", "3/4"]). They are taken from the sections, so this line always agrees with the section
+  // list: a stretch shorter than 4 bars at the edge of the song is absorbed into its neighbour and is not a meter of its own.
   const meters = useMemo(() => {
     if (!song) return [] as { len: number; n: number }[];
     const counts = new Map<number, number>();
-    for (let i = 0; i < song.posInBar.length; i++) if (song.posInBar[i] === 1) counts.set(song.barLength[i], (counts.get(song.barLength[i]) ?? 0) + 1);
+    if (sections.length > 0) {
+      for (const s of sections) for (const m of s.meters) counts.set(m, (counts.get(m) ?? 0) + s.bars);
+    } else {
+      for (let i = 0; i < song.posInBar.length; i++) if (song.posInBar[i] === 1) counts.set(song.barLength[i], (counts.get(song.barLength[i]) ?? 0) + 1);
+    }
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).map(([len, n]) => ({ len, n }));
-  }, [song]);
-  const variableMeter = useMemo(() => {
-    const total = meters.reduce((a, m) => a + m.n, 0);
-    return meters.length > 1 && total > 0 && (total - meters[0].n >= 3) && (total - meters[0].n) / total >= 0.04;
-  }, [meters]);
+  }, [song, sections]);
+  // a second length counts as soon as it makes a section of its own (sections already need 4 bars in a row)
+  const variableMeter = meters.length > 1;
   const meterLabels = useMemo(() => meters.map((m) => `${m.len}/4`), [meters]);
   const loop: LoopRange =
     activeLoop !== null && loops[activeLoop]
