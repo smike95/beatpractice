@@ -6,6 +6,7 @@ import { CoverPlaceholder } from './CoverPlaceholder';
 import { Language, translations } from '../i18n';
 import { displayName } from '../player/usePlayer';
 import { Modal } from './ui/Modal';
+import { formatBpmRange } from '../utils/bpm';
 import { btn } from './ui/styles';
 import { ManageTagsDialog, TrackTagsDialog } from './TagDialogs';
 
@@ -431,7 +432,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
                       <span>{formatDuration(item.trackInfo.duration)}</span>
                       <span>•</span>
                       <span className={`font-semibold ${isActive ? 'font-bold text-ink-2' : 'text-ink-3'}`}>
-                        {(item.trackInfo.originalBpmExact ?? item.trackInfo.originalBpm) > 0 ? `${(item.trackInfo.originalBpmExact ?? item.trackInfo.originalBpm).toFixed(1)} BPM` : '—'}
+                        {formatBpmRange(item.trackInfo.bpmMin, item.trackInfo.bpmMax, item.trackInfo.originalBpmExact ?? item.trackInfo.originalBpm)}
                       </span>
                       <span>•</span>
                       <span>{item.trackInfo.timeSignature}</span>

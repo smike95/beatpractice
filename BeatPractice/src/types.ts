@@ -35,6 +35,8 @@ export interface AudioTrackInfo {
   duration: number;
   originalBpm: number; // tempo of the song as found by the analyzer (whole number, for comparisons)
   originalBpmExact?: number; // the same, to tenths, for display
+  bpmMin?: number; // the lowest and the highest tempo among the sections of the song (to tenths); shown as a range
+  bpmMax?: number;
   currentBpm: number; // tempo at the current speed
   timeSignature: TimeSignature;
 }

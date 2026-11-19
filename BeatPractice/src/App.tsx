@@ -28,6 +28,8 @@ import { LoopConflictDialog } from './components/LoopConflictDialog';
 import { LibraryExportDialog } from './components/LibraryExportDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { ExportChooserDialog } from './components/ExportChooserDialog';
+import { AnalysisProgress } from './components/AnalysisProgress';
+import { formatBpmRange } from './utils/bpm';
 import { BatchAudioExportDialog } from './components/BatchAudioExportDialog';
 import { DuplicateDialog } from './components/DuplicateDialog';
 import { MAX_LOOPS } from './player/usePlayer';
@@ -69,8 +71,15 @@ export default function App() {
     snap?.state === BC.DECODING
       ? 'Розкодування…'
       : snap?.state === BC.ANALYZING
-        ? `Аналіз ритму… ${Math.round((snap.progress ?? 0) * 100)}%`
+        ? 'Аналіз ритму…'
         : '';
+  // the tempo that sounds now: the section under the playhead (the steady tempo of a steady song), times the speed set in the player; 100 with no track
+  const currentTempo = (() => {
+    if (!track || track.originalBpmExact <= 0) return 100;
+    const pos = snap?.position ?? 0;
+    const sec = player.sections.find((x) => pos >= x.startTime && pos < x.endTime);
+    return Math.round((sec && sec.bpm > 0 ? sec.bpm : track.originalBpmExact) * (track.bpmExact / track.originalBpmExact));
+  })();
   const handleRestart = player.restart;
   const handleTogglePlay = player.togglePlay;
   const handleBpmChange = player.changeBpm;
@@ -393,15 +402,15 @@ export default function App() {
           </aside>
         </div>
 
+        {/* the zone above the top bar: drag the window by it (the bar itself lets the clicks through when it is not stuck). It lies under the bar and the window buttons. */}
+        {(isWindows || isMac) && <div data-tauri-drag-region className="fixed inset-x-0 top-0 z-20" style={{ height: isWindows ? BAR_GAP_WIN : 28 }} />}
+
         {/* MAIN INTERACTIVE CONTENT */}
-        <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 space-y-4 pb-28 md:pb-8" style={isWindows ? { paddingTop: BAR_GAP_WIN + 8 } : undefined}>
+        <main className="flex-1 min-w-0 px-4 sm:px-6 py-4 space-y-4 pb-28 md:pb-8" style={isWindows ? { paddingTop: BAR_GAP_WIN + 8 } : isMac ? { paddingTop: 32 } : undefined}>
           {/* Loading Overlay */}
           {isLoadingAudio && (
             <div className="bg-surface/90 border border-outline rounded-xl p-3 text-ink-2 space-y-2">
-              <div className="flex items-center justify-center gap-3">
-                <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-                <span className="text-xs font-medium">{analysisStatus || t('processingAudio')}</span>
-              </div>
+              <AnalysisProgress lang={lang} label={snap?.state === BC.DECODING ? (lang === 'en' ? 'Decoding…' : analysisStatus) : snap?.state === BC.ANALYZING ? (lang === 'en' ? 'Analysing the rhythm…' : analysisStatus) : t('processingAudio')} progress={snap?.state === BC.ANALYZING ? (snap.progress ?? 0) : null} />
               {snap?.state === BC.ANALYZING && snap.duration > 0 && (
                 <div className="flex items-center gap-3" id="analysis-preview">
                   <button
@@ -467,7 +476,7 @@ export default function App() {
                     )}
                   </div>
                   <div id="track-meta-line" data-tauri-drag-region className="flex items-center gap-x-3 gap-y-0.5 text-xs text-ink-3 mt-0.5 flex-wrap">
-                    <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-ink-2 font-mono">{track && track.originalBpmExact > 0 ? `${track.originalBpmExact.toFixed(1)} BPM` : '—'}</strong>
+                    <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-ink-2 font-mono">{track ? formatBpmRange(track.bpmMin, track.bpmMax, track.originalBpmExact) : '—'}</strong>
                       {track?.variableTempo && <em title={lang === 'en' ? 'The tempo changes during the song' : 'Темп змінюється протягом пісні'} className="ml-1.5 not-italic font-bold text-accent-text">{lang === 'en' ? 'variable' : 'змінний'}</em>}
                     </span>
                     <span>•</span>
@@ -706,7 +715,7 @@ export default function App() {
               lang={lang}
               trackKey={activeTrackId ?? ''}
               defaults={{
-                bpm: 100,
+                bpm: currentTempo,
                 beats: currentBeatsPerBar,
                 accent: metronomeConfig.accentFirstBeat,
                 volume: metronomeConfig.volume,

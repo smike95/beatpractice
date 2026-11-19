@@ -6,6 +6,7 @@ import { getOwnerId } from "../utils/license";
 import { lookupTrack } from "../utils/trackLookup";
 import { DupChoice, findDuplicate, mergeItems, replaceItem } from "./duplicates";
 import { barStartTimes, computeSections, TempoSection, tempoVaries } from "../utils/sections";
+import { bpmSpan } from "../utils/bpm";
 
 const AUDIO_EXTS = ["mp3", "wav", "flac", "ogg", "beatpack", "beatlib"];
 const STORE_KEY = "rt_playlist_v1";
@@ -479,6 +480,7 @@ export function usePlayer() {
         setSong(data);
         if (item) {
           const len = mostCommonBarLength(data);
+          const span = bpmSpan(computeSections(data.times, data.posInBar, data.barLength, sNow.duration).map((x) => x.bpm));
           patchItem(id, (it) => ({
             ...it,
             trackInfo: {
@@ -486,6 +488,8 @@ export function usePlayer() {
               duration: sNow.duration,
               originalBpm: Math.round(sNow.songBpm),
               originalBpmExact: Math.round(sNow.songBpm * 10) / 10,
+              bpmMin: span?.min,
+              bpmMax: span?.max,
               currentBpm: Math.round(sNow.songBpm * speed),
               timeSignature: `${len}/4`,
             },
@@ -549,7 +553,7 @@ export function usePlayer() {
       : NO_LOOP;
 
   const track: (AudioTrackInfo & {
-    sections: TempoSection[]; bpmExact: number; variableTempo: boolean; variableMeter: boolean;
+    sections: TempoSection[]; bpmExact: number; bpmMin?: number; bpmMax?: number; variableTempo: boolean; variableMeter: boolean;
     meterLabels: string[]; originalBpmExact: number; displayName: string; fileName: string; artist: string; title: string; cover: string;
   }) | null = activeItem
     ? {
@@ -568,6 +572,8 @@ export function usePlayer() {
           ready && snap?.beat ? `${snap.beat.barLength}/4` : activeItem.trackInfo.timeSignature,
         sections,
         bpmExact: ready && snap ? snap.songBpm * snap.speed : activeItem.trackInfo.currentBpm,
+        bpmMin: ready ? (bpmSpan(sections.map((x) => x.bpm))?.min ?? activeItem.trackInfo.bpmMin) : activeItem.trackInfo.bpmMin,
+        bpmMax: ready ? (bpmSpan(sections.map((x) => x.bpm))?.max ?? activeItem.trackInfo.bpmMax) : activeItem.trackInfo.bpmMax,
         variableTempo,
         variableMeter,
       }
