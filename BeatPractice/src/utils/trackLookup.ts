@@ -44,6 +44,11 @@ export function parseFileName(fileName: string): Candidate[] {
   // brackets: remove those that hold only junk words (keep "(feat. X)", "(Live)", "(Remix)" as part of the title)
   s = s.replace(/[\(\[\{]([^\)\]\}]*)[\)\]\}]/g, (m, inner: string) => (JUNK.test(inner) || /^\s*\d+\s*$/.test(inner) ? " " : m));
   s = s.replace(JUNK, " ").replace(/[\(\[\{]\s*[\)\]\}]/g, " ");
+  // an id or a timestamp that downloads put in front or at the end: "17769130660_artist-title", "artist - title 1769130660"
+  { const noId = s.replace(/^\s*\d{6,}(?![\p{L}\p{N}])[\s._\-–—)]*/u, "").replace(/[\s._\-–—(\[]*\d{6,}[)\]]?\s*$/u, "");
+    if (/[\p{L}]{2}/u.test(noId)) s = noId; }
+  // a bracket that only holds an id like [dQw4w9WgXcQ]
+  s = s.replace(/[\(\[\{]\s*(?=[\w-]*\d)(?=[\w-]*[A-Za-z])[\w-]{8,14}\s*[\)\]\}]/g, " ");
   s = s.replace(/^\s*(?:track\s*)?\d{1,3}\s*[.\-–—)_]\s*/i, "");   // a track number in front: "01. ", "03 - "
   s = s.replace(/^\s*\d{1,3}\s+(?=\D)/, "");                         // "01 Artist - Title"
   s = cleanPiece(s);
@@ -56,7 +61,13 @@ export function parseFileName(fileName: string): Candidate[] {
     const title = parts.slice(1).join(" - ");
     out.push({ artist, title }, { artist: title, title: artist });   // the second one: the order "Title - Artist"
   } else {
-    out.push({ artist: "", title: s });
+    // no " - " with spaces: "artist-title" is still the usual form of downloaded files; try both orders (the search decides; "Jay-Z" just fails the field search
+    // and is found by the free-text search of the whole name)
+    const h = /^([^\-–—]*\p{L}[^\-–—]*)[\-–—]([^\-–—]*\p{L}[^\-–—]*)$/u.exec(s);
+    if (h && cleanPiece(h[1]) && cleanPiece(h[2])) {
+      const a = cleanPiece(h[1]), b = cleanPiece(h[2]);
+      out.push({ artist: a, title: b }, { artist: b, title: a });
+    } else out.push({ artist: "", title: s });
   }
   return out;
 }
@@ -118,9 +129,16 @@ async function tryImage(url: string, signal: AbortSignal): Promise<string> {
 /** The front cover of the releases of one recording: the release itself first, then its release group (covers are often filed there). */
 async function coverOf(releases: any[], signal: AbortSignal): Promise<string> {
   const list = [...releases].sort((a, b) => Number(b.status === "Official") - Number(a.status === "Official")).slice(0, 10);
-  for (const r of list) { if (r.id) { const c = await tryImage(`https://coverartarchive.org/release/${r.id}/front-500`, signal); if (c) return c; } }
+  // in small parallel batches (a slow answer of the archive must not make the whole search crawl)
+  const urls: string[] = [];
+  for (const r of list) if (r.id) urls.push(`https://coverartarchive.org/release/${r.id}/front-500`);
   const groups = Array.from(new Set(list.map((r) => r["release-group"]?.id).filter(Boolean))).slice(0, 6) as string[];
-  for (const g of groups) { const c = await tryImage(`https://coverartarchive.org/release-group/${g}/front-500`, signal); if (c) return c; }
+  for (const g of groups) urls.push(`https://coverartarchive.org/release-group/${g}/front-500`);
+  for (let i = 0; i < urls.length; i += 4) {
+    const got = await Promise.all(urls.slice(i, i + 4).map((u) => tryImage(u, signal)));
+    const hit = got.find(Boolean);
+    if (hit) return hit;
+  }
   return "";
 }
 
@@ -131,12 +149,23 @@ const creditOf = (rec: any): string => (rec["artist-credit"] ?? []).map((a: any)
  * Finds the song. Returns the best doubtless match, or null. `parse` can be replaced by a model; `signal` cancels everything.
  */
 export async function lookupTrack(fileName: string, signal: AbortSignal, parse: (name: string) => Candidate[] = parseFileName): Promise<LookupResult | null> {
+  return (await lookupTrackEx(fileName, signal, parse)).result;
+}
+
+/**
+ * Same as lookupTrack, but: `onText` is called as soon as the artist and the title are known (the cover search can take a long time and must
+ * not hold them back or lose them), and `completed` says whether the search really got its answers. completed = false means a network error or a
+ * timeout, so the caller should try again later; completed = true with no result means "searched, nothing sure found".
+ */
+export async function lookupTrackEx(fileName: string, signal: AbortSignal, parse: (name: string) => Candidate[] = parseFileName,
+  onText?: (t: { artist: string; title: string }) => void): Promise<{ result: LookupResult | null; completed: boolean }> {
+  let completed = true;
   try {
-    if (!loadLookupEnabled() || typeof fetch !== "function") return null;
+    if (!loadLookupEnabled() || typeof fetch !== "function") return { result: null, completed: true };
     const cands = parse(fileName).slice(0, 2);
     const whole = cands.length ? cleanPiece(cands[0].artist + " " + cands[0].title) : "";
     const input = words(whole);
-    if (!input.length) return null;
+    if (!input.length) return { result: null, completed: true };
 
     const queries: string[] = [];
     for (const c of cands) if (c.artist) queries.push(`recording:${q(c.title)} AND artist:${q(c.artist)}`);
@@ -160,13 +189,16 @@ export async function lookupTrack(fileName: string, signal: AbortSignal, parse: 
       if (good.size >= 1 && queries.indexOf(query) === 0) break;   // the exact question already answered
     }
     const ranked = Array.from(good.values()).sort((a, b) => b.score - a.score).slice(0, 3);
-    if (!ranked.length) return null;
-    for (const m of ranked) {
-      const cover = await coverOf(m.rec.releases ?? [], signal);
-      if (cover) return { artist: m.credit, title: String(m.rec.title), cover };
-    }
+    if (!ranked.length) return { result: null, completed };
+    onText?.({ artist: ranked[0].credit, title: String(ranked[0].rec.title) });   // the text is known now; the cover may still take a while
+    try {
+      for (const m of ranked) {
+        const cover = await coverOf(m.rec.releases ?? [], signal);
+        if (cover) return { result: { artist: m.credit, title: String(m.rec.title), cover }, completed: true };
+      }
+    } catch { completed = false; }   // the cover search was cut off: the text is still a result
     // recognised, but no cover on the archive: the text alone is still a result
-    return { artist: ranked[0].credit, title: String(ranked[0].rec.title), cover: "" };
-  } catch { /* silent by design */ }
-  return null;
+    return { result: { artist: ranked[0].credit, title: String(ranked[0].rec.title), cover: "" }, completed };
+  } catch { completed = false; /* silent by design */ }
+  return { result: null, completed };
 }

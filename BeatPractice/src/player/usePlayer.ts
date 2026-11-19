@@ -3,7 +3,7 @@ import { onFilesOpened, pickAudioFiles, pickFolder } from "../platform";
 import { BC, Caps, core, InitInfo, Snapshot, SongData, StemsInfo } from "../core";
 import { AudioTrackInfo, LoopRange, LoopSlot, MetronomeConfig, PlayMode, PlaylistItem, PlaylistTag, StemMix } from "../types";
 import { getOwnerId } from "../utils/license";
-import { lookupTrack } from "../utils/trackLookup";
+import { lookupTrackEx } from "../utils/trackLookup";
 import { DupChoice, findDuplicate, mergeItems, replaceItem } from "./duplicates";
 import { barStartTimes, computeSections, TempoSection, tempoVaries } from "../utils/sections";
 import { bpmSpan } from "../utils/bpm";
@@ -73,15 +73,33 @@ function loadStored(): { items: PlaylistItem[]; activeId: string | null } {
   return { items: [], activeId: null };
 }
 
-/** Quietly recognises artist, title and cover from the file name; fills only a track the person has not described, and never shows an error. */
-async function recogniseTrack(name: string, id: string, patch: (id: string, f: (it: PlaylistItem) => PlaylistItem) => void): Promise<void> {
+const recognising = new Set<string>();   // tracks whose search is running now
+
+/**
+ * Quietly recognises artist, title and cover from the file name (or from the tags the track already has) and never shows an error.
+ * It fills only what is empty: the text of a track the person has not described, the cover of a track without one. The text goes in as soon as it is
+ * known, the cover when it is found. Returns true when the search really got its answers (so it need not be repeated); false after a network error or a timeout.
+ */
+async function recogniseTrack(it: { name: string; artist?: string; title?: string; cover?: string }, id: string, patch: (id: string, f: (it: PlaylistItem) => PlaylistItem) => void): Promise<boolean> {
+  if (recognising.has(id)) return false;
+  recognising.add(id);
   const ac = new AbortController();
-  const stop = setTimeout(() => ac.abort(), 25000);
+  const stop = setTimeout(() => ac.abort(), 60000);
   try {
-    const r = await lookupTrack(name, ac.signal);
-    if (!r) return;
-    patch(id, (it) => (it.artist || it.title || it.cover ? it : { ...it, artist: r.artist, title: r.title, cover: r.cover || undefined }));
-  } catch { /* silent by design */ } finally { clearTimeout(stop); }
+    const described = !!(it.artist && it.title);
+    const input = described ? `${it.artist} - ${it.title}` : it.name;
+    const fillText = !(it.artist || it.title);
+    const { result, completed } = await lookupTrackEx(input, ac.signal, undefined, (txt) => {
+      if (fillText) patch(id, (x) => (x.artist || x.title ? x : { ...x, artist: txt.artist, title: txt.title }));
+    });
+    if (result) patch(id, (x) => ({
+      ...x,
+      artist: x.artist || x.title ? x.artist : result.artist,
+      title: x.artist || x.title ? x.title : result.title,
+      cover: x.cover || result.cover || undefined,
+    }));
+    return completed;
+  } catch { return false; /* silent by design */ } finally { clearTimeout(stop); recognising.delete(id); }
 }
 
 function fileName(path: string): string {
@@ -498,9 +516,9 @@ export function usePlayer() {
         setSongReady(true);
         // the first time a track is opened (the tempo is known now): look up artist, title and cover once; if it fails (no internet...), the pencil tries again
         const first = playlistRef.current.find((p) => p.id === id);
-        if (first && !first.lookupTried && !first.artist && !first.title && !first.cover) {
-          patchItem(id, (it) => ({ ...it, lookupTried: true }));
-          void recogniseTrack(first.name, id, patchItem);
+        // (also when the text is there but the cover is not; an attempt that failed on the network is repeated the next time the track is opened)
+        if (first && !first.lookupTried && (!first.artist || !first.title || !first.cover)) {
+          void recogniseTrack(first, id, patchItem).then((done) => { if (done) patchItem(id, (it) => ({ ...it, lookupTried: true })); });
         }
         if (autoPlayId.current === id) {
           autoPlayId.current = null;

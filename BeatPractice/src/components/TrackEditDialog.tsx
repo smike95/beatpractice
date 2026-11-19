@@ -3,7 +3,7 @@ import { ImagePlus, Trash2 } from "lucide-react";
 import { SearchGlobe } from "./SearchGlobe";
 import { Modal, ModalHeader } from "./ui/Modal";
 import { btn as btnStyle } from "./ui/styles";
-import { lookupTrack } from "../utils/trackLookup";
+import { lookupTrackEx } from "../utils/trackLookup";
 
 type Lang = "uk" | "en";
 
@@ -68,9 +68,11 @@ export function TrackEditDialog(props: {
     const needsText = !initial.artist.trim();
     if (!needsText && initial.cover) return;
     const ac = new AbortController();
-    const stop = window.setTimeout(() => ac.abort(), 25000);   // never wait longer than this
+    const stop = window.setTimeout(() => ac.abort(), 60000);   // never wait longer than this
     setSearching(true);
-    void lookupTrack(fileName, ac.signal).then((r) => {
+    void lookupTrackEx(fileName, ac.signal, undefined, (txt) => {   // the text appears as soon as it is known, the cover later
+      if (needsText && !ac.signal.aborted && !touched.current) { setArtist(txt.artist); setTitle(txt.title); }
+    }).then(({ result: r }) => {
       if (!r || ac.signal.aborted || touched.current) return;
       if (needsText) { setArtist(r.artist); setTitle(r.title); }
       if (!initial.cover && r.cover) setCover(r.cover);
