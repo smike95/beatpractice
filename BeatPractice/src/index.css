@@ -205,6 +205,9 @@ button, [role="switch"], [role="button"], a, input[type="range"], summary { touc
   animation: bp-pop 180ms ease-out;
 }
 
+/* a dialog that takes the place of another one (export steps): no fade, no pop */
+.bp-modal-overlay.bp-still, .bp-modal-overlay.bp-still .bp-modal { animation: none; }
+
 /* ==========================================================================
    SLIDERS: touch zone and focus
    ========================================================================== */

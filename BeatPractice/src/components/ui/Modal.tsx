@@ -9,6 +9,7 @@ const WIDTH = { md: "max-w-md", lg: "max-w-lg", xl: "max-w-xl", "2xl": "max-w-2x
  * - `onClose` set: a press on the backdrop closes it, and so does Esc (unless `closeOnEscape` is false).
  * - `onClose` not set: the user has to answer in the dialog itself.
  * - `scroll={false}`: the content scrolls by itself (a flex column), not the whole card.
+ * - `still`: no fade/pop-in. Used when one dialog replaces another in the same place (the steps of the export), so the window stays put.
  */
 export function Modal(props: {
   id: string;
@@ -18,10 +19,11 @@ export function Modal(props: {
   closeOnEscape?: boolean;
   layer?: "z-50" | "z-[100]";
   scroll?: boolean;
+  still?: boolean;
   className?: string;
   children: ReactNode;
 }) {
-  const { id, width, role = "dialog", onClose, closeOnEscape = true, layer = "z-50", scroll = true, className = "", children } = props;
+  const { id, width, role = "dialog", onClose, closeOnEscape = true, layer = "z-50", scroll = true, still = false, className = "", children } = props;
 
   useEffect(() => {
     if (!onClose || !closeOnEscape) return;
@@ -32,7 +34,7 @@ export function Modal(props: {
 
   return (
     <div
-      className={`bp-modal-overlay fixed inset-0 ${layer} flex items-center justify-center bg-black/55`}
+      className={`bp-modal-overlay${still ? " bp-still" : ""} fixed inset-0 ${layer} flex items-center justify-center bg-black/55`}
       onMouseDown={onClose ? (e) => { if (e.target === e.currentTarget) onClose(); } : undefined}
     >
       <div
