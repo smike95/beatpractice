@@ -214,7 +214,8 @@ std::vector<int> thinBeats(const std::vector<int>& frames, const std::vector<flo
 struct BarState { int a, b, p; };   // a = previous bar length, b = current bar length, p = position in current bar
 
 // most likely bar structure: alternating bar lengths (4,3,4,3) are cheap, isolated changes are expensive
-std::vector<std::pair<int,int>> barStructure(const std::vector<int>& frames, const std::vector<float>& downLogit,
+struct BarResult { std::vector<std::pair<int,int>> seq; double score = 0; };   // score = log-likelihood of the best structure
+BarResult barStructure(const std::vector<int>& frames, const std::vector<float>& downLogit,
                                              const AnalyzerConfig& cfg, const std::vector<char>& weak) {
     const int nB = (int)frames.size(), nF = (int)downLogit.size();
     std::vector<double> ld(nB), lnd(nB);
@@ -259,12 +260,18 @@ std::vector<std::pair<int,int>> barStructure(const std::vector<int>& frames, con
         }
     }
     int cur = 0; for (int i = 1; i < ns; ++i) if (V[nB-1][i] > V[nB-1][cur]) cur = i;
+    const int endState = cur;
     std::vector<int> seq{cur};
     for (int t = nB - 1; t > 0; --t) { cur = bp[t][cur]; seq.push_back(cur); }
     std::reverse(seq.begin(), seq.end());
-    std::vector<std::pair<int,int>> out;
-    for (int i : seq) out.push_back({S[i].b, S[i].p});
+    BarResult out; out.score = V[nB-1][endState];
+    for (int i : seq) out.seq.push_back({S[i].b, S[i].p});
     return out;
+}
+
+double tempoPrior(double bpm, const AnalyzerConfig& cfg) {
+    const double z = std::log(std::max(1.0, bpm) / cfg.tempoPriorCenterBpm) / cfg.tempoPriorSigma;
+    return -0.5 * z * z;
 }
 
 } // namespace
@@ -276,11 +283,28 @@ BeatMap decodeBeatMap(const Activations& a, const AnalyzerConfig& cfg) {
     const LocalTempo lt = localPeriods(a.beat, m.periodSec, cfg);
     std::vector<int> fr = beatChain(a.beat, lt, cfg);
     if (fr.size() < 8) return m;
-    if (cfg.tempoDivide == 2) { fr = thinBeats(fr, a.downbeat); m.periodSec *= 2.0; if (fr.size() < 8) return m; }
-    auto st = barStructure(fr, a.downbeat, cfg, lt.weak);
+    BarResult st;
+    if (cfg.tempoDivide == 2) {
+        fr = thinBeats(fr, a.downbeat); m.periodSec *= 2.0; if (fr.size() < 8) return m;
+        st = barStructure(fr, a.downbeat, cfg, lt.weak);
+    } else {
+        st = barStructure(fr, a.downbeat, cfg, lt.weak);
+        // automatic octave check: is this grid twice as fast as the music? Compare it with the same grid keeping every second beat.
+        const double span = (fr.back() - fr.front()) / kFrameRate;
+        const double bpm0 = span > 0 ? 60.0 * (fr.size() - 1) / span : 0.0;
+        if (cfg.tempoDivide == 0 && fr.size() >= 16 && bpm0 >= cfg.autoHalveMinBpm) {
+            std::vector<int> fh = thinBeats(fr, a.downbeat);
+            if (fh.size() >= 8) {
+                BarResult sh = barStructure(fh, a.downbeat, cfg, lt.weak);
+                if (sh.score + cfg.tempoPriorWeight * tempoPrior(bpm0 / 2, cfg) > st.score + cfg.tempoPriorWeight * tempoPrior(bpm0, cfg)) {
+                    fr = std::move(fh); st = std::move(sh); m.periodSec *= 2.0;
+                }
+            }
+        }
+    }
     for (size_t i = 0; i < fr.size(); ++i) {
         m.beats.push_back(fr[i] / kFrameRate);
-        m.barLength.push_back(st[i].first); m.posInBar.push_back(st[i].second);
+        m.barLength.push_back(st.seq[i].first); m.posInBar.push_back(st.seq[i].second);
     }
     // metronome range: from the first bar that opens a run of equal strong bars, to the last strong bar
     std::vector<int> starts;

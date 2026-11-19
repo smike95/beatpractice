@@ -67,10 +67,14 @@ int main(int argc, char** argv) {
             for (int d = -1; d <= 1; ++d) a.beat[f + d] = (d == 0 ? 6.f : 2.f);       // every half beat
             if (k % 8 == 0) for (int d = -1; d <= 1; ++d) a.downbeat[f + d] = (d == 0 ? 6.f : 2.f);   // a real bar = 8 half beats
         }
-        BeatMap plain = decodeBeatMap(a, AnalyzerConfig::forMeterMode(0));
+        AnalyzerConfig noFix = AnalyzerConfig::forMeterMode(0); noFix.tempoDivide = 1;      // automatic octave check switched off
+        BeatMap plain = decodeBeatMap(a, noFix);
+        BeatMap autoFix = decodeBeatMap(a, AnalyzerConfig::forMeterMode(0));
         BeatMap half = decodeBeatMap(a, AnalyzerConfig::forMeterMode(10));
         auto c = barLengths(half);
-        ok(plain.bpm > 190, "double-tempo song without correction: ~210 BPM  (" + std::to_string((int)plain.bpm) + ")");
+        ok(plain.bpm > 190, "double-tempo song, octave check off: ~210 BPM  (" + std::to_string((int)plain.bpm) + ")");
+        ok(std::fabs(autoFix.bpm - realBpm) < 1.5, "double-tempo song, automatic: ~105 BPM without the wrench  (" + std::to_string(autoFix.bpm) + ")");
+        { auto ca = barLengths(autoFix); ok(of(ca, 4) >= total(ca) * 9 / 10, "double-tempo song, automatic: bars of 4 beats  (" + show(ca) + ")"); }
         ok(std::fabs(half.bpm - realBpm) < 1.5, "double-tempo song with mode 10: ~105 BPM  (" + std::to_string(half.bpm) + ")");
         ok(of(c, 4) >= total(c) * 9 / 10 && total(c) > 25, "double-tempo song with mode 10: bars of 4 beats  (" + show(c) + ")");
         ok(half.beats.size() * 2 + 4 >= plain.beats.size() && half.beats.size() * 2 <= plain.beats.size() + 4, "mode 10 keeps half of the beats");
@@ -83,6 +87,18 @@ int main(int argc, char** argv) {
             if (mx > 3) ++onDown;
         }
         ok(starts > 20 && onDown * 10 >= starts * 9, "bar starts of mode 10 sit on the network's downbeats  (" + std::to_string(onDown) + "/" + std::to_string(starts) + ")");
+    }
+    // a genuinely fast 4/4 song (190 BPM, the network's downbeats on every 4th beat) must NOT be halved by the automatic check
+    {
+        const double bpm = 190.0, beat = 60.0 / bpm; const int n = 3600;
+        Activations a; a.durationSec = n / kFrameRate; a.beat.assign(n, -6.f); a.downbeat.assign(n, -6.f);
+        for (int k = 0;; ++k) {
+            int f = (int)std::lround((1.0 + k * beat) * kFrameRate); if (f >= n - 2) break;
+            for (int d = -1; d <= 1; ++d) a.beat[f + d] = (d == 0 ? 6.f : 2.f);
+            if (k % 4 == 0) for (int d = -1; d <= 1; ++d) a.downbeat[f + d] = (d == 0 ? 6.f : 2.f);
+        }
+        BeatMap m = decodeBeatMap(a, AnalyzerConfig::forMeterMode(0));
+        ok(std::fabs(m.bpm - bpm) < 3.0, "genuinely fast 4/4 song keeps ~190 BPM (not halved)  (" + std::to_string(m.bpm) + ")");
     }
     // "The Beautiful People" (Marilyn Manson, ~144 BPM): the network is unsure for the first ~25 s (a drum roll in 16ths, its
     // autocorrelation peaks at 4 x 0.14 s = 0.56 s), then it is rock steady. The intro must keep the song's tempo and 4/4 bars,

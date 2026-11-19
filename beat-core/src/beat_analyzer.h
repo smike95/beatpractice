@@ -40,8 +40,13 @@ struct AnalyzerConfig {
     double weakDownbeatTrust = 0.3;      // in unreliable stretches the downbeat evidence is pulled towards "no information" by this share
 
     // ---- tempo correction ----
-    // 2 = the network followed the half-beats (twice the real tempo, e.g. 210 instead of 105): keep every second beat.
-    int tempoDivide = 1;
+    // 0 = automatic (default): a fast grid (>= autoHalveMinBpm) is also tried with every second beat kept, and the reading that
+    //     explains the downbeats better (and has the more usual tempo) wins. 2 = always keep every second beat (manual "divide by two").
+    int tempoDivide = 0;
+    double autoHalveMinBpm = 140.0;      // below this tempo halving is never considered
+    double tempoPriorCenterBpm = 115.0;  // the most usual tempo; a log-normal prior around it separates 105 from 210 when the downbeats cannot
+    double tempoPriorSigma = 0.45;       // spread of that prior (natural-log units)
+    double tempoPriorWeight = 8.0;       // how many log-likelihood units a full prior unit is worth (per song)
 
     // ---- bar structure ----
     std::vector<int> barLengths = {3, 4, 5, 6, 7};   // allowed bar lengths in beats
