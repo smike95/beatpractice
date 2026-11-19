@@ -73,16 +73,16 @@ export default function App() {
       : snap?.state === BC.ANALYZING
         ? 'Аналіз ритму…'
         : '';
-  // the tempo that sounds now: the section under the playhead (the steady tempo of a steady song), times the speed set in the player; 100 with no track
-  const currentTempo = (() => {
-    if (!track || track.originalBpmExact <= 0) return 100;
-    const pos = snap?.position ?? 0;
-    const sec = player.sections.find((x) => pos >= x.startTime && pos < x.endTime);
-    return Math.round((sec && sec.bpm > 0 ? sec.bpm : track.originalBpmExact) * (track.bpmExact / track.originalBpmExact));
-  })();
+  // the tempo that sounds now: in a song with changing tempo it is the tempo of the section under the playhead (the metronome clicks by it),
+  // in a steady song the one tempo; both times the speed set in the player. Typed or stepped values are meant for this tempo.
+  const secNow = track?.variableTempo ? player.sections.find((x) => (snap?.position ?? 0) >= x.startTime && (snap?.position ?? 0) < x.endTime) : undefined;
+  const secBpm = secNow && secNow.bpm > 0 ? secNow.bpm : 0;
+  const speedRatio = track && track.originalBpmExact > 0 ? track.bpmExact / track.originalBpmExact : 1;
+  const shownBpm = track && track.originalBpmExact > 0 ? (secBpm > 0 ? secBpm : track.originalBpmExact) * speedRatio : 0;
+  const currentTempo = shownBpm > 0 ? Math.round(shownBpm) : 100;
   const handleRestart = player.restart;
   const handleTogglePlay = player.togglePlay;
-  const handleBpmChange = player.changeBpm;
+  const handleBpmChange = (bpm: number) => player.changeBpm(secBpm > 0 && snap && snap.songBpm > 0 ? (bpm * snap.songBpm) / secBpm : bpm);
   const handleResetBpm = player.resetBpm;
   const handleSeek = player.seek;
   // The playlist column: pinned = always open and the content is pushed aside; not pinned = a narrow strip that opens above the content on hover.
@@ -570,7 +570,7 @@ export default function App() {
             <div className="flex flex-wrap items-center gap-2 max-w-full">
                 <QuickTempoBar
                   hasTrack={!!track}
-                  currentBpm={track?.currentBpm}
+                  currentBpm={track ? (shownBpm > 0 ? Math.round(shownBpm) : track.currentBpm) : undefined}
                   canReset={!!track && track.currentBpm !== track.originalBpm}
                   onChange={handleBpmChange}
                   onReset={() => track && handleResetBpm()}
