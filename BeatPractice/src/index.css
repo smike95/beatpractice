@@ -295,3 +295,9 @@ svg.lucide.icon-sm { width: 16px !important; height: 16px !important; }
   .fm-vol { flex: 1 1 220px; }
   .fm-start { grid-column: 2; grid-row: 1; }
 }
+
+/* The globe of the song search (SearchGlobe): the two meridians are squeezed to a line and back, half a turn apart */
+@keyframes globe-turn { 0% { transform: scaleX(1); } 50% { transform: scaleX(0.04); } 100% { transform: scaleX(1); } }
+.globe-meridian { transform-box: fill-box; transform-origin: center; animation: globe-turn 2.4s linear infinite; }
+.globe-meridian-2 { animation-delay: -1.2s; }
+@media (prefers-reduced-motion: reduce) { .globe-meridian { animation: none; } .globe-meridian-2 { display: none; } }
