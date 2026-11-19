@@ -29,6 +29,25 @@ uint64_t fnv1a(const std::string& path, uint64_t seed, uint64_t* sizeOut) {
     return h;
 }
 long fileSize(const std::string& p) { return bcpath::fileSize(p); }
+
+// The name of the song's file without folders and extension, made safe for a file name, at most 80 bytes (cut between UTF-8 characters).
+// The cache files begin with it, so one can tell which song a file belongs to.
+std::string readableStem(const std::string& path) {
+    size_t cut = path.find_last_of("/\\");
+    std::string n = cut == std::string::npos ? path : path.substr(cut + 1);
+    size_t dot = n.find_last_of('.');
+    if (dot != std::string::npos && dot > 0) n.resize(dot);
+    std::string o;
+    for (unsigned char c : n) {
+        if (c < 0x20 || c == '/' || c == '\\' || c == ':' || c == '*' || c == '?' || c == '"' || c == '<' || c == '>' || c == '|') o.push_back('_');
+        else o.push_back((char)c);
+    }
+    size_t b = o.find_first_not_of(' ');
+    o = b == std::string::npos ? std::string() : o.substr(b);
+    while (!o.empty() && (o.back() == ' ' || o.back() == '.')) o.pop_back();
+    if (o.size() > 80) { size_t k = 80; while (k > 0 && (((unsigned char)o[k]) & 0xC0) == 0x80) --k; o.resize(k); while (!o.empty() && (o.back() == ' ' || o.back() == '.')) o.pop_back(); }
+    return o;
+}
 }
 
 struct Player::Impl {
@@ -441,9 +460,22 @@ struct Player::Impl {
 
             const std::string melP = modelDir + "/mel_spectrogram.onnx", netP = modelDir + "/beat_this.onnx";
             uint64_t sz = 0; uint64_t key = fnv1a(path, (uint64_t)fileSize(netP) * 31 + 7, &sz);
-            char name[64]; std::snprintf(name, sizeof name, "%016llx_%llu.act", (unsigned long long)key, (unsigned long long)sz);
-            const std::string cacheFile = cacheDir + "/" + name;
-            { char b2[64]; std::snprintf(b2, sizeof b2, "%016llx_%llu", (unsigned long long)key, (unsigned long long)sz); cacheBase = cacheDir + "/" + b2; }
+            // cache files are named "<song name>__<key>_<size>": the name tells which song a file belongs to, the key and size still decide the match
+            char b2[64]; std::snprintf(b2, sizeof b2, "%016llx_%llu", (unsigned long long)key, (unsigned long long)sz);
+            const std::string stem = readableStem(path);
+            const std::string legacyBase = cacheDir + "/" + b2;                     // how the files were named before (no song name)
+            cacheBase = stem.empty() ? legacyBase : cacheDir + "/" + stem + "__" + b2;
+            const std::string cacheFile = cacheBase + ".act";
+            if (cacheBase != legacyBase) {   // files of an older version are renamed once (the analysis and the separated parts are not lost)
+                auto mv = [](const std::string& from, const std::string& to) {
+                    if (fileSize(from) > 0 && fileSize(to) == 0) { std::error_code ec; std::filesystem::rename(bcpath::make(from), bcpath::make(to), ec); }
+                };
+                mv(legacyBase + ".act", cacheFile);
+                for (const char* n : {"htdemucs_6s_fp16weights.onnx", "htdemucs_6s.onnx", "htdemucs_fp16weights.onnx", "htdemucs.onnx"}) {
+                    long ms = fileSize(modelDir + "/" + n);
+                    if (ms > 0) mv(legacyBase + "_" + std::to_string(ms) + ".stems", cacheBase + "_" + std::to_string(ms) + ".stems");
+                }
+            }
             Activations act;
             if (act.load(cacheFile)) { cached = true; }
             else {
