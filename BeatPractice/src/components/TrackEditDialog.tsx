@@ -63,6 +63,7 @@ export function TrackEditDialog(props: {
   // Opening the dialog quietly tries to recognise the artist, the title and the cover from the file name. Nothing is shown if it fails.
   // It fills only what is still empty or default, and stops as soon as the person has typed or chosen something themselves.
   const touched = useRef(false);
+  const [note, setNote] = useState("");   // why the search found nothing (a short grey line; the dialog stays quiet when it found something)
   const [searching, setSearching] = useState(false);   // a quiet "looking..." mark while the search runs; it disappears with no message when it ends
   useEffect(() => {
     const needsText = !initial.artist.trim();
@@ -72,7 +73,12 @@ export function TrackEditDialog(props: {
     setSearching(true);
     void lookupTrackEx(fileName, ac.signal, undefined, (txt) => {   // the text appears as soon as it is known, the cover later
       if (needsText && !ac.signal.aborted && !touched.current) { setArtist(txt.artist); setTitle(txt.title); }
-    }).then(({ result: r }) => {
+    }).then(({ result: r, reason, detail }) => {
+      if (!r && !ac.signal.aborted && !touched.current) {
+        setNote(reason === "off" ? L("Розпізнавання вимкнено в налаштуваннях.", "Recognition is switched off in the settings.")
+          : reason === "net" ? L(`Не вдалося зв’язатися з базою пісень${detail ? ` (${detail})` : ""}. Спробуйте ще раз пізніше.`, `Could not reach the song database${detail ? ` (${detail})` : ""}. Try again later.`)
+          : L("У базі нічого певного не знайдено за цією назвою.", "Nothing certain was found in the database for this name."));
+      }
       if (!r || ac.signal.aborted || touched.current) return;
       if (needsText) { setArtist(r.artist); setTitle(r.title); }
       if (!initial.cover && r.cover) setCover(r.cover);
@@ -119,6 +125,7 @@ export function TrackEditDialog(props: {
               <input id="edit-title" type="text" className={field} value={title} onChange={(e) => { touched.current = true; setTitle(e.target.value); }} />
             </label>
             <p className="track-edit-label text-xs truncate" title={fileName}>{L("Файл", "File")}: {fileName}</p>
+            {note && !searching && <p role="status" className="track-edit-label text-xs">{note}</p>}
           </div>
         </div>
         {err && <p className="text-xs text-rose-500">{err}</p>}

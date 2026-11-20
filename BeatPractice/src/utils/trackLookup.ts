@@ -97,12 +97,16 @@ function fit(input: string[], answer: string[]): { inCov: number; resCov: number
 
 let lastMb = 0;
 async function mbFetch(url: string, signal: AbortSignal): Promise<any> {
-  const wait = lastMb + 1100 - Date.now();   // MusicBrainz asks for at most one request per second
-  lastMb = Date.now() + Math.max(0, wait);
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-  const r = await fetch(url, { signal, headers: { Accept: "application/json" } });
-  if (!r.ok) throw new Error("mb " + r.status);
-  return r.json();
+  // MusicBrainz asks for at most one request per second, and answers 503 / 429 when its servers are busy: wait a little and ask again (twice at most)
+  for (let attempt = 0; ; attempt++) {
+    const wait = lastMb + 1100 - Date.now();
+    lastMb = Date.now() + Math.max(0, wait);
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    const r = await fetch(url, { signal, headers: { Accept: "application/json" } });
+    if (r.ok) return r.json();
+    if ((r.status === 503 || r.status === 429) && attempt < 2) { await new Promise((res) => setTimeout(res, 2000 * (attempt + 1))); continue; }
+    throw new Error("mb " + r.status);
+  }
 }
 
 async function imageToCover(blob: Blob, size = 320): Promise<string> {
@@ -158,38 +162,54 @@ export async function lookupTrack(fileName: string, signal: AbortSignal, parse: 
  * timeout, so the caller should try again later; completed = true with no result means "searched, nothing sure found".
  */
 export async function lookupTrackEx(fileName: string, signal: AbortSignal, parse: (name: string) => Candidate[] = parseFileName,
-  onText?: (t: { artist: string; title: string }) => void): Promise<{ result: LookupResult | null; completed: boolean }> {
+  onText?: (t: { artist: string; title: string }) => void): Promise<{ result: LookupResult | null; completed: boolean; reason?: "off" | "net" | "none"; detail?: string }> {
   let completed = true;
+  let netError = "";
   try {
-    if (!loadLookupEnabled() || typeof fetch !== "function") return { result: null, completed: true };
+    if (!loadLookupEnabled() || typeof fetch !== "function") return { result: null, completed: true, reason: "off" };
     const cands = parse(fileName).slice(0, 2);
     const whole = cands.length ? cleanPiece(cands[0].artist + " " + cands[0].title) : "";
     const input = words(whole);
     if (!input.length) return { result: null, completed: true };
 
     const queries: string[] = [];
-    for (const c of cands) if (c.artist) queries.push(`recording:${q(c.title)} AND artist:${q(c.artist)}`);
+    for (const c of cands) {
+      if (!c.artist) continue;
+      queries.push(`recording:${q(c.title)} AND artist:${q(c.artist)}`);
+      // a cut-off title ("The Beautiful Peopl") or a title with extra words after it ("Anytime Anywhere adagio ..."): the last word as a prefix, then only the first two words
+      const tw = words(c.title);
+      if (tw.length && tw[tw.length - 1].length >= 3) queries.push(`recording:(${tw.map((w, i) => (i === tw.length - 1 ? w + "*" : w)).join(" AND ")}) AND artist:${q(c.artist)}`);
+      if (tw.length > 2) queries.push(`recording:(${tw.slice(0, 2).join(" AND ")}) AND artist:${q(c.artist)}`);
+    }
     queries.push(whole.replace(/[+\-&|!(){}\[\]^"~*?:\\/]/g, " "));   // the whole name as free text
 
     const good = new Map<string, { rec: any; credit: string; score: number }>();
     for (const query of queries) {
-      const data = await mbFetch(`https://musicbrainz.org/ws/2/recording?fmt=json&limit=10&query=${encodeURIComponent(query)}`, signal);
+      let data: any;
+      try { data = await mbFetch(`https://musicbrainz.org/ws/2/recording?fmt=json&limit=10&query=${encodeURIComponent(query)}`, signal); }
+      catch (e) { if (signal.aborted) throw e; completed = false; netError = String((e as Error)?.message ?? e); continue; }   // try the next question
       for (const rec of (Array.isArray(data?.recordings) ? data.recordings : [])) {
         const credit = creditOf(rec);
         if (!credit || !rec.title || (rec.score ?? 0) < 70) continue;
         const { inCov, resCov } = fit(input, words(`${credit} ${rec.title}`));
         // an explicit "artist - title" in either order: both parts must be found in the right fields (extra words in the answer, like a second artist, are fine)
-        const fieldOk = cands.some((c) => c.artist && fit(words(c.title), words(rec.title)).inCov >= 0.85 && fit(words(c.title), words(rec.title)).resCov >= 0.6 && fit(words(c.artist), words(credit)).inCov >= 0.85);
+        const fieldOk = cands.some((c) => {
+          if (!c.artist || fit(words(c.artist), words(credit)).inCov < 0.85) return false;
+          const f = fit(words(c.title), words(rec.title));
+          if (f.inCov >= 0.85 && f.resCov >= 0.6) return true;
+          // the artist is exact and the whole title of the answer is inside the name, with extra words after it ("Anytime Anywhere adagio ...")
+          return f.resCov >= 0.99 && f.inCov >= 0.3 && words(rec.title).length >= 2;
+        });
         if (!fieldOk && (inCov < 0.85 || resCov < 0.6)) continue;
         const score = inCov + resCov + (rec.releases?.length ? 0.05 : 0);
         const key = norm(credit + " " + rec.title);
         const old = good.get(key);
         if (!old || score > old.score) good.set(key, { rec, credit, score });
       }
-      if (good.size >= 1 && queries.indexOf(query) === 0) break;   // the exact question already answered
+      if (good.size >= 1) break;   // this question already answered
     }
     const ranked = Array.from(good.values()).sort((a, b) => b.score - a.score).slice(0, 3);
-    if (!ranked.length) return { result: null, completed };
+    if (!ranked.length) return { result: null, completed, reason: completed ? "none" : "net", detail: netError };
     onText?.({ artist: ranked[0].credit, title: String(ranked[0].rec.title) });   // the text is known now; the cover may still take a while
     try {
       for (const m of ranked) {
@@ -200,5 +220,5 @@ export async function lookupTrackEx(fileName: string, signal: AbortSignal, parse
     // recognised, but no cover on the archive: the text alone is still a result
     return { result: { artist: ranked[0].credit, title: String(ranked[0].rec.title), cover: "" }, completed };
   } catch { completed = false; /* silent by design */ }
-  return { result: null, completed };
+  return { result: null, completed, reason: "net", detail: netError };
 }
