@@ -1,14 +1,13 @@
 /* ==========================================================================
-   Vertical centring of the text. Segoe UI (Windows) has a tall ascent and a short descent, so a line of text that is centred by the box sits
-   1-2 px lower than an icon centred in the same button. "BP UI" is Segoe UI with the ascent and the descent moved (their sum, and so every
-   line height, stays the same): the letters of a button are centred between its edges. On macOS the system font is already centred; the face
-   is only defined where Segoe UI exists (local()).
+   The font of the whole interface: Kinetik (Light 300, Regular 400, Bold 700, Italic, Bold Italic), bundled with the app, so every system looks the same.
+   Weights in between map to the nearest face (600 and 900 use Bold); font-synthesis is off (see below), so nothing is faked.
+   The system fonts after it in the lists (body, tailwind.config.js) only fill the few signs Kinetik does not have.
    ========================================================================== */
-@font-face { font-family: "BP UI"; font-weight: 300; src: local("Segoe UI Light"), local("SegoeUI-Light"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
-@font-face { font-family: "BP UI"; font-weight: 400; src: local("Segoe UI"), local("SegoeUI"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
-@font-face { font-family: "BP UI"; font-weight: 600; src: local("Segoe UI Semibold"), local("SegoeUI-Semibold"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
-@font-face { font-family: "BP UI"; font-weight: 700; src: local("Segoe UI Bold"), local("SegoeUI-Bold"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
-@font-face { font-family: "BP UI"; font-weight: 900; src: local("Segoe UI Black"), local("SegoeUI-Black"); ascent-override: 98.5%; descent-override: 34.5%; line-gap-override: 0%; }
+@font-face { font-family: "Kinetik"; font-weight: 300; font-style: normal; font-display: block; src: url("./assets/fonts/Kinetik-Light.woff2") format("woff2"); }
+@font-face { font-family: "Kinetik"; font-weight: 400; font-style: normal; font-display: block; src: url("./assets/fonts/Kinetik-Regular.woff2") format("woff2"); }
+@font-face { font-family: "Kinetik"; font-weight: 700; font-style: normal; font-display: block; src: url("./assets/fonts/Kinetik-Bold.woff2") format("woff2"); }
+@font-face { font-family: "Kinetik"; font-weight: 400; font-style: italic; font-display: block; src: url("./assets/fonts/Kinetik-Italic.woff2") format("woff2"); }
+@font-face { font-family: "Kinetik"; font-weight: 700; font-style: italic; font-display: block; src: url("./assets/fonts/Kinetik-BoldItalic.woff2") format("woff2"); }
 
 @tailwind base;
 @tailwind components;
@@ -236,7 +235,7 @@ button, [role="switch"], [role="button"], a, input[type="range"], summary { touc
    accent focus ring, translucent toolbar, thin overlay-style scrollbars.
    ========================================================================== */
 html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-synthesis: none; }
-body { font-family: "BP UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro", "Segoe UI Variable", "Segoe UI", system-ui, sans-serif; letter-spacing: -0.003em; }
+body { font-family: "Kinetik", system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.003em; }
 /* HIG: only links get the pointing hand; buttons keep the arrow */
 button, [role="button"], .cursor-pointer, select, label, summary { cursor: default !important; }
 button:disabled, .cursor-not-allowed { cursor: default !important; }

@@ -16,10 +16,10 @@ export default {
       "4xl": ["26px", "30px"],
     },
     extend: {
-      // SF Pro is the system font of macOS (never embedded); other systems fall back to their own UI font
+      // Kinetik is bundled with the app (see index.css) and is the font of ALL text, the "monospace" one too (its figures are tabular); the system fonts only fill missing signs
       fontFamily: {
-        sans: ['"BP UI"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro"', '"Segoe UI Variable"', '"Segoe UI"', 'system-ui', 'sans-serif'],
-        mono: ['"SF Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
+        sans: ['Kinetik', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        mono: ['Kinetik', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
       },
       // accent colour: purple by default in both themes (see :root and html.light in index.css)
       colors: {
