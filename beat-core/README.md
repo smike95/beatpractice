@@ -89,7 +89,7 @@ python3 tests/compare.py --cli build/analyze_cli --models models \
 - Тести `meter_test` працюють на збережених відповідях мережі синтетичних пісень (`tests/data/meter/*.act`).
 
 ## Звуки метронома
-6 звуків (`bc_set_click_sound`), точний номер удару відліку (`bc_count_in_beat`).
+6 звуків (`bc_set_click_sound`), точний номер удару відліку (`bc_count_in_beat`), клік на півдолях між ударами (`bc_set_click_subdivision`).
 
 ## Відомі обмеження
 - Один темп на всю пісню (з невеликими відхиленнями). Пісні з різкою зміною темпу поки не підтримуються.

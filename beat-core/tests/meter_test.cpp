@@ -88,6 +88,28 @@ int main(int argc, char** argv) {
         }
         ok(starts > 20 && onDown * 10 >= starts * 9, "bar starts of mode 10 sit on the network's downbeats  (" + std::to_string(onDown) + "/" + std::to_string(starts) + ")");
     }
+    // a long syncopated stretch (30 s of dotted-eighth pulses, 3/4 of the beat, with the real beats still there but weaker) is a pattern, not a new tempo
+    {
+        const double beat = 0.6; const int n = 6000;           // 100 BPM, 120 s
+        Activations a; a.durationSec = n / kFrameRate; a.beat.assign(n, -6.f); a.downbeat.assign(n, -6.f);
+        auto pulse = [&](double sec, float v) { int f = (int)std::lround(sec * kFrameRate); if (f < 1 || f >= n - 1) return; for (int d = -1; d <= 1; ++d) a.beat[f + d] = std::max(a.beat[f + d], d == 0 ? v : v * 0.4f); };
+        for (int k = 0;; ++k) {
+            double s = 1.0 + k * beat; if (s > 118) break;
+            const bool syn = s >= 45 && s < 75;
+            pulse(s, syn ? 0.5f : 6.f);
+            if (k % 4 == 0) { int f = (int)std::lround(s * kFrameRate); for (int d = -1; d <= 1; ++d) a.downbeat[f + d] = d == 0 ? 6.f : 2.f; }
+        }
+        for (double s = 45; s < 75; s += beat * 0.75) pulse(s, 6.f);
+        AnalyzerConfig on = AnalyzerConfig::forMeterMode(0), off = on; off.localFoldRatios = false;
+        auto spread = [&](const AnalyzerConfig& c) {      // the fastest beat spacing seen in the syncopated stretch, in BPM
+            BeatMap m = decodeBeatMap(a, c); double mx = 0;
+            for (size_t i = 0; i + 1 < m.beats.size(); ++i) if (m.beats[i] > 50 && m.beats[i] < 70) mx = std::max(mx, 60.0 / (m.beats[i + 1] - m.beats[i]));
+            return std::make_pair(mx, m.beats.size()); };
+        auto pOn = spread(on), pOff = spread(off);
+        ok(pOn.first < 108 && pOn.second >= 190 && pOn.second <= 205, "syncopated stretch keeps the beat: ~100 BPM, ~200 beats (" + std::to_string(pOn.first) + " BPM, " + std::to_string(pOn.second) + " beats)");
+        // (the unreliable-window rule already keeps this synthetic stretch steady with the guard off too: the guard is a second line of defence for a stretch that stays reliable)
+        ok(pOff.second >= 190 && pOff.second <= 205, "same with the guard off: the older rules alone keep it too (" + std::to_string(pOff.second) + " beats)");
+    }
     // a genuinely fast 4/4 song (190 BPM, the network's downbeats on every 4th beat) must NOT be halved by the automatic check
     {
         const double bpm = 190.0, beat = 60.0 / bpm; const int n = 3600;

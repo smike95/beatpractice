@@ -118,6 +118,7 @@ BC_API void        bc_set_stem_gain(bc_player*, int index, float gain);
 
 /* metronome sound: 0 classic, 1 wood block, 2 hi-hat, 3 rim click, 4 cowbell, 5 electronic beep */
 BC_API void bc_set_click_sound(bc_player*, int id);
+BC_API void bc_set_click_subdivision(bc_player*, int mode);   /* 0 off, 1 half-beat clicks */
 BC_API int  bc_click_sound_count(void);
 
 BC_API int    bc_set_loop(bc_player*, double a_seconds, double b_seconds); /* 1 = ok */

@@ -61,7 +61,7 @@ struct Player::Impl {
     // current engine; swapped atomically, the old one is deleted after the audio thread has surely left it
     std::atomic<PlaybackEngine*> engine{nullptr};
     // settings remembered so a newly opened song inherits them
-    std::atomic<double> speedS{1.0}; MetronomeSettings metS; std::atomic<float> volS{1.0f}; CountInSettings ciS; std::atomic<int> clickS{0};
+    std::atomic<double> speedS{1.0}; MetronomeSettings metS; std::atomic<float> volS{1.0f}; CountInSettings ciS; std::atomic<int> clickS{0}, subS{0};
 
     // ---- stems ----
     std::thread stemWorker;
@@ -403,7 +403,7 @@ struct Player::Impl {
             auto* e = new PlaybackEngine(kEngineRate);
             e->setSongPcm16(std::move(main16), T); e->setBeatMap(*bm);
             e->setSpeed(speedS); e->setSongVolume(volS);
-            e->setMetronome(metS); e->setCountIn(ciS); e->setClickSound(clickS);
+            e->setMetronome(metS); e->setCountIn(ciS); e->setClickSound(clickS); e->setClickSubdivision(subS);
             if (!startDevice()) { delete e; return fail("Cannot open the sound output device."); }
             if (hasTracks) {
                 e->setStemsPcm16(std::move(pkg->tracks));                  // moved in: no second copy of the sound
@@ -494,7 +494,7 @@ struct Player::Impl {
             if (bm->beats.size() < 8) return fail("Could not find a steady beat in this song.");
 
             e->setBeatMap(*bm);
-            e->setMetronome(metS); e->setCountIn(ciS); e->setClickSound(clickS);
+            e->setMetronome(metS); e->setCountIn(ciS); e->setClickSound(clickS); e->setClickSubdivision(subS);
             { std::lock_guard<std::mutex> l(mu); map = bm; }
             earlyPublished = false;
             prog = 1.f; state = (int)PlayerState::Ready;
@@ -573,6 +573,7 @@ void Player::setSongVolume(float v) { impl_->volS = v; if (auto* e = impl_->engi
 void Player::setCountIn(const CountInSettings& s) { impl_->ciS = s; if (auto* e = impl_->engine.load()) e->setCountIn(s); }
 bool Player::isCountingIn() const { WITH_ENGINE(e->isCountingIn(), false); }
 bool Player::countInBeat(int* beat, int* total) const { WITH_ENGINE(e->countInBeat(beat, total), false); }
+void Player::setClickSubdivision(int mode) { impl_->subS = mode; if (auto* e = impl_->engine.load()) e->setClickSubdivision(mode); }
 void Player::setClickSound(int id) { impl_->clickS = id; if (auto* e = impl_->engine.load()) e->setClickSound(id); }
 bool Player::setLoop(double a, double b) { WITH_ENGINE(e->setLoop(a, b), false); }
 void Player::clearLoop() { if (auto* e = impl_->engine.load()) e->clearLoop(); }
@@ -653,7 +654,7 @@ void Player::setStandaloneClick(bool on, double bpm, int beats, bool accent, flo
     if (!e) {                                    // no song yet: an empty engine only to make the clicks
         if (!on) return;
         auto* ne = new PlaybackEngine(kEngineRate);
-        ne->setClickSound(sound);
+        ne->setClickSound(sound); ne->setClickSubdivision(m.subS);
         if (!m.startDevice()) { delete ne; return; }
         PlaybackEngine* none = nullptr;
         if (!m.engine.compare_exchange_strong(none, ne)) delete ne;

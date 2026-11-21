@@ -27,9 +27,11 @@ export function MetronomeSettingsForm(props: {
   onSound: (id: number) => void;
   /** time signature (beats per bar): the free metronome only; the song's metronome follows the song */
   beats?: { value: number; onChange: (n: number) => void };
+  /** half-beat clicks: an extra, quieter click between the beats (0 off, 1 on) */
+  subdivision?: { value: number; onChange: (mode: number) => void };
   countIn?: { bars: number; onBars: (n: number) => void; onlyAtStart: boolean; onMode: (onlyAtStart: boolean) => void };
 }) {
-  const { lang, accent, onAccent, sound, soundCount, onSound, countIn, beats } = props;
+  const { lang, accent, onAccent, sound, soundCount, onSound, countIn, beats, subdivision } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   return (
     <div className="space-y-3.5">
@@ -37,6 +39,12 @@ export function MetronomeSettingsForm(props: {
         <Segmented fill ariaLabel={L("Акцент на першій долі", "Accent on the first beat")} value={accent} onChange={onAccent}
           options={[{ value: false, label: L("Вимк", "Off") }, { value: true, label: L("Увімк", "On") }]} />
       </Row>
+      {subdivision && (
+        <Row label={L("Півдолі", "Half-beats")}>
+          <Segmented fill ariaLabel={L("Додатковий тихіший клік посередині між долями", "An extra, quieter click halfway between the beats")} value={subdivision.value} onChange={subdivision.onChange}
+            options={[{ value: 0, label: L("Вимк", "Off") }, { value: 1, label: L("Увімк", "On") }]} />
+        </Row>
+      )}
       {beats && (
         <Row label={L("Розмір такту", "Bar size")}>
           <Segmented fill ariaLabel={L("Долей у такті", "Beats per bar")} value={beats.value} onChange={beats.onChange}

@@ -95,6 +95,7 @@ struct Bridge::Impl {
         if (cmd == "core_stems_enable") { p.setStemsEnabled(boo("on")); return nullptr; }
         if (cmd == "core_set_stem_gain") { p.setStemGain((int)num("index"), (float)num("gain", 1)); return nullptr; }
         if (cmd == "core_set_meter_mode") return p.setMeterMode((int)num("mode"));
+        if (cmd == "core_set_click_subdivision") { p.setClickSubdivision((int)num("mode")); return nullptr; }
         if (cmd == "core_set_click_sound") { p.setClickSound((int)num("id")); return nullptr; }
         if (cmd == "core_play") { p.play(); return nullptr; }
         if (cmd == "core_pause") { p.pause(); return nullptr; }

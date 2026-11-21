@@ -79,6 +79,7 @@ public:
     void setCountIn(const CountInSettings& s); bool isCountingIn() const;
     bool countInBeat(int* beat, int* total) const;   // see PlaybackEngine::countInBeat
     void setClickSound(int id);                       // see PlaybackEngine::kClickSounds
+    void setClickSubdivision(int mode);               // 0 off, 1 half-beat clicks (see PlaybackEngine::setClickSubdivision)
     bool setLoop(double a, double b); void clearLoop(); bool loopEnabled() const;
     double snapToBar(double s) const; double snapToBeat(double s) const;
     BeatInfo currentBeat() const;

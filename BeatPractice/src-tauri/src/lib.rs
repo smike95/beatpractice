@@ -353,6 +353,11 @@ fn core_set_stem_gain(state: State<AppState>, index: i32, gain: f32) -> Result<(
 fn core_set_meter_mode(state: State<AppState>, mode: i32) -> Result<bool, String> { with_core(&state, |c| c.set_meter_mode(mode)) }
 
 #[tauri::command]
+fn core_set_click_subdivision(state: State<AppState>, mode: i32) -> Result<(), String> {
+    with_core(&state, |c| c.set_click_subdivision(mode))
+}
+
+#[tauri::command]
 fn core_set_click_sound(state: State<AppState>, id: i32) -> Result<(), String> {
     with_core(&state, |c| c.set_click_sound(id))
 }
@@ -584,6 +589,7 @@ pub fn run() {
             core_snapshot,
             core_caps,
             core_set_click_sound,
+            core_set_click_subdivision,
             core_set_meter_mode,
             core_stems_info,
             core_stems_start,

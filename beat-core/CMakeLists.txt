@@ -122,6 +122,11 @@ target_link_libraries(sounds_test beatcore)
 set_target_properties(sounds_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
 add_test(NAME sounds_test COMMAND sounds_test)
 
+add_executable(subdivision_test tests/subdivision_test.cpp)
+target_link_libraries(subdivision_test beatcore)
+set_target_properties(subdivision_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")
+add_test(NAME subdivision_test COMMAND subdivision_test)
+
 add_executable(stems_engine_test tests/stems_engine_test.cpp)
 target_link_libraries(stems_engine_test beatcore)
 set_target_properties(stems_engine_test PROPERTIES BUILD_RPATH "${ORT_DIR}/lib" INSTALL_RPATH "${ORT_DIR}/lib")

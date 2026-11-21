@@ -593,6 +593,7 @@ export default function App() {
                   sound={player.clickSound}
                   soundCount={player.caps.clickSounds}
                   onSound={player.setClickSound}
+                  subdivision={{ value: player.clickSub, onChange: player.setClickSubdivision }}
                 />
             </div>
 
@@ -722,6 +723,7 @@ export default function App() {
                 sound: player.clickSound,
               }}
               soundCount={player.caps.clickSounds}
+              subdivision={{ value: player.clickSub, onChange: player.setClickSubdivision }}
               clickBeat={player.snap?.clickBeat ?? -1}
               trackPlaying={isPlaying}
               onPauseTrack={() => { if (isPlaying) player.togglePlay(); }}

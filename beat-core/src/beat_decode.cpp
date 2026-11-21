@@ -63,6 +63,13 @@ double globalPeriod(const std::vector<float>& beatLogit, const AnalyzerConfig& c
 
 // Local beat period (seconds) for every frame: the autocorrelation is measured in a sliding window and the
 // result follows the previous window, so a tempo change is tracked instead of being forced to the global tempo.
+// is r = new period / previous period (almost) one of the simple rhythmic ratios, other than 1?
+bool simpleRhythmRatio(double r, double tol) {
+    static const double k[] = {2.0, 1.5, 4.0 / 3.0, 0.75, 2.0 / 3.0, 0.5, 3.0, 1.0 / 3.0};
+    for (double v : k) if (std::fabs(std::log(r / v)) < tol) return true;
+    return false;
+}
+
 struct LocalTempo { std::vector<double> period; std::vector<char> weak; };
 
 // Local beat period (seconds) for every frame: the autocorrelation is measured in a sliding window and the
@@ -86,6 +93,7 @@ LocalTempo localPeriods(const std::vector<float>& beatLogit, double globalP, con
     // pass 1: for every window its strength (the normalized autocorrelation peak: 1 = perfectly periodic) and its clear peaks (periods in frames)
     std::vector<double> centers, strength;
     std::vector<std::vector<double>> cands;
+    std::vector<std::vector<double>> acs; std::vector<double> bests;   // the autocorrelation of every window (to see whether the old tempo is still there)
     for (int c0 = W / 2; ; c0 += H) {
         int c = std::min(c0, n - W / 2);
         const int a = c - W / 2, b = c + W / 2;
@@ -104,7 +112,7 @@ LocalTempo localPeriods(const std::vector<float>& beatLogit, double globalP, con
             if (lag > lagLo && lag < lagHi) { double d = ac[lag-1] - 2 * ac[lag] + ac[lag+1]; if (d < 0) l += 0.5 * (ac[lag-1] - ac[lag+1]) / d; }
             pk.push_back(l);
         }
-        centers.push_back(c); strength.push_back(e0 > 0 ? best / e0 : 0.0); cands.push_back(std::move(pk));   // normalized: does not depend on how many beats fit in the window
+        centers.push_back(c); strength.push_back(e0 > 0 ? best / e0 : 0.0); cands.push_back(std::move(pk)); acs.push_back(ac); bests.push_back(best);   // normalized: does not depend on how many beats fit in the window
         if (c >= n - W / 2) break;
     }
     const size_t nw = centers.size();
@@ -127,6 +135,12 @@ LocalTempo localPeriods(const std::vector<float>& beatLogit, double globalP, con
         double pick = -1, bestDist = 1e9;
         for (double l : cands[i]) { double d = std::fabs(std::log(l / prev)); if (d < bestDist) { bestDist = d; pick = l; } }
         if (pick < 0) pick = prev;
+        if (cfg.localFoldRatios && simpleRhythmRatio(pick / prev, cfg.localFoldTolerance) && bests[i] > 0) {
+            // is the tempo before still in this window (weaker, but there)? Then the new rhythm is a pattern against the same beat, not a new tempo
+            double old = 0; const int lo = std::max(lagLo, (int)std::floor(prev * 0.96)), hi = std::min(lagHi, (int)std::ceil(prev * 1.04));
+            for (int l = lo; l <= hi; ++l) old = std::max(old, acs[i][l]);
+            if (old >= cfg.localFoldKeepShare * bests[i]) pick = prev;
+        }
         prev = pick; pers[i] = pick / kFrameRate;
     }
     // unreliable windows take the nearest reliable window's tempo

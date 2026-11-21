@@ -52,6 +52,7 @@ export function MetronomeStrip(props: {
   countInBars: number; onCountInBars: (n: number) => void;
   countInOnlyAtStart: boolean; onCountInMode: (onlyAtStart: boolean) => void;
   sound: number; soundCount: number; onSound: (id: number) => void;
+  subdivision?: { value: number; onChange: (mode: number) => void };
 }) {
   const { lang, enabled, onToggle, meter, beatsPerBar, activeBeat } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
@@ -84,7 +85,7 @@ export function MetronomeStrip(props: {
         <MetronomeSettingsForm
           lang={lang}
           accent={props.accent} onAccent={props.onAccent}
-          sound={props.sound} soundCount={props.soundCount} onSound={props.onSound}
+          sound={props.sound} soundCount={props.soundCount} onSound={props.onSound} subdivision={props.subdivision}
           countIn={{ bars: props.countInBars, onBars: props.onCountInBars, onlyAtStart: props.countInOnlyAtStart, onMode: props.onCountInMode }}
         />
       </Popover>

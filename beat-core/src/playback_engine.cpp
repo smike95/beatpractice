@@ -140,6 +140,9 @@ struct PlaybackEngine::Impl {
     double appliedRate = 0;
     bool needReseek = true;
     size_t nextBeat = 0;
+    size_t nextMid = 0;                            // the half-beat click between beat k and k+1 that comes next
+    std::atomic<int> subdivA{0};
+    static constexpr float kSubGain = 0.5f;        // the half-beat click is quieter than the beat
     std::atomic<bool> pendingCountIn{false}, pendingSnap{false};
     bool ciActive = false;
     int ciN = 0, ciNext = 0; double ciPeriod = 0; long ciTotal = 0, ciPos = 0;
@@ -155,8 +158,14 @@ struct PlaybackEngine::Impl {
         for (int id = 0; id < kClickSounds; ++id) { bankLow.push_back(makeSound(sr, id, false)); bankHigh.push_back(makeSound(sr, id, true)); }
     }
 
+    // the half-beat pointer follows the beat pointer: the first midpoint at or after `pos`
+    void syncMid(double pos) {
+        nextMid = nextBeat;
+        if (nextBeat > 0 && nextBeat < beatSample.size() && (beatSample[nextBeat - 1] + beatSample[nextBeat]) * 0.5 >= pos) nextMid = nextBeat - 1;
+    }
     void locateNextBeat() {
         nextBeat = std::lower_bound(beatSample.begin(), beatSample.end(), srcPos - 0.5) - beatSample.begin();
+        syncMid(srcPos - 0.5);
         active.clear();
     }
 
@@ -196,8 +205,10 @@ struct PlaybackEngine::Impl {
             const int beats = std::max(1, scBeats.load());
             const int pos = (int)(scBeatIdx % beats), sid = std::max(0, std::min(kClickSounds - 1, scSound.load()));
             scActive.push_back({(scAccent.load() && pos == 0) ? &bankHigh[sid] : &bankLow[sid], -(int)std::max(0.0, scCountdown), scVol.load()});
+            const double beatFrames = (double)sr * 60.0 / std::max(20.0, std::min(400.0, scBpm.load()));   // the tempo is read again for every click
+            if (subdivA.load() == 1) scActive.push_back({&bankLow[sid], -(int)std::max(0.0, scCountdown + beatFrames * 0.5), scVol.load() * kSubGain});   // half-beat click
             scLastBeat = pos; ++scBeatIdx;
-            scCountdown += (double)sr * 60.0 / std::max(20.0, std::min(400.0, scBpm.load()));   // the tempo is read again for every click
+            scCountdown += beatFrames;
         }
         scCountdown -= frames;
         for (auto& c : scActive) {
@@ -382,8 +393,24 @@ struct PlaybackEngine::Impl {
                 }
                 ++nextBeat;
             }
+            if (subdivA.load() == 1) {                      // half-beat clicks: halfway between this beat and the next one
+                while (nextMid + 1 < beatSample.size()) {
+                    const double mid = (beatSample[nextMid] + beatSample[nextMid + 1]) * 0.5;
+                    if (mid >= effEnd) break;
+                    const long idx = (long)nextMid;
+                    if (idx >= playFirst && idx + 1 <= playLast && !quietBeat(nextMid, qBase)) {
+                        int off = (int)std::floor((mid - srcStart) / rate + 0.5);
+                        off = std::max(0, std::min(n - 1, off));
+                        active.push_back({&bankLow[sid], -off, mv * kSubGain});
+                    }
+                    ++nextMid;
+                }
+            } else {
+                while (nextMid + 1 < beatSample.size() && (beatSample[nextMid] + beatSample[nextMid + 1]) * 0.5 < effEnd) ++nextMid;
+            }
         } else {
             while (nextBeat < beatSample.size() && beatSample[nextBeat] < effEnd) ++nextBeat;
+            while (nextMid + 1 < beatSample.size() && (beatSample[nextMid] + beatSample[nextMid + 1]) * 0.5 < effEnd) ++nextMid;
         }
         mixClicks(out, n);
 
@@ -392,6 +419,7 @@ struct PlaybackEngine::Impl {
             srcPos = lo + (srcEnd - hi);                // carry the sub-sample overshoot: loops never drift
             needReseek = true; fadeInLeft = kLoopFade;
             nextBeat = std::lower_bound(beatSample.begin(), beatSample.end(), lo - 1e-6) - beatSample.begin();
+            syncMid(lo - 1e-6);
             if (ciEveryLoopA.load()) pendingCountIn = true;
         } else {
             srcPos = srcEnd;
@@ -529,6 +557,7 @@ int PlaybackEngine::standaloneBeat() const { return impl_->scOn.load() ? impl_->
 void PlaybackEngine::setCountInSilent(bool silent) { impl_->ciSilentA = silent; }
 void PlaybackEngine::setStopAt(double s) { impl_->stopFrame = s < 0 ? -1L : (long)std::llround(s * impl_->sr); }
 int PlaybackEngine::lastRenderFrames() const { return impl_->lastFrames; }
+void PlaybackEngine::setClickSubdivision(int mode) { impl_->subdivA = mode == 1 ? 1 : 0; }
 void PlaybackEngine::setClickSound(int id) { impl_->clickSoundA = std::max(0, std::min(kClickSounds - 1, id)); }
 bool PlaybackEngine::setLoop(double a, double b) {
     auto& m = *impl_;

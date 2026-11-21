@@ -100,6 +100,9 @@ public:
     static constexpr int kClickSounds = 6;
     static int clickSoundCount() { return kClickSounds; }
     void setClickSound(int id);
+    // Half-beat clicks: 0 = off, 1 = one extra, quieter click exactly halfway between every two beats (also in the click-only metronome).
+    // Not in the count-in. (Syncopation practice: the off-beats can be heard.)
+    void setClickSubdivision(int mode);
 
     // A-B loop (positions in ORIGINAL-song seconds). The jump from B back to A is sample-exact in time;
     // snap the points to bar starts with snapToBar() so the loop is musically seamless.

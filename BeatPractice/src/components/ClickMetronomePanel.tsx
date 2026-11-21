@@ -45,6 +45,7 @@ export function ClickMetronomePanel(props: {
   trackKey: string;                 // changes with the song: the defaults are taken again
   defaults: { bpm: number; beats: number; accent: boolean; volume: number; sound: number };
   soundCount: number;               // how many sounds the core has
+  subdivision?: { value: number; onChange: (mode: number) => void };   // half-beat clicks (shared with the metronome of the song)
   clickBeat: number;                // position in the bar of the last click, -1 = off (from the snapshot)
   trackPlaying: boolean;
   onPauseTrack: () => void;
@@ -126,7 +127,7 @@ export function ClickMetronomePanel(props: {
               lang={lang}
               accent={accent} onAccent={(v) => setOwn((o) => ({ ...o, accent: v }))}
               beats={{ value: beats, onChange: (n) => setOwn((o) => ({ ...o, beats: n })) }}
-              sound={sound} soundCount={soundCount} onSound={(id) => setOwn((o) => ({ ...o, sound: id }))}
+              sound={sound} soundCount={soundCount} onSound={(id) => setOwn((o) => ({ ...o, sound: id }))} subdivision={props.subdivision}
             />
           </Popover>
         </div>

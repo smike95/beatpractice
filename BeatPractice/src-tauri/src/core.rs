@@ -107,6 +107,7 @@ pub struct Core {
     // newer core versions only (the app still works with an older library, without these features)
     count_in_beat: Option<unsafe extern "C" fn(P, *mut c_int, *mut c_int) -> c_int>,
     set_click_sound: Option<unsafe extern "C" fn(P, c_int)>,
+    set_click_subdivision: Option<unsafe extern "C" fn(P, c_int)>,
     click_sound_count: Option<unsafe extern "C" fn() -> c_int>,
     set_meter_mode: Option<unsafe extern "C" fn(P, c_int) -> c_int>,
     // stem separation (core with htdemucs support)
@@ -268,6 +269,7 @@ impl Core {
                 get_peaks: sym!(lib, "bc_get_peaks", unsafe extern "C" fn(P, *mut c_float, c_int) -> c_int),
                 count_in_beat: opt_sym!(lib, "bc_count_in_beat", unsafe extern "C" fn(P, *mut c_int, *mut c_int) -> c_int),
                 set_click_sound: opt_sym!(lib, "bc_set_click_sound", unsafe extern "C" fn(P, c_int)),
+                set_click_subdivision: opt_sym!(lib, "bc_set_click_subdivision", unsafe extern "C" fn(P, c_int)),
                 click_sound_count: opt_sym!(lib, "bc_click_sound_count", unsafe extern "C" fn() -> c_int),
                 set_meter_mode: opt_sym!(lib, "bc_set_meter_mode", unsafe extern "C" fn(P, c_int) -> c_int),
                 stems_available: opt_sym!(lib, "bc_stems_available", unsafe extern "C" fn(P) -> c_int),
@@ -343,6 +345,10 @@ impl Core {
         let f = self.count_in_beat?;
         let (mut b, mut t) = (0 as c_int, 0 as c_int);
         if unsafe { f(self.p, &mut b, &mut t) } != 0 { Some((b, t)) } else { None }
+    }
+    /// Half-beat clicks: 0 = off, 1 = on (an old library without this feature ignores it).
+    pub fn set_click_subdivision(&self, mode: i32) {
+        if let Some(f) = self.set_click_subdivision { unsafe { f(self.p, mode) } }
     }
     pub fn set_click_sound(&self, id: i32) {
         if let Some(f) = self.set_click_sound { unsafe { f(self.p, id) } }

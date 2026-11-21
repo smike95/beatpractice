@@ -31,6 +31,12 @@ struct AnalyzerConfig {
     bool   localTempo = true;
     double localWindowSec = 12.0;        // length of the window in which the local beat period is measured
     double localHopSec = 2.0;            // distance between measurements
+    // A stretch whose strongest rhythm sits at a simple ratio to the tempo before it (2, 3/2, 4/3, 3/4, 2/3, 1/2, 3, 1/3) is a drum pattern, a
+    // syncopation or a fill played against the same beat, not a change of tempo: it keeps the tempo before it. A real change of tempo
+    // (a slow-down, a lift by a tone or two) is almost never at such a ratio.
+    bool   localFoldRatios = true;
+    double localFoldTolerance = 0.05;
+    double localFoldKeepShare = 0.25;    // ...and only while the tempo before is still visible in the window (its autocorrelation is at least this share of the best peak); a real step leaves no trace of the old tempo    // how close (natural-log units, ~5 %) to a simple ratio counts as that ratio
     double localSteadyTolerance = 0.06;  // if every window is within this share of the global period, the tempo is treated as steady
     // A window where the network is unsure (its autocorrelation is much weaker than in most of the song, e.g. a drum roll in the
     // intro) is not trusted with a tempo of its own: it takes the period of the nearest trustworthy window, and the beat chain

@@ -27,6 +27,7 @@ function effectiveGain(mix: StemMix, i: number): number {
 }
 const MODE_KEY = "rt_playmode_v1";
 const SOUND_KEY = "rt_clicksound_v1";
+const SUB_KEY = "rt_clicksub_v1";
 const TAGS_KEY = "rt_tags_v1";
 const TAG_ORDER_KEY = "rt_tagorder_v1";   // { tagId: [trackId, ...] }: the order of the tracks inside each tag
 const TAG_VIEW_KEY = "rt_tagview_v1";     // the tag whose list is shown (null = the whole playlist)
@@ -219,6 +220,7 @@ export function usePlayer() {
     const v = localStorage.getItem(MODE_KEY);
     return v === "repeat" || v === "next" ? v : "stop";
   });
+  const [clickSub, setClickSubState] = useState<number>(() => (localStorage.getItem(SUB_KEY) === "1" ? 1 : 0));   // 1 = half-beat clicks
   const [clickSound, setClickSoundState] = useState<number>(() => Number(localStorage.getItem(SOUND_KEY) ?? 0) || 0);
 
   const requestedId = useRef<string | null>(null);
@@ -292,6 +294,12 @@ export function usePlayer() {
   const setPlayMode = useCallback((m: PlayMode) => {
     setPlayModeState(m);
     try { localStorage.setItem(MODE_KEY, m); } catch { /* ignore */ }
+  }, []);
+  const setClickSubdivision = useCallback((mode: number) => {
+    const m = mode === 1 ? 1 : 0;
+    setClickSubState(m);
+    try { localStorage.setItem(SUB_KEY, String(m)); } catch { /* ignore */ }
+    core.setClickSubdivision(m).catch(() => {});
   }, []);
   const setClickSound = useCallback((id: number) => {
     setClickSoundState(id);
@@ -538,6 +546,9 @@ export function usePlayer() {
     core.setQuietBars(metronomeConfig.quietEnabled, metronomeConfig.quietClickBars, metronomeConfig.quietBars + (metronomeConfig.quietContinue ? 100 : 0)).catch(() => {});
     core.setSongVolume(isTrackMuted ? 0 : trackVolume).catch(() => {});
   }, [songReady, metronomeConfig, trackVolume, isTrackMuted]);
+
+  // also at start and when a song is opened (the engine is made anew for every song)
+  useEffect(() => { core.setClickSubdivision(clickSub).catch(() => {}); }, [songReady, clickSub]);
 
   useEffect(() => {
     if (songReady && caps.clickSounds > 0) core.setClickSound(clickSound).catch(() => {});
@@ -1359,6 +1370,8 @@ export function usePlayer() {
     stemPreset,
     clickSound,
     setClickSound,
+    clickSub,
+    setClickSubdivision,
     playMode,
     setPlayMode,
     metronomeConfig,

@@ -144,6 +144,7 @@ export const core = {
   setStemGain: (index: number, gain: number) => invoke<void>("core_set_stem_gain", { index, gain }),
   setMeterMode: (mode: number) => invoke<boolean>("core_set_meter_mode", { mode }),
   setClickSound: (id: number) => invoke<void>("core_set_click_sound", { id }),
+  setClickSubdivision: (mode: number) => invoke<void>("core_set_click_subdivision", { mode }),
   songData: () => invoke<SongData>("core_song_data"),
   play: () => invoke<void>("core_play"),
   pause: () => invoke<void>("core_pause"),

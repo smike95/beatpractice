@@ -82,6 +82,7 @@ void bc_stems_enable(bc_player* h, int on) { if (h) h->p.setStemsEnabled(on != 0
 int bc_stems_enabled(bc_player* h) { return h && h->p.stemsEnabled() ? 1 : 0; }
 void bc_set_stem_gain(bc_player* h, int i, float g) { if (h) h->p.setStemGain(i, g); }
 int bc_count_in_beat(bc_player* h, int* beat, int* total) { return h && h->p.countInBeat(beat, total) ? 1 : 0; }
+void bc_set_click_subdivision(bc_player* h, int mode) { if (h) h->p.setClickSubdivision(mode); }
 void bc_set_click_sound(bc_player* h, int id) { if (h) h->p.setClickSound(id); }
 int bc_click_sound_count(void) { return PlaybackEngine::clickSoundCount(); }
 int bc_set_loop(bc_player* h, double a, double b) { return h && h->p.setLoop(a, b) ? 1 : 0; }
