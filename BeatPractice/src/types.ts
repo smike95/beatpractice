@@ -56,6 +56,7 @@ export interface PlaylistItem {
   cover?: string; // small picture as a data URL
   lookupTried?: boolean; // the artist, title and cover were looked up from the file name (the search got its answers)
   autoFilled?: { text?: boolean; cover?: boolean }; // what the automatic recognition filled in; the person can cancel it until they edit the track themselves
+  suggestion?: { artist?: string; title?: string; cover?: string }; // what the search found when the name in the database was not the file name word for word: NOT applied, offered in the dialog (the "Auto" mark)
   lookupDeclined?: boolean; // the person cancelled the automatic recognition: never fill this track automatically again
   coverDeclined?: boolean; // the person removed the cover on purpose: no automatic cover search for this track
   stemMix?: StemMix; // levels of the separated parts for this track

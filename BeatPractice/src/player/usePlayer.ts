@@ -103,7 +103,8 @@ async function recogniseTrack(id: string, getItem: () => PlaylistItem | undefine
         const res = await lookupTrackEx(input, ac.signal, {
           maxCovers: 1,
           onText: (txt) => {
-            if (needText) patch(id, (x) => (x.artist || x.title || x.lookupDeclined ? x : { ...x, artist: txt.artist, title: txt.title, autoFilled: { ...x.autoFilled, text: true } }));
+            // only a name that is the file name word for word is filled in at once; anything else waits as a suggestion (below)
+            if (needText && txt.exact) patch(id, (x) => (x.artist || x.title || x.lookupDeclined ? x : { ...x, artist: txt.artist, title: txt.title, autoFilled: { ...x.autoFilled, text: true } }));
           },
         });
         if (res.reason === "off") return "done";
@@ -111,15 +112,21 @@ async function recogniseTrack(id: string, getItem: () => PlaylistItem | undefine
         if (r) patch(id, (x) => {
           if (x.lookupDeclined) return x;
           const fillText = !(x.artist || x.title);
-          const fillCover = !x.cover && !x.coverDeclined && !!r.cover;
-          if (!fillText && !fillCover) return x;
-          return {
-            ...x,
-            artist: fillText ? r.artist : x.artist,
-            title: fillText ? r.title : x.title,
-            cover: fillCover ? r.cover : x.cover,
-            autoFilled: { ...x.autoFilled, ...(fillText ? { text: true } : {}), ...(fillCover ? { cover: true } : {}) },
-          };
+          const wantCover = !x.cover && !x.coverDeclined && !!r.cover;
+          if (!fillText && !wantCover) return x;
+          if (r.exact) {
+            return {
+              ...x,
+              artist: fillText ? r.artist : x.artist,
+              title: fillText ? r.title : x.title,
+              cover: wantCover ? r.cover : x.cover,
+              suggestion: undefined,
+              autoFilled: { ...x.autoFilled, ...(fillText ? { text: true } : {}), ...(wantCover ? { cover: true } : {}) },
+            };
+          }
+          // not word for word: nothing is changed, the person decides (the "Auto" mark opens the dialog with this filled in)
+          if (x.suggestion) return x;
+          return { ...x, suggestion: { ...(fillText ? { artist: r.artist, title: r.title } : {}), ...(wantCover ? { cover: r.cover } : {}) } };
         });
         // found with everything it was asked for, or the database is sure it has nothing: no point in asking again
         if (res.completed && (r ? (r.cover || !needCover) : true)) return "done";
@@ -445,7 +452,7 @@ export function usePlayer() {
   const pumping = useRef(false);
   useEffect(() => {
     if (!loadLookupEnabled()) return;
-    const wants = (p: PlaylistItem) => !p.lookupTried && !p.lookupDeclined && !recognising.has(p.id) && !givenUp.has(p.id) && (!(p.artist || p.title) || (!p.cover && !p.coverDeclined));
+    const wants = (p: PlaylistItem) => !p.lookupTried && !p.lookupDeclined && !p.suggestion && !recognising.has(p.id) && !givenUp.has(p.id) && (!(p.artist || p.title) || (!p.cover && !p.coverDeclined));
     const timer = setTimeout(async () => {
       if (pumping.current) return;
       pumping.current = true;
@@ -641,7 +648,7 @@ export function usePlayer() {
   const track: (AudioTrackInfo & {
     sections: TempoSection[]; bpmExact: number; bpmMin?: number; bpmMax?: number; variableTempo: boolean; variableMeter: boolean;
     meterLabels: string[]; originalBpmExact: number; displayName: string; fileName: string; artist: string; title: string; cover: string;
-    autoFilled: boolean; lookupDeclined: boolean; coverDeclined: boolean;
+    autoFilled: boolean; lookupDeclined: boolean; coverDeclined: boolean; suggestion?: { artist?: string; title?: string; cover?: string };
   }) | null = activeItem
     ? {
         name: activeItem.name,
@@ -652,6 +659,7 @@ export function usePlayer() {
         autoFilled: !!(activeItem.autoFilled?.text || activeItem.autoFilled?.cover),
         lookupDeclined: !!activeItem.lookupDeclined,
         coverDeclined: !!activeItem.coverDeclined,
+        suggestion: activeItem.suggestion,
         displayName: displayName(activeItem),
         originalBpmExact: ready && snap ? Math.round(snap.songBpm * 10) / 10 : activeItem.trackInfo.originalBpmExact ?? activeItem.trackInfo.originalBpm,
         meterLabels,
@@ -1307,7 +1315,7 @@ export function usePlayer() {
       // what the person saved is theirs now: the automatic marks go, and the search does not overwrite it
       patchItem(id, (it) => ({
         ...it, artist: meta.artist.trim() || undefined, title: meta.title.trim() || undefined, cover: meta.cover || undefined,
-        autoFilled: undefined, lookupTried: true,
+        autoFilled: undefined, suggestion: undefined, lookupTried: true,
         coverDeclined: meta.cover ? false : opts?.coverRemoved ? true : it.coverDeclined,
       }));
     },
@@ -1320,7 +1328,7 @@ export function usePlayer() {
       artist: it.autoFilled?.text ? undefined : it.artist,
       title: it.autoFilled?.text ? undefined : it.title,
       cover: it.autoFilled?.cover ? undefined : it.cover,
-      autoFilled: undefined, lookupDeclined: true, lookupTried: true,
+      autoFilled: undefined, suggestion: undefined, lookupDeclined: true, lookupTried: true,
     }));
   }, [patchItem]);
 

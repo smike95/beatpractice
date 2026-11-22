@@ -456,9 +456,17 @@ export default function App() {
           >
             <div data-tauri-drag-region className="flex flex-wrap items-center justify-between gap-x-2 gap-y-2">
               <div data-tauri-drag-region className="flex items-center gap-3 min-w-0 flex-1 basis-64">
-                <div className="hidden sm:flex w-14 h-14 rounded-xl bg-control border border-outline overflow-hidden items-center justify-center shrink-0">
+                <button
+                  type="button"
+                  disabled={!track}
+                  onClick={() => setEditing(true)}
+                  aria-label={lang === 'en' ? 'Edit the cover, artist and title' : 'Змінити обкладинку, виконавця та назву'}
+                  title={lang === 'en' ? 'Click to edit the cover, artist and title' : 'Натисніть, щоб змінити обкладинку, виконавця та назву'}
+                  className="group relative hidden sm:flex w-14 h-14 rounded-xl bg-control border border-outline overflow-hidden items-center justify-center shrink-0 cursor-pointer disabled:cursor-default"
+                >
                   {track?.cover ? <img src={track.cover} alt="" className="w-full h-full object-cover" /> : <CoverPlaceholder className="w-full h-full" rounded="" />}
-                </div>
+                  {track && <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/35 group-hover:opacity-100"><Pencil className="icon-sm" /></span>}
+                </button>
                 <div data-tauri-drag-region className="min-w-0">
                   <div data-tauri-drag-region className="flex items-center gap-1.5 min-w-0">
                     <h2 id="track-title" className="text-base font-bold text-ink truncate max-w-[24rem]">
@@ -472,6 +480,16 @@ export default function App() {
                         className="p-1 rounded-md text-ink-3 hover:text-ink hover:bg-control cursor-pointer shrink-0"
                       >
                         <Pencil className="icon-sm" />
+                      </button>
+                    )}
+                    {track && !track.autoFilled && track.suggestion && (
+                      <button
+                        id="btn-auto-suggestion"
+                        onClick={() => setEditing(true)}
+                        title={lang === 'en' ? 'The artist, title or cover were found automatically, but the name is not exactly the file name. Click to check them.' : 'Виконавця, назву чи обкладинку знайдено автоматично, але назва не збігається з назвою файла слово в слово. Натисніть, щоб перевірити.'}
+                        className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-accent/60 bg-accent/10 text-accent-text text-[11px] font-bold cursor-pointer hover:bg-accent/20"
+                      >
+                        {lang === 'en' ? 'Auto' : 'Авто'}
                       </button>
                     )}
                     {track?.autoFilled && activeTrackId && (
@@ -888,7 +906,8 @@ export default function App() {
 
       {editing && track && activeTrackId && (
         <TrackEditDialog
-          initial={{ artist: track.artist, title: track.title, cover: track.cover }}
+          initial={{ artist: track.artist || track.suggestion?.artist || '', title: track.title || track.suggestion?.title || '', cover: track.cover || track.suggestion?.cover || '' }}
+          suggested={!!track.suggestion}
           fileName={track.fileName}
           lang={lang}
           onClose={() => setEditing(false)}

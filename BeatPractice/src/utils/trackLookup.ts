@@ -13,7 +13,7 @@
  */
 
 export interface Candidate { artist: string; title: string; weak?: boolean }   // weak: the split into artist and title is only a guess ("artist-title" with no spaces)
-export interface LookupResult { artist: string; title: string; cover: string; covers: string[] }   // cover: the first of covers (data URLs), or ""
+export interface LookupResult { artist: string; title: string; cover: string; covers: string[]; exact: boolean }   // cover: the first of covers (data URLs), or ""; exact: the name in the database is the file name word for word
 
 const KEY = "beatpractice_online_lookup";
 export const loadLookupEnabled = (): boolean => { try { return localStorage.getItem(KEY) !== "0"; } catch { return true; } };
@@ -77,6 +77,26 @@ export function parseFileName(fileName: string): Candidate[] {
     } else out.push({ artist: "", title: s });
   }
   return out;
+}
+
+// ---------- exact match ----------
+const plainWords = (s: string) => s.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^\p{L}\p{N}]+/gu, " ").trim().split(" ").filter(Boolean);
+
+/** The words of a file name for the word-for-word comparison: only numeric codes (ids, track numbers) and web sites are left out. */
+export function exactNameWords(fileName: string): string[] {
+  let s = fileName.replace(/\.[A-Za-z0-9]{1,5}$/, "").replace(/_/g, " ");
+  s = s.replace(/[\(\[\{]\s*(?:https?:\/\/)?(?:www\.)?[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}\s*[\)\]\}]/gi, " ").replace(SITE, " ");
+  let ws = plainWords(s).filter((w) => !(/^\d+$/.test(w) && w.length >= 6));   // ids and time stamps
+  if (ws.length >= 3 && /^\d{1,3}$/.test(ws[0])) ws = ws.slice(1);              // a track number in front
+  return ws;
+}
+
+/** Is the name in the database (artist + title, in either order) the file name word for word, apart from numeric codes and web sites? */
+export function isExactName(fileName: string, artist: string, title: string): boolean {
+  const f = exactNameWords(fileName), a = plainWords(artist), t = plainWords(title);
+  if (!f.length || !a.length || !t.length) return false;
+  const same = (x: string[], y: string[]) => x.length === y.length && x.every((w, i) => w === y[i]);
+  return same(f, [...a, ...t]) || same(f, [...t, ...a]);
 }
 
 // ---------- helpers ----------
@@ -181,7 +201,7 @@ const OTHER = /\b(karaoke|tribute|cover|instrumental|remix|acoustic|live|demo|me
 export interface LookupOptions {
   parse?: (name: string) => Candidate[];
   /** the artist and the title, as soon as they are known (the covers can take much longer) */
-  onText?: (t: { artist: string; title: string }) => void;
+  onText?: (t: { artist: string; title: string; exact: boolean }) => void;
   /** a new cover was found (all so far are in `all`) */
   onCover?: (cover: string, all: string[]) => void;
   /** how many covers to collect: 1 for the quiet background search, more when a person will choose */
@@ -230,7 +250,7 @@ export async function lookupTrackEx(fileName: string, signal: AbortSignal, opts:
     const queries = Array.from(new Set(guessed ? [freeQs[0], ...structured, ...freeQs.slice(1)] : [...structured, ...freeQs]));
 
     const inputS = sig(input);
-    const good = new Map<string, { rec: any; credit: string; score: number }>();
+    const good = new Map<string, { rec: any; credit: string; score: number; exact: boolean }>();
     for (const query of queries) {
       let data: any;
       try { data = await mbFetch(`https://musicbrainz.org/ws/2/recording?fmt=json&limit=25&query=${encodeURIComponent(query)}`, signal); }
@@ -251,10 +271,11 @@ export async function lookupTrackEx(fileName: string, signal: AbortSignal, opts:
         if (!(covered >= 0.85 || (covered >= 0.4 && inputS.length >= 5))) continue;
         const text = `${credit} ${rec.title} ${rec.disambiguation ?? ""}`;
         if (OTHER.test(text) && !OTHER.test(whole)) continue;   // a karaoke copy, a tribute, a remix... that the file name does not ask for
-        const score = covered * 2 - extra + Math.min(10, rec.releases?.length ?? 0) * 0.02 - (rec.disambiguation ? 0.15 : 0);
+        const exact = isExactName(whole, credit, String(rec.title)) || isExactName(fileName, credit, String(rec.title));
+        const score = covered * 2 - extra + Math.min(10, rec.releases?.length ?? 0) * 0.02 - (rec.disambiguation ? 0.15 : 0) + (exact ? 5 : 0);
         const key = norm(credit + " " + rec.title);
         const old = good.get(key);
-        if (!old || score > old.score) good.set(key, { rec, credit, score });
+        if (!old || score > old.score) good.set(key, { rec, credit, score, exact });
       }
       if (good.size >= 1) break;   // this question already answered
     }
@@ -262,13 +283,13 @@ export async function lookupTrackEx(fileName: string, signal: AbortSignal, opts:
     if (!ranked.length) return { result: null, completed, reason: completed ? "none" : "net", detail: netError };
     const best = ranked[0];
     const text = { artist: best.credit, title: String(best.rec.title) };
-    opts.onText?.(text);   // the text is known now; the covers may still take a while
+    opts.onText?.({ ...text, exact: best.exact });   // the text is known now; the covers may still take a while
     const covers: string[] = [];
     try {
       // the releases of the best answer first, then those of the others (the same song as a single, on an album, on a compilation...)
       for (const m of ranked) { if (covers.length >= maxCovers) break; await coversOf(m.rec.releases ?? [], signal, maxCovers, covers, opts.onCover); }
     } catch { completed = false; }   // the cover search was cut off: the text and what was found are still a result
-    return { result: { ...text, cover: covers[0] ?? "", covers }, completed };
+    return { result: { ...text, cover: covers[0] ?? "", covers, exact: best.exact }, completed };
   } catch { completed = false; /* silent by design */ }
   return { result: null, completed, reason: "net", detail: netError };
 }
