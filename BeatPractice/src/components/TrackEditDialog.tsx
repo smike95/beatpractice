@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, ImagePlus, Search, Trash2 } from "lucide-react";
 import { SearchGlobe } from "./SearchGlobe";
 import { Modal, ModalHeader } from "./ui/Modal";
 import { btn as btnStyle } from "./ui/styles";
@@ -40,16 +40,23 @@ export function TrackEditDialog(props: {
   initial: TrackMeta;
   fileName: string;
   lang: Lang;
-  onSave: (m: TrackMeta) => void;
+  onSave: (m: TrackMeta, opts: { coverRemoved: boolean }) => void;
   onClose: () => void;
+  autoText?: boolean;    // the automatic search may fill the artist and the title (false after the person cancelled the automatic recognition of this track)
+  autoCover?: boolean;   // ...and may look for a cover (false after the person removed the cover on purpose)
 }) {
-  const { initial, fileName, lang, onSave, onClose } = props;
+  const { initial, fileName, lang, onSave, onClose, autoText = true, autoCover = true } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [artist, setArtist] = useState(initial.artist);
   // the default name (file name without extension) is real, editable text, not a placeholder
   const defaultTitle = fileName.replace(/\.[A-Za-z0-9]{1,5}$/, "");
   const [title, setTitle] = useState(initial.title || defaultTitle);
   const [cover, setCover] = useState(initial.cover);
+  const [covers, setCovers] = useState<string[]>(initial.cover ? [initial.cover] : []);   // the covers to choose from (the arrows go through them)
+  const coverTouched = useRef(false);   // the person chose, removed or loaded a cover: the search does not replace it
+  const coverRemoved = useRef(false);
+  const coverRef = useRef(initial.cover); coverRef.current = cover;
+  const artistRef = useRef(initial.artist); artistRef.current = artist;
   const [err, setErr] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -59,43 +66,65 @@ export function TrackEditDialog(props: {
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  // The first try is made when the track is first opened (usePlayer); this is the second one: the pencil tries again while the artist or the cover is still empty.
-  // Opening the dialog quietly tries to recognise the artist, the title and the cover from the file name. Nothing is shown if it fails.
-  // It fills only what is still empty or default, and stops as soon as the person has typed or chosen something themselves.
+  // The automatic recognition already ran when the track was added (usePlayer). Opening the dialog tries once more while the artist or the cover is still empty
+  // (unless the person cancelled that), and the search button does it on demand: it then also collects several covers to choose from.
+  // Nothing is shown if the quiet search fails; the button shows why. It never overwrites what the person typed or chose.
   const touched = useRef(false);
   const [note, setNote] = useState("");   // why the search found nothing (a short grey line; the dialog stays quiet when it found something)
   const [searching, setSearching] = useState(false);   // a quiet "looking..." mark while the search runs; it disappears with no message when it ends
-  useEffect(() => {
-    const needsText = !initial.artist.trim();
-    if (!needsText && initial.cover) return;
-    const ac = new AbortController();
+  const acRef = useRef<AbortController | null>(null);
+  const addCovers = (all: string[]) => setCovers((prev) => { const m = [...prev]; for (const c of all) if (!m.includes(c)) m.push(c); return m; });
+  const runSearch = (manual: boolean) => {
+    const needText = manual ? !artistRef.current.trim() : autoText && !initial.artist.trim();
+    const needCover = manual ? true : autoCover && !initial.cover;
+    if (!needText && !needCover) return;
+    acRef.current?.abort();
+    const ac = new AbortController(); acRef.current = ac;
     const stop = window.setTimeout(() => ac.abort(), 60000);   // never wait longer than this
-    setSearching(true);
-    void lookupTrackEx(fileName, ac.signal, undefined, (txt) => {   // the text appears as soon as it is known, the cover later
-      if (needsText && !ac.signal.aborted && !touched.current) { setArtist(txt.artist); setTitle(txt.title); }
+    setSearching(true); setNote("");
+    void lookupTrackEx(fileName, ac.signal, {
+      maxCovers: 8,
+      onText: (txt) => {   // the text appears as soon as it is known, the covers later
+        if (needText && !ac.signal.aborted && !touched.current) { setArtist(txt.artist); setTitle(txt.title); }
+      },
+      onCover: (c, all) => {   // the first cover is shown at once (if there is none and the person has not touched it); all go to the arrows
+        if (ac.signal.aborted) return;
+        addCovers(all);
+        if (!coverRef.current && !coverTouched.current && needCover) setCover(c);
+      },
     }).then(({ result: r, reason, detail }) => {
-      if (!r && !ac.signal.aborted && !touched.current) {
+      if (ac.signal.aborted) return;
+      if (!r && !touched.current) {
         setNote(reason === "off" ? L("Розпізнавання вимкнено в налаштуваннях.", "Recognition is switched off in the settings.")
           : reason === "net" ? L(`Не вдалося зв’язатися з базою пісень${detail ? ` (${detail})` : ""}. Спробуйте ще раз пізніше.`, `Could not reach the song database${detail ? ` (${detail})` : ""}. Try again later.`)
           : L("У базі нічого певного не знайдено за цією назвою.", "Nothing certain was found in the database for this name."));
       }
-      if (!r || ac.signal.aborted || touched.current) return;
-      if (needsText) { setArtist(r.artist); setTitle(r.title); }
-      if (!initial.cover && r.cover) setCover(r.cover);
-    }).finally(() => { window.clearTimeout(stop); if (!ac.signal.aborted) setSearching(false); });
-    return () => { window.clearTimeout(stop); ac.abort(); };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+      if (!r) return;
+      if (needText && !touched.current) { setArtist(r.artist); setTitle(r.title); }
+      addCovers(r.covers);
+      if (r.covers.length === 0 && manual) setNote(L("Обкладинок для цієї пісні не знайдено.", "No covers were found for this song."));
+    }).finally(() => { window.clearTimeout(stop); if (acRef.current === ac) setSearching(false); });
+  };
+  useEffect(() => { runSearch(false); return () => acRef.current?.abort(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (touched.current) setSearching(false); }, [artist, title, cover]);
+
+  // the arrows: through the covers that were found (and the current one)
+  const step = (dir: 1 | -1) => {
+    if (covers.length === 0) return;
+    const i = covers.indexOf(cover);
+    const n = i < 0 ? (dir === 1 ? 0 : covers.length - 1) : (i + dir + covers.length) % covers.length;
+    coverTouched.current = true; coverRemoved.current = false; setCover(covers[n]);
+  };
 
   const save = () => {
     const t = title.trim();
     // untouched default name with no artist: keep falling back to the file name
-    onSave({ artist, title: !artist.trim() && t === defaultTitle ? "" : t, cover });
+    onSave({ artist, title: !artist.trim() && t === defaultTitle ? "" : t, cover }, { coverRemoved: !cover && (coverRemoved.current || !!initial.cover) });
   };
 
   const pick = async (f: File | undefined) => {
     if (!f) return;
-    try { touched.current = true; setCover(await fileToCover(f)); setErr(""); } catch { setErr(L("Не вдалося прочитати зображення.", "Could not read the image.")); }
+    try { touched.current = true; coverTouched.current = true; coverRemoved.current = false; const c = await fileToCover(f); setCover(c); addCovers([c]); setErr(""); } catch { setErr(L("Не вдалося прочитати зображення.", "Could not read the image.")); }
   };
 
   const field = "track-edit-field w-full px-3 py-2 rounded-lg border text-base focus:outline-none focus:ring-2";
@@ -109,11 +138,19 @@ export function TrackEditDialog(props: {
           <div className="space-y-2">
             <div className="track-edit-cover relative w-full aspect-square rounded-xl border overflow-hidden flex items-center justify-center">
               {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <ImagePlus className="w-6 h-6" />}
+              {covers.length > 1 && (
+                <>
+                  <button type="button" aria-label={L("Попередня обкладинка", "Previous cover")} onClick={() => step(-1)} className="absolute left-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center cursor-pointer hover:bg-black/75"><ChevronLeft className="w-5 h-5" /></button>
+                  <button type="button" aria-label={L("Наступна обкладинка", "Next cover")} onClick={() => step(1)} className="absolute right-1 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/55 text-white flex items-center justify-center cursor-pointer hover:bg-black/75"><ChevronRight className="w-5 h-5" /></button>
+                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 rounded-full bg-black/60 text-white text-[11px] font-bold">{Math.max(1, covers.indexOf(cover) + 1)} / {covers.length}</span>
+                </>
+              )}
               {searching && !cover && <span role="status" aria-label={L("Розпізнаємо пісню й шукаємо обкладинку", "Recognising the song and looking for the cover")} className="absolute inset-0 flex items-center justify-center bg-surface/60"><SearchGlobe className="text-accent-text" /></span>}
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
             <button type="button" className={btn} onClick={() => fileRef.current?.click()}><ImagePlus className="w-6 h-6" />{L("Обкладинка…", "Cover…")}</button>
-            {cover && <button type="button" className={btn} onClick={() => setCover("")}><Trash2 className="w-6 h-6" />{L("Прибрати", "Remove")}</button>}
+            <button type="button" className={btn} disabled={searching} onClick={() => runSearch(true)}><Search className="w-6 h-6" />{L("Знайти онлайн", "Find online")}</button>
+            {cover && <button type="button" className={btn} onClick={() => { coverTouched.current = true; coverRemoved.current = true; setCover(""); }}><Trash2 className="w-6 h-6" />{L("Прибрати", "Remove")}</button>}
           </div>
           <div className="space-y-3 min-w-0">
             <label className="block space-y-1">

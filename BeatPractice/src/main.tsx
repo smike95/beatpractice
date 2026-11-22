@@ -2,6 +2,9 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./index.css";
+import { installWheelRouting } from "./utils/wheelRouting";
+
+installWheelRouting();   // the wheel scrolls the zone under the pointer, not the one clicked last
 
 // The canvases (waveform, ruler, loop picture) draw text with the font that is loaded at that moment and do not redraw when it arrives later:
 // so the faces are loaded before the first screen is drawn (the files are inside the app, this takes a moment; never wait longer than 2 s).

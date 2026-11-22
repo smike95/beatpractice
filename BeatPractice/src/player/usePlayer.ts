@@ -3,7 +3,7 @@ import { onFilesOpened, pickAudioFiles, pickFolder } from "../platform";
 import { BC, Caps, core, InitInfo, Snapshot, SongData, StemsInfo } from "../core";
 import { AudioTrackInfo, LoopRange, LoopSlot, MetronomeConfig, PlayMode, PlaylistItem, PlaylistTag, StemMix } from "../types";
 import { getOwnerId } from "../utils/license";
-import { lookupTrackEx } from "../utils/trackLookup";
+import { lookupTrackEx, loadLookupEnabled } from "../utils/trackLookup";
 import { DupChoice, findDuplicate, mergeItems, replaceItem } from "./duplicates";
 import { barStartTimes, computeSections, TempoSection, tempoVaries } from "../utils/sections";
 import { bpmSpan } from "../utils/bpm";
@@ -75,32 +75,58 @@ function loadStored(): { items: PlaylistItem[]; activeId: string | null } {
 }
 
 const recognising = new Set<string>();   // tracks whose search is running now
+const givenUp = new Set<string>();       // tracks whose search failed on the network every time in this session (tried again at the next start or when the track is opened)
+const ATTEMPT_PAUSES = [0, 4000, 12000]; // up to three attempts in a row; the first one at once
 
 /**
  * Quietly recognises artist, title and cover from the file name (or from the tags the track already has) and never shows an error.
- * It fills only what is empty: the text of a track the person has not described, the cover of a track without one. The text goes in as soon as it is
- * known, the cover when it is found. Returns true when the search really got its answers (so it need not be repeated); false after a network error or a timeout.
+ * It fills only what is empty: the text of a track the person has not described, the cover of a track without one, and marks what it filled
+ * (the person can cancel that). The text goes in as soon as it is known, the cover when it is found. If the network or the database does not answer,
+ * it tries again after a few seconds, up to three times in a row.
+ * Returns "done" when the search got its answers (found, or sure there is nothing), "failed" when it did not, "busy" when it is already running.
  */
-async function recogniseTrack(it: { name: string; artist?: string; title?: string; cover?: string }, id: string, patch: (id: string, f: (it: PlaylistItem) => PlaylistItem) => void): Promise<boolean> {
-  if (recognising.has(id)) return false;
+async function recogniseTrack(id: string, getItem: () => PlaylistItem | undefined, patch: (id: string, f: (it: PlaylistItem) => PlaylistItem) => void): Promise<"done" | "failed" | "busy"> {
+  if (recognising.has(id)) return "busy";
   recognising.add(id);
-  const ac = new AbortController();
-  const stop = setTimeout(() => ac.abort(), 60000);
   try {
-    const described = !!(it.artist && it.title);
-    const input = described ? `${it.artist} - ${it.title}` : it.name;
-    const fillText = !(it.artist || it.title);
-    const { result, completed } = await lookupTrackEx(input, ac.signal, undefined, (txt) => {
-      if (fillText) patch(id, (x) => (x.artist || x.title ? x : { ...x, artist: txt.artist, title: txt.title }));
-    });
-    if (result) patch(id, (x) => ({
-      ...x,
-      artist: x.artist || x.title ? x.artist : result.artist,
-      title: x.artist || x.title ? x.title : result.title,
-      cover: x.cover || result.cover || undefined,
-    }));
-    return completed;
-  } catch { return false; /* silent by design */ } finally { clearTimeout(stop); recognising.delete(id); }
+    for (let attempt = 0; attempt < ATTEMPT_PAUSES.length; attempt++) {
+      if (ATTEMPT_PAUSES[attempt] > 0) await new Promise((r) => setTimeout(r, ATTEMPT_PAUSES[attempt]));
+      const it = getItem();
+      if (!it || it.lookupDeclined) return "done";
+      const needText = !(it.artist || it.title);
+      const needCover = !it.cover && !it.coverDeclined;
+      if (!needText && !needCover) return "done";
+      const ac = new AbortController();
+      const stop = setTimeout(() => ac.abort(), 45000);
+      try {
+        const input = it.artist && it.title ? `${it.artist} - ${it.title}` : it.name;
+        const res = await lookupTrackEx(input, ac.signal, {
+          maxCovers: 1,
+          onText: (txt) => {
+            if (needText) patch(id, (x) => (x.artist || x.title || x.lookupDeclined ? x : { ...x, artist: txt.artist, title: txt.title, autoFilled: { ...x.autoFilled, text: true } }));
+          },
+        });
+        if (res.reason === "off") return "done";
+        const r = res.result;
+        if (r) patch(id, (x) => {
+          if (x.lookupDeclined) return x;
+          const fillText = !(x.artist || x.title);
+          const fillCover = !x.cover && !x.coverDeclined && !!r.cover;
+          if (!fillText && !fillCover) return x;
+          return {
+            ...x,
+            artist: fillText ? r.artist : x.artist,
+            title: fillText ? r.title : x.title,
+            cover: fillCover ? r.cover : x.cover,
+            autoFilled: { ...x.autoFilled, ...(fillText ? { text: true } : {}), ...(fillCover ? { cover: true } : {}) },
+          };
+        });
+        // found with everything it was asked for, or the database is sure it has nothing: no point in asking again
+        if (res.completed && (r ? (r.cover || !needCover) : true)) return "done";
+      } catch { /* silent by design; the next attempt follows */ } finally { clearTimeout(stop); }
+    }
+    return "failed";
+  } finally { recognising.delete(id); }
 }
 
 function fileName(path: string): string {
@@ -406,6 +432,36 @@ export function usePlayer() {
     setPlaylist((prev) => prev.map((it) => (it.id === id ? patch(it) : it)));
   }, []);
 
+  // ---- automatic recognition of artist, title and cover -----------------------------------------
+  // It starts by itself for every track that has not been looked up yet: when files are added, when the app starts with such tracks in the list, and when a track is opened.
+  const startRecognition = useCallback(async (id: string) => {
+    if (!loadLookupEnabled()) return;
+    const r = await recogniseTrack(id, () => playlistRef.current.find((p) => p.id === id), patchItem);
+    if (r === "done") { givenUp.delete(id); patchItem(id, (it) => ({ ...it, lookupTried: true })); }
+    else if (r === "failed") givenUp.add(id);
+  }, [patchItem]);
+  const startRecognitionRef = useRef(startRecognition);
+  startRecognitionRef.current = startRecognition;
+  const pumping = useRef(false);
+  useEffect(() => {
+    if (!loadLookupEnabled()) return;
+    const wants = (p: PlaylistItem) => !p.lookupTried && !p.lookupDeclined && !recognising.has(p.id) && !givenUp.has(p.id) && (!(p.artist || p.title) || (!p.cover && !p.coverDeclined));
+    const timer = setTimeout(async () => {
+      if (pumping.current) return;
+      pumping.current = true;
+      try {
+        for (;;) {
+          const list = playlistRef.current;
+          const next = list.find((p) => p.id === requestedId.current && wants(p)) ?? list.find(wants);   // the open track first, then the others one after another
+          if (!next) break;
+          await startRecognitionRef.current(next.id);
+          if (givenUp.has(next.id) && !playlistRef.current.some((p) => wants(p))) break;
+        }
+      } finally { pumping.current = false; }
+    }, 1500);
+    return () => clearTimeout(timer);
+  }, [playlist.length]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   // ---- opening tracks -------------------------------------------------------------------------
   const openTrack = useCallback(async (item: PlaylistItem) => {
     requestedId.current = item.id;
@@ -525,9 +581,7 @@ export function usePlayer() {
         // the first time a track is opened (the tempo is known now): look up artist, title and cover once; if it fails (no internet...), the pencil tries again
         const first = playlistRef.current.find((p) => p.id === id);
         // (also when the text is there but the cover is not; an attempt that failed on the network is repeated the next time the track is opened)
-        if (first && !first.lookupTried && (!first.artist || !first.title || !first.cover)) {
-          void recogniseTrack(first, id, patchItem).then((done) => { if (done) patchItem(id, (it) => ({ ...it, lookupTried: true })); });
-        }
+        if (first && !first.lookupTried && !first.lookupDeclined && (!first.artist || !first.title || !first.cover)) void startRecognitionRef.current(id);
         if (autoPlayId.current === id) {
           autoPlayId.current = null;
           await core.play();
@@ -587,6 +641,7 @@ export function usePlayer() {
   const track: (AudioTrackInfo & {
     sections: TempoSection[]; bpmExact: number; bpmMin?: number; bpmMax?: number; variableTempo: boolean; variableMeter: boolean;
     meterLabels: string[]; originalBpmExact: number; displayName: string; fileName: string; artist: string; title: string; cover: string;
+    autoFilled: boolean; lookupDeclined: boolean; coverDeclined: boolean;
   }) | null = activeItem
     ? {
         name: activeItem.name,
@@ -594,6 +649,9 @@ export function usePlayer() {
         artist: activeItem.artist ?? "",
         title: activeItem.title ?? "",
         cover: activeItem.cover ?? "",
+        autoFilled: !!(activeItem.autoFilled?.text || activeItem.autoFilled?.cover),
+        lookupDeclined: !!activeItem.lookupDeclined,
+        coverDeclined: !!activeItem.coverDeclined,
         displayName: displayName(activeItem),
         originalBpmExact: ready && snap ? Math.round(snap.songBpm * 10) / 10 : activeItem.trackInfo.originalBpmExact ?? activeItem.trackInfo.originalBpm,
         meterLabels,
@@ -1245,11 +1303,26 @@ export function usePlayer() {
   );
 
   const updateTrackMeta = useCallback(
-    (id: string, meta: { artist: string; title: string; cover: string }) => {
-      patchItem(id, (it) => ({ ...it, artist: meta.artist.trim() || undefined, title: meta.title.trim() || undefined, cover: meta.cover || undefined }));
+    (id: string, meta: { artist: string; title: string; cover: string }, opts?: { coverRemoved?: boolean }) => {
+      // what the person saved is theirs now: the automatic marks go, and the search does not overwrite it
+      patchItem(id, (it) => ({
+        ...it, artist: meta.artist.trim() || undefined, title: meta.title.trim() || undefined, cover: meta.cover || undefined,
+        autoFilled: undefined, lookupTried: true,
+        coverDeclined: meta.cover ? false : opts?.coverRemoved ? true : it.coverDeclined,
+      }));
     },
     [patchItem],
   );
+  // cancels what the automatic recognition filled in, and keeps it from doing it again for this track
+  const undoAutoRecognition = useCallback((id: string) => {
+    patchItem(id, (it) => ({
+      ...it,
+      artist: it.autoFilled?.text ? undefined : it.artist,
+      title: it.autoFilled?.text ? undefined : it.title,
+      cover: it.autoFilled?.cover ? undefined : it.cover,
+      autoFilled: undefined, lookupDeclined: true, lookupTried: true,
+    }));
+  }, [patchItem]);
 
   // "next" and "back" go along the list that is shown: the chosen tag in its own order, or the whole playlist (also when the playing track is not in the tag)
   const queueOf = (id: string | null) => (viewListRef.current.some((p) => p.id === id) ? viewListRef.current : playlistRef.current);
@@ -1339,6 +1412,7 @@ export function usePlayer() {
     setMeterMode: (preset: number) => setMeterMode(preset + ((activeItem?.meterMode ?? 0) >= 10 ? 10 : 0)),   // keeps the "halve" choice
     setHalveTempo,
     updateTrackMeta,
+    undoAutoRecognition,
     hasNext,
     hasPrev,
     playNext,

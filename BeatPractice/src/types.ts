@@ -54,7 +54,10 @@ export interface PlaylistItem {
   artist?: string; // set by the user
   title?: string;
   cover?: string; // small picture as a data URL
-  lookupTried?: boolean; // the artist, title and cover were already looked up from the file name once (when the track was first opened)
+  lookupTried?: boolean; // the artist, title and cover were looked up from the file name (the search got its answers)
+  autoFilled?: { text?: boolean; cover?: boolean }; // what the automatic recognition filled in; the person can cancel it until they edit the track themselves
+  lookupDeclined?: boolean; // the person cancelled the automatic recognition: never fill this track automatically again
+  coverDeclined?: boolean; // the person removed the cover on purpose: no automatic cover search for this track
   stemMix?: StemMix; // levels of the separated parts for this track
   stemsOn?: boolean; // the separated parts are what is played
   tags?: string[]; // ids of the tags of this track (see PlaylistTag)

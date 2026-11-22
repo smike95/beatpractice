@@ -12,8 +12,8 @@
  * Privacy: only the cleaned artist and title go to the internet, never the file or its path; the switch is in Settings.
  */
 
-export interface Candidate { artist: string; title: string }
-export interface LookupResult { artist: string; title: string; cover: string }   // cover: data URL or ""
+export interface Candidate { artist: string; title: string; weak?: boolean }   // weak: the split into artist and title is only a guess ("artist-title" with no spaces)
+export interface LookupResult { artist: string; title: string; cover: string; covers: string[] }   // cover: the first of covers (data URLs), or ""
 
 const KEY = "beatpractice_online_lookup";
 export const loadLookupEnabled = (): boolean => { try { return localStorage.getItem(KEY) !== "0"; } catch { return true; } };
@@ -41,6 +41,8 @@ export function cleanWhole(fileName: string): string {
 export function parseFileName(fileName: string): Candidate[] {
   let s = fileName.replace(/\.[A-Za-z0-9]{1,5}$/, "");
   s = s.replace(/_/g, " ").replace(SITE, " ").replace(/[\(\[\{]\s*[\)\]\}]/g, " ");
+  // a bracket that holds only a web address of any ending: "(meloua.com)", "[mp3.pm]"
+  s = s.replace(/[\(\[\{]\s*(?:https?:\/\/)?(?:www\.)?[\w-]+(?:\.[\w-]+)*\.[a-z]{2,}\s*[\)\]\}]/gi, " ");
   // brackets: remove those that hold only junk words (keep "(feat. X)", "(Live)", "(Remix)" as part of the title)
   s = s.replace(/[\(\[\{]([^\)\]\}]*)[\)\]\}]/g, (m, inner: string) => (JUNK.test(inner) || /^\s*\d+\s*$/.test(inner) ? " " : m));
   s = s.replace(JUNK, " ").replace(/[\(\[\{]\s*[\)\]\}]/g, " ");
@@ -52,6 +54,9 @@ export function parseFileName(fileName: string): Candidate[] {
   s = s.replace(/^\s*(?:track\s*)?\d{1,3}\s*[.\-–—)_]\s*/i, "");   // a track number in front: "01. ", "03 - "
   s = s.replace(/^\s*\d{1,3}\s+(?=\D)/, "");                         // "01 Artist - Title"
   s = cleanPiece(s);
+  // a site name glued to the end ("... albinoni SkySound7"): a last word of 7+ signs that mixes letters and digits
+  { const m = /^(.*\S)\s+(?=[\p{L}\p{N}]*\p{L})(?=[\p{L}\p{N}]*\p{N})[\p{L}\p{N}]{7,}$/u.exec(s);
+    if (m && m[1].split(/\s+/).length >= 3) s = m[1]; }
   if (!s) return [];
 
   const out: Candidate[] = [];
@@ -63,10 +68,12 @@ export function parseFileName(fileName: string): Candidate[] {
   } else {
     // no " - " with spaces: "artist-title" is still the usual form of downloaded files; try both orders (the search decides; "Jay-Z" just fails the field search
     // and is found by the free-text search of the whole name)
-    const h = /^([^\-–—]*\p{L}[^\-–—]*)[\-–—]([^\-–—]*\p{L}[^\-–—]*)$/u.exec(s);
-    if (h && cleanPiece(h[1]) && cleanPiece(h[2])) {
-      const a = cleanPiece(h[1]), b = cleanPiece(h[2]);
-      out.push({ artist: a, title: b }, { artist: b, title: a });
+    const hy = s.split(/[\-–—]/).map(cleanPiece).filter(Boolean);
+    if (!/\s/.test(s) && hy.length === 2) {
+      out.push({ artist: hy[0], title: hy[1], weak: true }, { artist: hy[1], title: hy[0], weak: true });
+    } else if (!/\s/.test(s) && hy.length >= 3) {
+      // "twenty-one-pilots-heathens": the artist is the first one, two, three or four words (the search decides which)
+      for (let k = 1; k <= Math.min(4, hy.length - 1); k++) out.push({ artist: hy.slice(0, k).join(" "), title: hy.slice(k).join(" "), weak: true });
     } else out.push({ artist: "", title: s });
   }
   return out;
@@ -130,95 +137,138 @@ async function tryImage(url: string, signal: AbortSignal): Promise<string> {
   } catch (e) { if (signal.aborted) throw e; return ""; }
 }
 
-/** The front cover of the releases of one recording: the release itself first, then its release group (covers are often filed there). */
-async function coverOf(releases: any[], signal: AbortSignal): Promise<string> {
-  const list = [...releases].sort((a, b) => Number(b.status === "Official") - Number(a.status === "Official")).slice(0, 10);
-  // in small parallel batches (a slow answer of the archive must not make the whole search crawl)
-  const urls: string[] = [];
-  for (const r of list) if (r.id) urls.push(`https://coverartarchive.org/release/${r.id}/front-500`);
-  const groups = Array.from(new Set(list.map((r) => r["release-group"]?.id).filter(Boolean))).slice(0, 6) as string[];
-  for (const g of groups) urls.push(`https://coverartarchive.org/release-group/${g}/front-500`);
-  for (let i = 0; i < urls.length; i += 4) {
-    const got = await Promise.all(urls.slice(i, i + 4).map((u) => tryImage(u, signal)));
-    const hit = got.find(Boolean);
-    if (hit) return hit;
+/** Release groups of the answers in the order they are worth trying: plain albums and singles first, compilations, live records and the like last. */
+function groupsOf(releases: any[]): { gid: string; rid: string }[] {
+  const rank = (r: any) => {
+    const g = r["release-group"] ?? {};
+    const sec: string[] = g["secondary-types"] ?? [];
+    const prim = String(g["primary-type"] ?? "");
+    return sec.length * 10 + (prim === "Album" || prim === "Single" || prim === "EP" ? 0 : 3) + (r.status === "Official" ? 0 : 1);
+  };
+  const sorted = releases.map((r, i) => ({ r, i })).sort((a, b) => rank(a.r) - rank(b.r) || a.i - b.i).map((x) => x.r);
+  const seen = new Set<string>(), out: { gid: string; rid: string }[] = [];
+  for (const r of sorted) {
+    const gid = String(r["release-group"]?.id ?? r.id ?? "");
+    if (!gid || seen.has(gid)) continue;
+    seen.add(gid); out.push({ gid, rid: String(r.id ?? "") });
   }
-  return "";
+  return out.slice(0, 12);
+}
+
+/**
+ * Front covers of the releases (one per release group, the better kinds of release first), as many as `max`, without repeats.
+ * `onCover` is called for each new one, so the first can be shown while the others are still coming.
+ */
+async function coversOf(releases: any[], signal: AbortSignal, max: number, have: string[], onCover?: (c: string, all: string[]) => void): Promise<void> {
+  const urls: string[] = [];
+  for (const g of groupsOf(releases)) {
+    urls.push(`https://coverartarchive.org/release-group/${g.gid}/front-500`);
+    if (g.rid) urls.push(`https://coverartarchive.org/release/${g.rid}/front-500`);
+  }
+  for (let i = 0; i < urls.length && have.length < max; i += 4) {
+    const got = await Promise.all(urls.slice(i, i + 4).map((u) => tryImage(u, signal)));
+    for (const c of got) if (c && !have.includes(c) && have.length < max) { have.push(c); onCover?.(c, have); }
+  }
 }
 
 const q = (s: string) => `"${s.replace(/["\\]/g, " ")}"`;
 const creditOf = (rec: any): string => (rec["artist-credit"] ?? []).map((a: any) => (a.name ?? a.artist?.name ?? "") + (a.joinphrase ?? "")).join("").trim();
+const STOP = new Set(["the", "a", "an", "and", "of", "feat", "ft", "vs"]);
+const sig = (ws: string[]) => ws.filter((w) => !STOP.has(w));
+// words that make a recording a different thing (a karaoke copy, a tribute, a remix...) unless the file name has them too
+const OTHER = /\b(karaoke|tribute|cover|instrumental|remix|acoustic|live|demo|medley|parody|8[ -]?bit|lullaby|piano version|orchestral|sped up|slowed|reverb|nightcore)\b/i;
+
+export interface LookupOptions {
+  parse?: (name: string) => Candidate[];
+  /** the artist and the title, as soon as they are known (the covers can take much longer) */
+  onText?: (t: { artist: string; title: string }) => void;
+  /** a new cover was found (all so far are in `all`) */
+  onCover?: (cover: string, all: string[]) => void;
+  /** how many covers to collect: 1 for the quiet background search, more when a person will choose */
+  maxCovers?: number;
+}
 
 /**
  * Finds the song. Returns the best doubtless match, or null. `parse` can be replaced by a model; `signal` cancels everything.
  */
 export async function lookupTrack(fileName: string, signal: AbortSignal, parse: (name: string) => Candidate[] = parseFileName): Promise<LookupResult | null> {
-  return (await lookupTrackEx(fileName, signal, parse)).result;
+  return (await lookupTrackEx(fileName, signal, { parse, maxCovers: 1 })).result;
 }
 
 /**
- * Same as lookupTrack, but: `onText` is called as soon as the artist and the title are known (the cover search can take a long time and must
- * not hold them back or lose them), and `completed` says whether the search really got its answers. completed = false means a network error or a
- * timeout, so the caller should try again later; completed = true with no result means "searched, nothing sure found".
+ * Same as lookupTrack, but: the options give the text and each cover as soon as they are known (a cover search can take a long time and must
+ * not hold the text back or lose it), and `completed` says whether the search really got its answers. completed = false means a network error or a
+ * timeout, so the caller should try again; completed = true with no result means "searched, nothing sure found".
  */
-export async function lookupTrackEx(fileName: string, signal: AbortSignal, parse: (name: string) => Candidate[] = parseFileName,
-  onText?: (t: { artist: string; title: string }) => void): Promise<{ result: LookupResult | null; completed: boolean; reason?: "off" | "net" | "none"; detail?: string }> {
+export async function lookupTrackEx(fileName: string, signal: AbortSignal, opts: LookupOptions = {}): Promise<{ result: LookupResult | null; completed: boolean; reason?: "off" | "net" | "none"; detail?: string }> {
+  const parse = opts.parse ?? parseFileName;
+  const maxCovers = Math.max(1, opts.maxCovers ?? 8);
   let completed = true;
   let netError = "";
   try {
     if (!loadLookupEnabled() || typeof fetch !== "function") return { result: null, completed: true, reason: "off" };
-    const cands = parse(fileName).slice(0, 2);
+    const cands = parse(fileName).slice(0, 4);
     const whole = cands.length ? cleanPiece(cands[0].artist + " " + cands[0].title) : "";
     const input = words(whole);
     if (!input.length) return { result: null, completed: true };
 
-    const queries: string[] = [];
+    const free = (ws: string[]) => ws.join(" ").replace(/[+\-&|!(){}\[\]^"~*?:\\/]/g, " ");
+    const structured: string[] = [];
     for (const c of cands) {
       if (!c.artist) continue;
-      queries.push(`recording:${q(c.title)} AND artist:${q(c.artist)}`);
+      structured.push(`recording:${q(c.title)} AND artist:${q(c.artist)}`);
       // a cut-off title ("The Beautiful Peopl") or a title with extra words after it ("Anytime Anywhere adagio ..."): the last word as a prefix, then only the first two words
       const tw = words(c.title);
-      if (tw.length && tw[tw.length - 1].length >= 3) queries.push(`recording:(${tw.map((w, i) => (i === tw.length - 1 ? w + "*" : w)).join(" AND ")}) AND artist:${q(c.artist)}`);
-      if (tw.length > 2) queries.push(`recording:(${tw.slice(0, 2).join(" AND ")}) AND artist:${q(c.artist)}`);
+      if (!c.weak && tw.length && tw[tw.length - 1].length >= 3) structured.push(`recording:(${tw.map((w, i) => (i === tw.length - 1 ? w + "*" : w)).join(" AND ")}) AND artist:${q(c.artist)}`);
+      if (!c.weak && tw.length > 2) structured.push(`recording:(${tw.slice(0, 2).join(" AND ")}) AND artist:${q(c.artist)}`);
     }
-    queries.push(whole.replace(/[+\-&|!(){}\[\]^"~*?:\\/]/g, " "));   // the whole name as free text
+    // the whole name as free text, then the same with the last words left off (junk or a long tail after the song's name)
+    const freeQs = [free(input)];
+    for (let L = input.length - 1; L >= Math.max(3, input.length - 3) && input.length >= 5; L--) freeQs.push(free(input.slice(0, L)));
+    // a name with no clear split goes to the free-text search first; an explicit "artist - title" to the exact search first
+    const guessed = cands.length === 0 || cands.every((c) => !c.artist || c.weak);
+    const queries = Array.from(new Set(guessed ? [freeQs[0], ...structured, ...freeQs.slice(1)] : [...structured, ...freeQs]));
 
+    const inputS = sig(input);
     const good = new Map<string, { rec: any; credit: string; score: number }>();
     for (const query of queries) {
       let data: any;
-      try { data = await mbFetch(`https://musicbrainz.org/ws/2/recording?fmt=json&limit=10&query=${encodeURIComponent(query)}`, signal); }
+      try { data = await mbFetch(`https://musicbrainz.org/ws/2/recording?fmt=json&limit=25&query=${encodeURIComponent(query)}`, signal); }
       catch (e) { if (signal.aborted) throw e; completed = false; netError = String((e as Error)?.message ?? e); continue; }   // try the next question
       for (const rec of (Array.isArray(data?.recordings) ? data.recordings : [])) {
         const credit = creditOf(rec);
-        if (!credit || !rec.title || (rec.score ?? 0) < 70) continue;
-        const { inCov, resCov } = fit(input, words(`${credit} ${rec.title}`));
-        // an explicit "artist - title" in either order: both parts must be found in the right fields (extra words in the answer, like a second artist, are fine)
-        const fieldOk = cands.some((c) => {
-          if (!c.artist || fit(words(c.artist), words(credit)).inCov < 0.85) return false;
-          const f = fit(words(c.title), words(rec.title));
-          if (f.inCov >= 0.85 && f.resCov >= 0.6) return true;
-          // the artist is exact and the whole title of the answer is inside the name, with extra words after it ("Anytime Anywhere adagio ...")
-          return f.resCov >= 0.99 && f.inCov >= 0.3 && words(rec.title).length >= 2;
-        });
-        if (!fieldOk && (inCov < 0.85 || resCov < 0.6)) continue;
-        const score = inCov + resCov + (rec.releases?.length ? 0.05 : 0);
+        if (!credit || !rec.title || (rec.score ?? 0) < 40) continue;
+        const first = String(rec["artist-credit"]?.[0]?.name ?? rec["artist-credit"]?.[0]?.artist?.name ?? credit);
+        const tw = words(String(rec.title)), pw = words(first), cw = words(credit);
+        // the artist (the first credited one) and the whole title must be in the file name; a stranger's version of the song is not this song
+        const artistIn = sig(pw).length > 0 && sig(pw).every((w) => inputS.some((v) => sameWord(w, v)));
+        const titleIn = sig(tw).length > 0 && sig(tw).every((w) => inputS.some((v) => sameWord(w, v)));
+        if (!artistIn || !titleIn) continue;
+        const ans = sig([...cw, ...tw]);
+        const covered = inputS.filter((w) => ans.some((v) => sameWord(w, v))).length / Math.max(1, inputS.length);   // how much of the file name the answer explains
+        const extra = ans.filter((v) => !inputS.some((w) => sameWord(w, v))).length / Math.max(1, ans.length);          // answer words the file name does not have
+        // the file name is explained (almost) fully, or it has a long tail (a second title, a site, a note) and the answer holds the rest
+        if (!(covered >= 0.85 || (covered >= 0.4 && inputS.length >= 5))) continue;
+        const text = `${credit} ${rec.title} ${rec.disambiguation ?? ""}`;
+        if (OTHER.test(text) && !OTHER.test(whole)) continue;   // a karaoke copy, a tribute, a remix... that the file name does not ask for
+        const score = covered * 2 - extra + Math.min(10, rec.releases?.length ?? 0) * 0.02 - (rec.disambiguation ? 0.15 : 0);
         const key = norm(credit + " " + rec.title);
         const old = good.get(key);
         if (!old || score > old.score) good.set(key, { rec, credit, score });
       }
       if (good.size >= 1) break;   // this question already answered
     }
-    const ranked = Array.from(good.values()).sort((a, b) => b.score - a.score).slice(0, 3);
+    const ranked = Array.from(good.values()).sort((a, b) => b.score - a.score).slice(0, 4);
     if (!ranked.length) return { result: null, completed, reason: completed ? "none" : "net", detail: netError };
-    onText?.({ artist: ranked[0].credit, title: String(ranked[0].rec.title) });   // the text is known now; the cover may still take a while
+    const best = ranked[0];
+    const text = { artist: best.credit, title: String(best.rec.title) };
+    opts.onText?.(text);   // the text is known now; the covers may still take a while
+    const covers: string[] = [];
     try {
-      for (const m of ranked) {
-        const cover = await coverOf(m.rec.releases ?? [], signal);
-        if (cover) return { result: { artist: m.credit, title: String(m.rec.title), cover }, completed: true };
-      }
-    } catch { completed = false; }   // the cover search was cut off: the text is still a result
-    // recognised, but no cover on the archive: the text alone is still a result
-    return { result: { artist: ranked[0].credit, title: String(ranked[0].rec.title), cover: "" }, completed };
+      // the releases of the best answer first, then those of the others (the same song as a single, on an album, on a compilation...)
+      for (const m of ranked) { if (covers.length >= maxCovers) break; await coversOf(m.rec.releases ?? [], signal, maxCovers, covers, opts.onCover); }
+    } catch { completed = false; }   // the cover search was cut off: the text and what was found are still a result
+    return { result: { ...text, cover: covers[0] ?? "", covers }, completed };
   } catch { completed = false; /* silent by design */ }
   return { result: null, completed, reason: "net", detail: netError };
 }

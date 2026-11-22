@@ -36,7 +36,7 @@ import { MAX_LOOPS } from './player/usePlayer';
 import { Modal } from './components/ui/Modal';
 import { accentFor, applyAccent, loadAccent, saveAccent, type AccentChoice } from './utils/accent';
 import { btn } from './components/ui/styles';
-import { Info, ListEnd, Package, Pause, Pencil, Play, Repeat, Repeat1, Settings, SkipBack, SkipForward, Upload, Wrench } from 'lucide-react';
+import { Info, ListEnd, Package, Pause, Pencil, Play, Repeat, Repeat1, Settings, SkipBack, SkipForward, Undo2, Upload, Wrench } from 'lucide-react';
 
 const formatTime = (seconds: number): string => {
   if (!isFinite(seconds) || seconds < 0) return '0:00';
@@ -474,6 +474,16 @@ export default function App() {
                         <Pencil className="icon-sm" />
                       </button>
                     )}
+                    {track?.autoFilled && activeTrackId && (
+                      <button
+                        id="btn-undo-auto"
+                        onClick={() => player.undoAutoRecognition(activeTrackId)}
+                        title={lang === 'en' ? 'The artist, title and cover were filled in automatically from the file name. Click to cancel it.' : 'Виконавця, назву та обкладинку підставлено автоматично за назвою файла. Натисніть, щоб скасувати.'}
+                        className="shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-full border border-accent/60 bg-accent/10 text-accent-text text-[11px] font-bold cursor-pointer hover:bg-accent/20"
+                      >
+                        <Undo2 className="w-3.5 h-3.5" />{lang === 'en' ? 'Auto · Undo' : 'Авто · Скасувати'}
+                      </button>
+                    )}
                   </div>
                   <div id="track-meta-line" data-tauri-drag-region className="flex items-center gap-x-3 gap-y-0.5 text-xs text-ink-3 mt-0.5 flex-wrap">
                     <span>{lang === 'en' ? 'Tempo' : 'Темп'}: <strong className="text-ink-2 font-mono">{track ? formatBpmRange(track.bpmMin, track.bpmMax, track.originalBpmExact) : '—'}</strong>
@@ -882,7 +892,9 @@ export default function App() {
           fileName={track.fileName}
           lang={lang}
           onClose={() => setEditing(false)}
-          onSave={(m) => { player.updateTrackMeta(activeTrackId, m); setEditing(false); }}
+          autoText={!track.lookupDeclined}
+          autoCover={!track.lookupDeclined && !track.coverDeclined}
+          onSave={(m, o) => { player.updateTrackMeta(activeTrackId, m, o); setEditing(false); }}
         />
       )}
     </div>
