@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Images, ImagePlus, Search, Trash2 } from "lucide-react";
+import { Images, ImagePlus, Search, Trash2, Undo2 } from "lucide-react";
 import { SearchGlobe } from "./SearchGlobe";
 import { Modal, ModalHeader } from "./ui/Modal";
 import { btn as btnStyle } from "./ui/styles";
@@ -46,8 +46,10 @@ export function TrackEditDialog(props: {
   autoText?: boolean;    // the automatic search may fill the artist and the title (false after the person cancelled the automatic recognition of this track)
   autoCover?: boolean;   // ...and may look for a cover (false after the person removed the cover on purpose)
   suggested?: boolean;   // the fields were filled from the automatic suggestion (the "Auto" mark): a hint says so
+  autoFilled?: boolean;  // the artist, title or cover of this track were filled in by the automatic recognition: the dialog offers to cancel that
+  onUndoAuto?: () => void;
 }) {
-  const { initial, fileName, lang, onSave, onClose, autoText = true, autoCover = true, suggested = false } = props;
+  const { initial, fileName, lang, onSave, onClose, autoText = true, autoCover = true, suggested = false, autoFilled = false, onUndoAuto } = props;
   const L = (uk: string, en: string) => (lang === "en" ? en : uk);
   const [artist, setArtist] = useState(initial.artist);
   // the default name (file name without extension) is real, editable text, not a placeholder
@@ -145,10 +147,7 @@ export function TrackEditDialog(props: {
         <div className="grid gap-4 sm:grid-cols-[11rem_minmax(0,1fr)]">
           <div className="space-y-2">
             <div className="track-edit-cover relative w-full aspect-square rounded-xl border overflow-hidden flex items-center justify-center">
-              <button type="button" onClick={() => fileRef.current?.click()} aria-label={L("Змінити обкладинку: вибрати зображення", "Change the cover: choose an image")} title={L("Натисніть, щоб вибрати зображення", "Click to choose an image")} className="group absolute inset-0 flex items-center justify-center cursor-pointer">
-                {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <ImagePlus className="w-6 h-6" />}
-                <span className="absolute inset-0 flex items-center justify-center bg-black/0 text-white opacity-0 transition group-hover:bg-black/35 group-hover:opacity-100 group-focus-visible:bg-black/35 group-focus-visible:opacity-100"><ImagePlus className="w-7 h-7" /></span>
-              </button>
+              {cover ? <img src={cover} alt="" className="w-full h-full object-cover" /> : <ImagePlus className="w-6 h-6" />}
               {searching && !cover && <span role="status" aria-label={L("Розпізнаємо пісню й шукаємо обкладинку", "Recognising the song and looking for the cover")} className="absolute inset-0 flex items-center justify-center bg-surface/60"><SearchGlobe className="text-accent-text" /></span>}
             </div>
             <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => { void pick(e.target.files?.[0]); e.target.value = ""; }} />
@@ -158,6 +157,12 @@ export function TrackEditDialog(props: {
             {cover && <button type="button" className={btn} onClick={() => { coverTouched.current = true; coverRemoved.current = true; setCover(""); }}><Trash2 className="w-6 h-6" />{L("Прибрати", "Remove")}</button>}
           </div>
           <div className="space-y-3 min-w-0">
+            {autoFilled && onUndoAuto && (
+              <div className="flex items-center justify-between gap-2 rounded-lg border border-accent/50 bg-accent/10 px-3 py-2">
+                <span className="text-xs font-semibold text-accent-text">{L("Підставлено автоматично за назвою файла.", "Filled in automatically from the file name.")}</span>
+                <button type="button" onClick={onUndoAuto} className="shrink-0 inline-flex items-center gap-1 rounded-md border border-accent/60 px-2 py-1 text-xs font-bold text-accent-text cursor-pointer hover:bg-accent/20"><Undo2 className="w-4 h-4" />{L("Скасувати", "Undo")}</button>
+              </div>
+            )}
             {suggested && <p className="text-xs font-semibold text-accent-text">{L("Підібрано автоматично за назвою файла. Перевірте й збережіть.", "Found automatically from the file name. Check it and save.")}</p>}
             <label className="block space-y-1">
               <span className="track-edit-label text-xs font-semibold">{L("Виконавець", "Artist")}</span>
