@@ -10,7 +10,7 @@ export type ExportChoice = { kind: "audio" | "pack"; scope: "song" | "tag" | "al
 
 /**
  * The first step of every export: one question, "what exactly?". Audio files are ordinary WAV files for any player;
- * a beatPractice pack carries the recognised tempo (beat map) and the separated parts, so the other device does not analyse anything.
+ * a BeatPractice pack carries the recognised tempo (beat map) and the separated parts, so the other device does not analyse anything.
  * The dialogs behind the choices are the ones that already existed (track export, pack, library) plus the batch audio export.
  */
 export function ExportChooserDialog(props: {
@@ -64,8 +64,8 @@ export function ExportChooserDialog(props: {
 
         <section className="space-y-2.5" aria-labelledby="export-pack-title">
           <div className="min-h-[4.25rem]">
-            <h3 id="export-pack-title" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-bold text-ink">{L("Пакет beatPractice", "beatPractice pack")}{tag(".beatpack")}{tag(".beatlib")}</h3>
-            <p className="text-xs text-ink-3">{L("Щоб відкрити пісні в beatPractice на іншому пристрої. Темп і партії вже розпізнані.", "To open the songs in beatPractice on another device. Tempo and parts are already analysed.")}</p>
+            <h3 id="export-pack-title" className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm font-bold text-ink">{L("Пакет BeatPractice", "BeatPractice pack")}{tag(".beatpack")}{tag(".beatlib")}</h3>
+            <p className="text-xs text-ink-3">{L("Щоб відкрити пісні в BeatPractice на іншому пристрої. Темп і партії вже розпізнані.", "To open the songs in BeatPractice on another device. Tempo and parts are already analysed.")}</p>
           </div>
           {row("export-pack-song", { kind: "pack", scope: "song" }, <Music className="h-6 w-6" />, L("Одну пісню", "One song"),
             L("Поточний трек одним файлом.", "The open track as one file."), !canSong, noTrack)}

@@ -90,7 +90,7 @@ export function LibraryExportDialog(props: {
       title: L("Зберегти збірку", "Save the library"),
       defaultName: `${safeScope.replace(/[\\/:*?"<>|]+/g, " ").trim() || "BeatPractice"}.beatlib`,
       extension: "beatlib",
-      filterName: "beatPractice library",
+      filterName: "BeatPractice library",
     });
     if (!picked) return;
     const out = /\.beatlib$/i.test(picked) ? picked : picked + ".beatlib";
@@ -191,7 +191,7 @@ export function LibraryExportDialog(props: {
 
   if (phase === "done" && result) {
     return (
-      <ExportShell id="library-export-dialog" title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Пакет beatPractice", "beatPractice pack")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")}
+      <ExportShell id="library-export-dialog" title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Пакет BeatPractice", "BeatPractice pack")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")}
         footer={<button className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>}>
         <p className="text-base font-bold text-emerald-600">{L("Збірку збережено", "The library was saved")}</p>
         <p className="text-sm">{L(`Треків у збірці: ${result.count}.`, `Tracks in the library: ${result.count}.`)}</p>
@@ -205,7 +205,7 @@ export function LibraryExportDialog(props: {
   }
 
   return (
-    <ExportShell id="library-export-dialog" title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Пакет beatPractice", "beatPractice pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} closeOnEscape={false}
+    <ExportShell id="library-export-dialog" title={<span className="inline-flex items-center gap-2"><Package className="h-6 w-6" />{L("Пакет BeatPractice", "BeatPractice pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} closeOnEscape={false}
       onBack={running ? undefined : onBack} backLabel={L("Назад", "Back")}
       footer={running ? (
         <button className={btn.neutral} onClick={() => { cancelled.current = true; }}>{L("Зупинити", "Stop")}</button>

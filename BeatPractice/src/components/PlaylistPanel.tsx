@@ -227,7 +227,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
         <div className="mac-top-space" data-tauri-drag-region />
         <div className="shrink-0 h-2" data-tauri-drag-region />
         <div className="shrink-0 pb-2 text-center text-[11px] font-black leading-[1.05] tracking-tight text-ink pointer-events-none select-none" data-tauri-drag-region aria-label="BeatPractice">
-          beat<br />Practice
+          Beat<br />Practice
         </div>
         {/* the list is as wide as the whole strip (the strip's own padding is taken back), so the mark to the left of a cover is not cut off by the scrolling */}
         <div className="-mx-3 flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto py-1" style={{ width: 'calc(100% + 1.5rem)' }}>
@@ -262,7 +262,7 @@ export const PlaylistPanel: React.FC<PlaylistPanelProps> = ({
       {/* Emblem and name (left), the pin (right) */}
       <div className="mac-top-space" data-tauri-drag-region />
       <div className="flex items-center gap-2 shrink-0 -mt-2" data-tauri-drag-region>
-        <span className="flex-1 min-w-0 truncate text-left text-2xl font-black tracking-tight pointer-events-none text-ink">beatPractice</span>
+        <span className="flex-1 min-w-0 truncate text-left text-2xl font-black tracking-tight pointer-events-none text-ink">BeatPractice</span>
         {onTogglePin && (
           <button
             type="button"

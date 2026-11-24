@@ -109,7 +109,7 @@ export function PackDialog(props: {
 
   if (done) {
     return (
-      <ExportShell id="pack-dialog" title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Пакет beatPractice", "beatPractice pack")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")}
+      <ExportShell id="pack-dialog" title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Пакет BeatPractice", "BeatPractice pack")}</span>} onClose={onClose} closeLabel={L("Закрити", "Close")}
         footer={<button id="btn-pack-close" className={btn.primary} onClick={onClose}>{L("Закрити", "Close")}</button>}>
           <p className="text-base font-bold text-emerald-600">{L("Пакет збережено", "The pack was saved")}</p>
           <p className="text-sm break-all">{outPath}</p>
@@ -120,7 +120,7 @@ export function PackDialog(props: {
   }
 
   return (
-    <ExportShell id="pack-dialog" title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Пакет beatPractice", "beatPractice pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} closeOnEscape={false}
+    <ExportShell id="pack-dialog" title={<span className="inline-flex items-center gap-2"><Package className="w-6 h-6" />{L("Пакет BeatPractice", "BeatPractice pack")}</span>} onClose={close} closeLabel={L("Закрити", "Close")} closeOnEscape={false}
       onBack={running ? undefined : onBack} backLabel={L("Назад", "Back")}
       footer={running
         ? <button className={btn.neutral} onClick={cancel}>{L("Скасувати", "Cancel")}</button>
@@ -131,8 +131,8 @@ export function PackDialog(props: {
         )}>
         <p className="track-edit-label text-sm truncate" title={displayName}>{displayName}</p>
         <p className="track-edit-label text-xs">{L(
-          "Пакет – це трек разом із розпізнаним ритмом і партіями. Відкрийте його в beatPractice на іншому пристрої, і нічого не доведеться аналізувати чи розділяти.",
-          "A pack is the track together with its analysed rhythm and parts. Open it in beatPractice on another device and nothing has to be analysed or separated.")}</p>
+          "Пакет – це трек разом із розпізнаним ритмом і партіями. Відкрийте його в BeatPractice на іншому пристрої, і нічого не доведеться аналізувати чи розділяти.",
+          "A pack is the track together with its analysed rhythm and parts. Open it in BeatPractice on another device and nothing has to be analysed or separated.")}</p>
 
         <div className="space-y-1.5" role="radiogroup" aria-label={L("Партії в пакеті", "Parts in the pack")}>
           <div className="text-xs font-bold uppercase tracking-wide track-edit-label">{L("Партії", "Parts")}</div>
