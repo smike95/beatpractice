@@ -16,10 +16,10 @@ export default {
       "4xl": ["26px", "30px"],
     },
     extend: {
-      // Kinetik is bundled with the app (see index.css) and is the font of ALL text, the "monospace" one too (its figures are tabular); the system fonts only fill missing signs
+      // Jura is bundled with the app (see index.css) and is the font of ALL text, the "monospace" one too (its figures are all of one width); the system fonts only fill missing signs
       fontFamily: {
-        sans: ['Kinetik', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
-        mono: ['Kinetik', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        sans: ['Jura Tabular', 'Jura', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
+        mono: ['Jura Tabular', 'Jura', 'system-ui', '-apple-system', '"Segoe UI"', 'sans-serif'],
       },
       // accent colour: purple by default in both themes (see :root and html.light in index.css)
       colors: {

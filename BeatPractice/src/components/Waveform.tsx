@@ -321,7 +321,7 @@ export function Waveform(props: Props) {
       ctx.strokeRect(xOf(l.start) + 0.5, RULER_H + 1.5, Math.max(2, xOf(l.end) - xOf(l.start)) - 1, MAIN_H - RULER_H - 3);
       ctx.restore();
       ctx.fillStyle = lc.solid;
-      ctx.font = "bold 16px Kinetik, system-ui, sans-serif";
+      ctx.font = "bold 16px 'Jura Tabular', Jura, system-ui, sans-serif";
       ctx.fillText(`${i + 1}`, xOf(l.start) + 6, MAIN_H - 9);
     });
     if (dragSel) {
@@ -359,7 +359,7 @@ export function Waveform(props: Props) {
     const pxPerBar = w / visBars;
     const steps = [1, 2, 4, 5, 8, 10, 16, 20, 25, 50, 100, 200];
     const step = steps.find((s) => pxPerBar * s >= 52) ?? 200;
-    ctx.font = "16px Kinetik, system-ui, sans-serif";
+    ctx.font = "16px 'Jura Tabular', Jura, system-ui, sans-serif";
     ctx.textBaseline = "middle";
     const b0 = Math.max(0, lastLE(barTimes, t0));
     for (let b = b0; b < barTimes.length && barTimes[b] <= t1; b++) {
@@ -376,7 +376,7 @@ export function Waveform(props: Props) {
     // the name of EVERY loop in the ruler (the active one in the solid colour, the others tinted). The name sits inside its loop when it fits;
     // otherwise the band continues past the loop's end, and when that would run into the next loop the whole label moves to the left,
     // so it never covers another loop. The active loop also gets thick edges and a bottom bar.
-    ctx.font = "bold 16px Kinetik, system-ui, sans-serif";
+    ctx.font = "bold 16px 'Jura Tabular', Jura, system-ui, sans-serif";
     ctx.textBaseline = "middle";
     const PAD = 8, GAP = 4;
     const rulerBase = getComputedStyle(document.documentElement).getPropertyValue("--c-canvas").trim() || "28 28 30";
@@ -448,7 +448,7 @@ export function Waveform(props: Props) {
       // how many bars are selected now
       const nBars = Math.max(1, lastLE(barTimes, b - 0.001) - lastLE(barTimes, a + 0.001) + 1);
       const txt = barsText(nBars, lang);
-      ctx.font = "bold 16px Kinetik, system-ui, sans-serif";
+      ctx.font = "bold 16px 'Jura Tabular', Jura, system-ui, sans-serif";
       const tw = ctx.measureText(txt).width + 16;
       const cx = Math.min(w - tw / 2 - 2, Math.max(tw / 2 + 2, (xOf(a) + xOf(b)) / 2));
       ctx.fillStyle = dc.solid;

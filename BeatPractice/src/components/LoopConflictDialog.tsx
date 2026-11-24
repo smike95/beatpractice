@@ -95,7 +95,7 @@ export function LoopConflictDialog(props: {
     const line = css.getPropertyValue("--c-line").trim() || "58 58 60";
     drawPeaks(ctx, peaks, w, RULER, H - RULER, view.t0, view.t1, `rgb(${ink} / 0.7)`);
     // bar lines and numbers
-    ctx.font = "11px Kinetik, system-ui, sans-serif";
+    ctx.font = "11px 'Jura Tabular', Jura, system-ui, sans-serif";
     ctx.textBaseline = "middle";
     const b0 = Math.max(0, lastLE(barTimes, view.t0));
     const every = Math.max(1, Math.ceil(36 / Math.max(1, (minBar / span) * w)));   // numbers not closer than ~36px

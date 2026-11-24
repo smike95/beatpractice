@@ -1,13 +1,23 @@
 /* ==========================================================================
-   The font of the whole interface: Kinetik (Light 300, Regular 400, Bold 700, Italic, Bold Italic), bundled with the app, so every system looks the same.
-   Weights in between map to the nearest face (600 and 900 use Bold); font-synthesis is off (see below), so nothing is faked.
-   The system fonts after it in the lists (body, tailwind.config.js) only fill the few signs Kinetik does not have.
+   The font of the whole interface: Jura (SIL Open Font License 1.1, free for commercial use), a variable font, weights 300 to 700, bundled with the app so
+   every system looks the same. Four files, each for its own range of signs (the browser loads only the ones the text needs); Jura has no italic.
+   Weights above 700 (font-black) use 700; font-synthesis is off (see below), so nothing is faked.
+   The system fonts after it in the lists (body, tailwind.config.js) only fill the signs Jura does not have. The license text is in assets/fonts/jura/OFL.txt
+   and in the third-party notices of the About dialog.
    ========================================================================== */
-@font-face { font-family: "Kinetik"; font-weight: 300; font-style: normal; font-display: block; src: url("./assets/fonts/Kinetik-Light.woff2") format("woff2"); }
-@font-face { font-family: "Kinetik"; font-weight: 400; font-style: normal; font-display: block; src: url("./assets/fonts/Kinetik-Regular.woff2") format("woff2"); }
-@font-face { font-family: "Kinetik"; font-weight: 700; font-style: normal; font-display: block; src: url("./assets/fonts/Kinetik-Bold.woff2") format("woff2"); }
-@font-face { font-family: "Kinetik"; font-weight: 400; font-style: italic; font-display: block; src: url("./assets/fonts/Kinetik-Italic.woff2") format("woff2"); }
-@font-face { font-family: "Kinetik"; font-weight: 700; font-style: italic; font-display: block; src: url("./assets/fonts/Kinetik-BoldItalic.woff2") format("woff2"); }
+@font-face { font-family: "Jura"; font-weight: 300 700; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-latin-wght-normal.woff2") format("woff2"); unicode-range: U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD; }
+@font-face { font-family: "Jura"; font-weight: 300 700; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-latin-ext-wght-normal.woff2") format("woff2"); unicode-range: U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF; }
+@font-face { font-family: "Jura"; font-weight: 300 700; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-cyrillic-wght-normal.woff2") format("woff2"); unicode-range: U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116; }
+@font-face { font-family: "Jura"; font-weight: 300 700; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-cyrillic-ext-wght-normal.woff2") format("woff2"); unicode-range: U+0460-052F,U+1C80-1C8A,U+20B4,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F; }
+
+/* Jura's own figures have different widths ("1" is much narrower than "0") and the font has no tabular option, so the time, the tempo and the bar numbers would
+   shake while they change. "Jura Tabular" is Jura with only the digits 0-9 re-spaced to one width each (a modified copy under the same license, the shapes are
+   unchanged; the weights 300 to 700). It stands first in every font list and, by its unicode-range, takes only the digits. */
+@font-face { font-family: "Jura Tabular"; font-weight: 300; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-tabular-300.woff2") format("woff2"); unicode-range: U+0030-0039; }
+@font-face { font-family: "Jura Tabular"; font-weight: 400; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-tabular-400.woff2") format("woff2"); unicode-range: U+0030-0039; }
+@font-face { font-family: "Jura Tabular"; font-weight: 500; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-tabular-500.woff2") format("woff2"); unicode-range: U+0030-0039; }
+@font-face { font-family: "Jura Tabular"; font-weight: 600; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-tabular-600.woff2") format("woff2"); unicode-range: U+0030-0039; }
+@font-face { font-family: "Jura Tabular"; font-weight: 700; font-style: normal; font-display: block; src: url("./assets/fonts/jura/jura-tabular-700.woff2") format("woff2"); unicode-range: U+0030-0039; }
 
 @tailwind base;
 @tailwind components;
@@ -235,7 +245,7 @@ button, [role="switch"], [role="button"], a, input[type="range"], summary { touc
    accent focus ring, translucent toolbar, thin overlay-style scrollbars.
    ========================================================================== */
 html { -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility; font-synthesis: none; }
-body { font-family: "Kinetik", system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.003em; }
+body { font-family: "Jura Tabular", "Jura", system-ui, -apple-system, "Segoe UI", sans-serif; letter-spacing: -0.003em; }
 /* HIG: only links get the pointing hand; buttons keep the arrow */
 button, [role="button"], .cursor-pointer, select, label, summary { cursor: default !important; }
 button:disabled, .cursor-not-allowed { cursor: default !important; }
